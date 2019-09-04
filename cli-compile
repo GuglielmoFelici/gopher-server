@@ -1,1 +1,1 @@
-gcc *.c log/*.c config/*.c -lws2_3
+gcc *.c log/*.c config/*.c -lws2_32

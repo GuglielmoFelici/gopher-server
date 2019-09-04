@@ -11,7 +11,7 @@ bool readConfig(const char* configPath, struct config *options) {
     char multiProcess[2];
     configFile = fopen(configPath, "r");
     if (configFile == NULL) {
-        return false;
+        return errno;
     }
     while (fgetc(configFile) != '=');
     fgets(port, 6, configFile);
@@ -19,5 +19,5 @@ bool readConfig(const char* configPath, struct config *options) {
     fgets(multiProcess, 2, configFile);
     options->port = atoi(port);
     options->multiProcess = (bool)atoi(multiProcess);
-    return true;
+    return 0;
 }

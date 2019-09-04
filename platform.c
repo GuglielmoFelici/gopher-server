@@ -3,20 +3,17 @@
 #if defined(_WIN32)   /* Windows functions */
 #include <windows.h>
 
-void startup() {
-    int errNo;
+int startup() {
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
-    if ((errNo = WSAStartup(versionWanted, &wsaData)) != 0) {
-        err("Errore nell'inizializzazione di Winsock", ERR, errNo);
-    }
+    return WSAStartup(versionWanted, &wsaData);
 }
 
 #else    /* Linux functions */
 #include <unistd.h>
 #include <sys/socket>
 
-void startup() {}
+int startup() {}
 
 #endif /*  Common functions */
 
