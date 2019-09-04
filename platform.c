@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "includes/platform.h"
 
 #if defined(_WIN32)   /* Windows functions */
 #include <windows.h>

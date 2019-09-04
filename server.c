@@ -1,9 +1,9 @@
-#include "everything.h"
-#include "datatypes.h"
-#include "platform.h"
-#include "errors.h"
-#include "config/config.h"
-#include "log/log.h"
+#include "includes/config.h"
+#include "includes/datatypes.h"
+#include "includes/everything.h"
+#include "includes/log.h"
+#include "includes/platform.h"
+
 
 int main(int argc, char** argv) {
 

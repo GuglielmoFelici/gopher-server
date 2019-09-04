@@ -1,4 +1,4 @@
-#include "../everything.h"
+#include "everything.h"
 
 #define DEFAULT_PORT 70
 #define DEFAULT_MULTI_PROCESS false

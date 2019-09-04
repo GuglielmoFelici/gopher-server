@@ -1,6 +1,6 @@
 #include "everything.h"
 #include "datatypes.h"
-#include "log/log.h"
+#include "log.h"
 
 int startup();
 

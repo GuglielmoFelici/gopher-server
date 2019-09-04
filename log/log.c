@@ -1,4 +1,4 @@
-#include "log.h"
+#include "../includes/log.h"
 
 char* currentTime() {
     time_t rawtime;

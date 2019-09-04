@@ -1,4 +1,4 @@
-#include "../everything.h"
+#include "everything.h"
 
 #define _CONFIG_ERROR "Impossibile leggere il file di configurazione, verranno usate le impostazioni di default."
 #define _LOG_ERROR "Errore nel logging"

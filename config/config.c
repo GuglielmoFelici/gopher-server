@@ -1,4 +1,4 @@
-#include "config.h"
+#include "../includes/config.h"
 
 void initConfig(struct config *options) {
     options->port = DEFAULT_PORT;
