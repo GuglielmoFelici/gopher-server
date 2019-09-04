@@ -2,7 +2,7 @@
 #include "datatypes.h"
 #include "platform.h"
 #include "errors.h"
-#include "common.h"
+#include "config/config.h"
 #include "log/log.h"
 
 #define CONFIG_FILE "config"

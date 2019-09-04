@@ -53,3 +53,10 @@ dkms.conf
 
 # Ide
 *.json
+
+test.c
+cli-compile
+log/debug
+log/err
+log/info
+config/config
