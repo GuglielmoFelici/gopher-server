@@ -18,6 +18,6 @@ void startup() {
 #else
 #include <unistd.h>
 
-void warmup() {}
+void startup() {}
 
 #endif

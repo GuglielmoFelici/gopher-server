@@ -1,4 +1,6 @@
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define DEFAULT_PORT 70
 #define DEFAULT_MULTI_PROCESS false
@@ -8,8 +10,8 @@ struct config {
     bool multiProcess;
 };
 
-void err(char* message, int code);
+void err(const char* message, int code);
 
 void initConfig(struct config *options);
 
-void readConfig(char *configFile, struct config *options);
+bool readConfig(const char *configPath, struct config *options);
