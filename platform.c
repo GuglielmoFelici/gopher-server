@@ -1,23 +1,25 @@
 #include "platform.h"
 
-#if defined(_WIN32)
+#if defined(_WIN32)   /* Windows functions */
 #include <windows.h>
 
 void startup() {
-    /* Windows Socket warmup */
     int errNo;
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
     if ((errNo = WSAStartup(versionWanted, &wsaData)) != 0) {
-        err("Errore nell'inizializzazione di Winsock", errNo);
+        err("Errore nell'inizializzazione di Winsock", ERR, errNo);
     }
 }
 
-
-
-#else
+#else    /* Linux functions */
 #include <unistd.h>
+#include <sys/socket>
 
 void startup() {}
 
-#endif
+#endif /*  Common functions */
+
+_socket openSocket(int domain, int type, int protocol) {
+    return socket(domain, type, protocol);
+}

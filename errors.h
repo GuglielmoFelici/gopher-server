@@ -1,1 +1,0 @@
-#define CONFIG_ERROR "Impossibile leggere il file di configurazione, verranno usate le impostazioni di default.\n"
