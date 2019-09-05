@@ -1,6 +1,6 @@
 #include "../includes/log.h"
 
-char* currentTime() {
+_string currentTime() {
     time_t rawtime;
     struct tm *timeinfo;
     time( &rawtime );
@@ -8,13 +8,13 @@ char* currentTime() {
     return asctime(timeinfo);
 }
 
-void err(const char* message, char *level, bool stderror, int code) {
+void err(const _string message, const _string level, bool stderror, int code) {
     _log(message, level, stderror);
     exit(code);
 }
 
 int initLog() {
-    char* logs[3] = {INFO, DEBUG, ERR};
+    _string logs[3] = {INFO, DEBUG, ERR};
     FILE* logFile;
     for (int i=0; i<3; i++) {
         logFile = fopen(logs[i], "a");
@@ -27,7 +27,7 @@ int initLog() {
     return 0;
 }
 
-void _log(const char *message, const char *level, bool stderror) {
+void _log(const _string message, const _string level, bool stderror) {
     FILE *out;
     if ((out = fopen(level, "a")) == NULL) {
         fprintf(stderr, _LOG_ERROR);
@@ -35,7 +35,7 @@ void _log(const char *message, const char *level, bool stderror) {
     }
     fprintf(out, "%s\n", message);
     if (stderror) {
-        fprintf(out, "Descrizione errore: %s\n", strerror(errno));
+        fprintf(out, "Descrizione errore: %s\n", errorString());
     }
     fclose(out);
 }

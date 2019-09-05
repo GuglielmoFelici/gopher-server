@@ -3,13 +3,22 @@
 #include "includes/everything.h"
 #include "includes/log.h"
 #include "includes/platform.h"
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/socket>
+#endif
 
 
-int main(int argc, char** argv) {
+int main(int argc, _string* argv) {
 
-    _socket server;
     struct config options;
+    _socket server;
+    struct sockaddr_in address;
     int _errno;
+    fd_set incomingConnections;
+    int selectRet;
     
     if ((_errno = startup()) != 0) {
         err(_WINSOCK_ERROR, ERR, false, _errno);
@@ -22,10 +31,32 @@ int main(int argc, char** argv) {
     if (readConfig(CONFIG_FILE, &options) != 0) {
         _log(_CONFIG_ERROR, ERR, true);
     }
-
-    if (server = openSocket(AF_INET, SOCK_STREAM, 0) < 0) {
+    if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         err(_SOCKET_ERROR, ERR, true, server);
     }
+    _log(_SOCKET_OPEN, INFO, false);
+    char enable = 1;
+    if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+        _log(_REUSE_ERROR, ERR, true);
+    }
+    if (setNonblocking(server) < 0) {
+        err(_NONBLOCK_ERR, ERR, true, -1);
+    }
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(options.port);
+    if (bind(server, (struct sockaddr *)&address, sizeof(address)) < 0) { 
+        err(_BIND_ERROR, ERR, true, -1);
+    } 
+    if (listen(server, 5) < 0) {
+        err(_LISTEN_ERROR, ERR, true, -1);
+    }
+    _log(_SOCKET_LISTENING, INFO, false);
+    FD_ZERO(&incomingConnections);
+    FD_SET(server, &incomingConnections);
+    selectRet = select(server+1, &incomingConnections, NULL, NULL, NULL);
+    
 
-
+    printf("All done.\n");
+    return 0;
 }

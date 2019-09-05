@@ -5,7 +5,7 @@ void initConfig(struct config *options) {
     options->multiProcess = DEFAULT_MULTI_PROCESS;
 }
 
-bool readConfig(const char* configPath, struct config *options) {
+bool readConfig(const _string configPath, struct config *options) {
     FILE *configFile;
     char port[6];
     char multiProcess[2];

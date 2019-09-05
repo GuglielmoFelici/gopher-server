@@ -1,4 +1,8 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
 #include "everything.h"
+#include "datatypes.h"
 
 #define DEFAULT_PORT 70
 #define DEFAULT_MULTI_PROCESS false
@@ -12,4 +16,6 @@ struct config {
 
 void initConfig(struct config *options);
 
-bool readConfig(const char *configPath, struct config *options);
+bool readConfig(const _string configPath, struct config *options);
+
+#endif
