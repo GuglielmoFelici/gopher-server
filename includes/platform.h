@@ -16,10 +16,10 @@ _string errorString();
 
 int startup();
 
-_socket openSocket(int domain, int type, int protocol);
-
-int bindSocket(_socket s, const struct sockaddr *addr, int namelen);
-
 int setNonblocking(_socket s);
+
+void readDirectory(_string path, _string response);
+
+char gopherType(_string type);
 
 #endif

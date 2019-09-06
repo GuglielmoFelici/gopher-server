@@ -10,8 +10,12 @@
 #include <sys/socket>
 #endif
 
+void gopher(_socket s, _string request) {
+    _string response;
+    
+}
 
-int main(int argc, _string* argv) {
+int maian(int argc, _string* argv) {
 
     struct config options;
     _socket server;
@@ -55,7 +59,6 @@ int main(int argc, _string* argv) {
     FD_ZERO(&incomingConnections);
     FD_SET(server, &incomingConnections);
     selectRet = select(server+1, &incomingConnections, NULL, NULL, NULL);
-    
 
     printf("All done.\n");
     return 0;

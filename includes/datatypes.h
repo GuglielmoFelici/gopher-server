@@ -5,8 +5,7 @@
 #include <windows.h>
 
 typedef SOCKET _socket;
-typedef LPTSTR _string;
-typedef BOOL _bool;
+typedef LPSTR _string;
 
 #else
 

@@ -29,6 +29,47 @@ int setNonblocking(_socket s) {
     return ioctlsocket(s, FIONBIO, &blocking);
 }
 
+char gopherType(LPSTR file) {
+    char ret = 0;
+    int extLen = 0;
+    LPSTR ext = NULL;
+    for (int i=strlen(file)-1; i>0; i--) {
+        if (file[i] == '.') {
+            ext = malloc(extLen+1);
+            memcpy(ext, &file[i+1], extLen);
+            ext[extLen] = '\0';
+            break;
+        }
+        extLen++;
+    }
+    if (strcmp(ext, "hqx") == 0) {
+        ret = '4';
+    }
+    else if (strcmp(ext, "jpg") == 0) {
+        ret = 'I';
+    }
+    free(ext);
+    return ret;
+}
+
+void readDirectory(_string path, _string response) {
+    //char response[1+MAX_PATH+MAX_PATH];
+    char selector[MAX_PATH];
+    int type;
+    WIN32_FIND_DATA data;
+    HANDLE hFind;
+
+    if ((hFind = FindFirstFile(path, &data)) == INVALID_HANDLE_VALUE) {
+        err(_READDIR_ERR, ERR, true, -1);
+    }
+    do {
+        /* Lunghezza della riga: 1+filename+selector+?host? */
+        snprintf(selector, sizeof(selector), "%s\\%s", path, data.cFileName);
+        // TODO directory type
+        snprintf(response, sizeof(response), "%c%s\t%s\t%s", gopherType(data.cFileName), data.cFileName, selector, "localhost");
+    } while(FindNextFile(hFind, &data));
+}
+
 #else    /* Linux functions */
 
 int startup() {}
@@ -40,5 +81,7 @@ _string errorString() {
 int setNonblocking(_socket s) {
     return fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK);
 }
+
+void readDirectory(_string path)
 
 #endif
