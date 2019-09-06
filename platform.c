@@ -54,19 +54,25 @@ char gopherType(LPSTR file) {
 
 void readDirectory(_string path, _string response) {
     //char response[1+MAX_PATH+MAX_PATH];
+    char wildcardPath[MAX_PATH];
     char selector[MAX_PATH];
+    char line[1+MAX_PATH+MAX_PATH];
     int type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
 
-    if ((hFind = FindFirstFile(path, &data)) == INVALID_HANDLE_VALUE) {
+    snprintf(wildcardPath, sizeof(wildcardPath), "%s\\*", path);
+    if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
         err(_READDIR_ERR, ERR, true, -1);
     }
     do {
         /* Lunghezza della riga: 1+filename+selector+?host? */
         snprintf(selector, sizeof(selector), "%s\\%s", path, data.cFileName);
         // TODO directory type
-        snprintf(response, sizeof(response), "%c%s\t%s\t%s", gopherType(data.cFileName), data.cFileName, selector, "localhost");
+        if (selector[strlen(selector)-1] != '.') {
+            snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", gopherType(data.cFileName), data.cFileName, selector, "localhost");
+            strcat(response, line);
+        }
     } while(FindNextFile(hFind, &data));
 }
 
