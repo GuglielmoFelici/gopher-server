@@ -1,1 +1,0 @@
-gcc *.c log/*.c config/*.c -lws2_32

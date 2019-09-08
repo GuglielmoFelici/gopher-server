@@ -60,3 +60,5 @@ log/err
 log/info
 config/config
 test/
+
+linuxserver
