@@ -1,6 +1,6 @@
 #include "includes/platform.h"
 
-#if defined(_WIN32)   /* Windows functions */
+#if defined(_WIN32) /* Windows functions */
 
 int startup() {
     WORD versionWanted = MAKEWORD(1, 1);
@@ -11,21 +11,21 @@ int startup() {
 /* Took from  https://docs.microsoft.com/it-it/windows/win32/debug/retrieving-the-last-error-code*/
 _string errorString() {
     LPVOID lpMsgBuf;
-    DWORD dw = GetLastError(); 
+    DWORD dw = GetLastError();
     FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-        FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+            FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         dw,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR) &lpMsgBuf,
-        0, NULL );
+        (LPTSTR)&lpMsgBuf,
+        0, NULL);
     return (LPTSTR)lpMsgBuf;
 }
 
 int setNonblocking(_socket s) {
-    unsigned long blocking = 1; 
+    unsigned long blocking = 1;
     return ioctlsocket(s, FIONBIO, &blocking);
 }
 
@@ -33,10 +33,10 @@ char gopherType(LPSTR file) {
     char ret = 0;
     int extLen = 0;
     LPSTR ext = NULL;
-    for (int i=strlen(file)-1; i>0; i--) {
+    for (int i = strlen(file) - 1; i > 0; i--) {
         if (file[i] == '.') {
-            ext = malloc(extLen+1);
-            memcpy(ext, &file[i+1], extLen);
+            ext = malloc(extLen + 1);
+            memcpy(ext, &file[i + 1], extLen);
             ext[extLen] = '\0';
             break;
         }
@@ -44,8 +44,7 @@ char gopherType(LPSTR file) {
     }
     if (strcmp(ext, "hqx") == 0) {
         ret = '4';
-    }
-    else if (strcmp(ext, "jpg") == 0) {
+    } else if (strcmp(ext, "jpg") == 0) {
         ret = 'I';
     }
     free(ext);
@@ -56,7 +55,7 @@ void readDirectory(_string path, _string response) {
     //char response[1+MAX_PATH+MAX_PATH];
     char wildcardPath[MAX_PATH];
     char selector[MAX_PATH];
-    char line[1+MAX_PATH+MAX_PATH];
+    char line[1 + MAX_PATH + MAX_PATH];
     int type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
@@ -69,25 +68,25 @@ void readDirectory(_string path, _string response) {
         /* Lunghezza della riga: 1+filename+selector+?host? */
         snprintf(selector, sizeof(selector), "%s\\%s", path, data.cFileName);
         // TODO directory type
-        if (selector[strlen(selector)-1] != '.') {
+        if (selector[strlen(selector) - 1] != '.') {
             snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", gopherType(data.cFileName), data.cFileName, selector, "localhost");
             strcat(response, line);
         }
-    } while(FindNextFile(hFind, &data));
+    } while (FindNextFile(hFind, &data));
 }
 
-#else    /* Linux functions */
+#else /* Linux functions */
 
 int startup() {}
 
 _string errorString() {
-    return strerror(errno); 
+    return strerror(errno);
 }
 
 int setNonblocking(_socket s) {
     return fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK);
 }
 
-void readDirectory(_string path)
+void readDirectory(_string path, _string response);
 
 #endif

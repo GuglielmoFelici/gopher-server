@@ -9,6 +9,8 @@ typedef LPSTR _string;
 
 #else
 
+#include <stdbool.h>
+
 typedef int _socket;
 typedef char* _string;
 typedef bool _bool;

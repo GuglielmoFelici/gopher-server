@@ -1,15 +1,18 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-#include "everything.h"
 #include "datatypes.h"
+#include "everything.h"
 #include "log.h"
 
 #if defined(_WIN32)
 #include <windows.h>
 #else
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <sys/select.h>
+#include <sys/socket.h>
 #include <unistd.h>
-#include <sys/socket>
 #endif
 
 _string errorString();

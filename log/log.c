@@ -3,8 +3,8 @@
 _string currentTime() {
     time_t rawtime;
     struct tm *timeinfo;
-    time( &rawtime );
-    timeinfo = localtime( &rawtime );
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
     return asctime(timeinfo);
 }
 
@@ -15,13 +15,13 @@ void err(const _string message, const _string level, bool stderror, int code) {
 
 int initLog() {
     _string logs[3] = {INFO, DEBUG, ERR};
-    FILE* logFile;
-    for (int i=0; i<3; i++) {
+    FILE *logFile;
+    for (int i = 0; i < 3; i++) {
         logFile = fopen(logs[i], "a");
         if (logFile == NULL) {
             return errno;
         }
-        fprintf(logFile, currentTime());
+        fputs(currentTime(), logFile);
         fclose(logFile);
     }
     return 0;
