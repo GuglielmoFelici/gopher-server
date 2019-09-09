@@ -13,9 +13,11 @@ bool readConfig(const _string configPath, struct config *options) {
     if (configFile == NULL) {
         return errno;
     }
-    while (fgetc(configFile) != '=');
+    while (fgetc(configFile) != '=')
+        ;
     fgets(port, 6, configFile);
-    while (fgetc(configFile) != '=');
+    while (fgetc(configFile) != '=')
+        ;
     fgets(multiProcess, 2, configFile);
     options->port = atoi(port);
     options->multiProcess = (bool)atoi(multiProcess);
