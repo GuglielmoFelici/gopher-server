@@ -30,7 +30,7 @@ int setNonblocking(_socket s) {
 }
 
 char gopherType(LPSTR file) {
-    char ret = 0;
+    char ret = '0';
     int extLen = 0;
     LPSTR ext = NULL;
     for (int i = strlen(file) - 1; i > 0; i--) {
