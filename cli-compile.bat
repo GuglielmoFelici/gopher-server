@@ -1,1 +1,1 @@
-gcc *.c log/*.c config/*.c -o winserver -lws2_32
+gcc -g *.c log/*.c config/*.c -o winserver -lws2_32

@@ -8,7 +8,7 @@ void gopher(_socket s, _string request) {
     _string response;
 }
 
-int main(int argc, _string* argv) {
+int maain(int argc, _string* argv) {
     struct config options;
     _socket server;
     struct sockaddr_in address;
