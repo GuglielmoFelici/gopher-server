@@ -30,9 +30,12 @@ int setNonblocking(_socket s) {
 }
 
 char gopherType(LPSTR file) {
-    char ret = '0';
+    char ret;
     int extLen = 0;
     LPSTR ext = NULL;
+    if (file[0] == '.') {
+        return 'H';
+    }
     for (int i = strlen(file) - 1; i > 0; i--) {
         if (file[i] == '.') {
             ext = malloc(extLen + 1);
@@ -42,8 +45,16 @@ char gopherType(LPSTR file) {
         }
         extLen++;
     }
-    if (strcmp(ext, "hqx") == 0) {
+    if (ext == NULL) {
+        ret = 'X';
+    } else if (strcmp(ext, "txt") == 0) {
+        ret = '0';
+    } else if (strcmp(ext, "hqx") == 0) {
         ret = '4';
+    } else if (strcmp(ext, "dos") == 0) {
+        ret = '5';
+    } else if (strcmp(ext, "exe") == 0) {
+        ret = '9';
     } else if (strcmp(ext, "jpg") == 0) {
         ret = 'I';
     }
@@ -52,7 +63,6 @@ char gopherType(LPSTR file) {
 }
 
 void readDirectory(_string path, _string response) {
-    //char response[1+MAX_PATH+MAX_PATH];
     char wildcardPath[MAX_PATH];
     char selector[MAX_PATH];
     char line[1 + MAX_PATH + MAX_PATH];
