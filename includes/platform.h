@@ -23,10 +23,8 @@ int setNonblocking(_socket s);
 
 bool isDirectory(_string path);
 
-char gopherType(_string type);
+char gopherType(_string type, _string path);
 
 void readDirectory(_string path, _string response);
-
-char parseFileName(_string file);
 
 #endif

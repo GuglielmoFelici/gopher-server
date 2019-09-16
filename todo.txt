@@ -1,5 +1,6 @@
 spostare il protocollo gopher nella libreria generica e realizzare un sistema di riconoscimento tipo file non portabile
-windows - finire riconoscimento estensioni gopher (vedi sopra)
+windows - finire riconoscimento estensioni gopher (vedi sopra) 
+TEST DIRECTORY - https://stackoverflow.com/questions/3529138/how-to-check-with-winapi-file-path-is-disk-or-file-or-directory
 windows - finire lettura di directory 
 linux - realizzare lettura di directory 
 
