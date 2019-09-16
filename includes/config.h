@@ -1,8 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "everything.h"
 #include "datatypes.h"
+#include "everything.h"
 
 #define DEFAULT_PORT 70
 #define DEFAULT_MULTI_PROCESS false

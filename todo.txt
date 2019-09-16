@@ -14,3 +14,11 @@ realizzare richiesta e risposta con un solo thread:
 realizzare sistema di cambio di file di configurazione (potrebbe richiedere multithreading)
 realizzare multithreading
 realizzare modalità daemon linux
+
+
+
+
+??????????????
+
+Supporto file nascosti?
+estensioni windows

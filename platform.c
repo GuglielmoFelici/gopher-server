@@ -29,37 +29,29 @@ int setNonblocking(_socket s) {
     return ioctlsocket(s, FIONBIO, &blocking);
 }
 
-char gopherType(LPSTR file) {
-    char ret;
-    int extLen = 0;
-    LPSTR ext = NULL;
-    if (file[0] == '.') {
-        return 'H';
-    }
-    for (int i = strlen(file) - 1; i > 0; i--) {
-        if (file[i] == '.') {
-            ext = malloc(extLen + 1);
-            memcpy(ext, &file[i + 1], extLen);
-            ext[extLen] = '\0';
-            break;
-        }
-        extLen++;
-    }
-    if (ext == NULL) {
-        ret = 'X';
+bool isDirectory(LPSTR path) {
+    return GetFileAttributes(path) == FILE_ATTRIBUTE_DIRECTORY;
+}
+
+char gopherType(LPSTR ext) {
+    if (ext == 0) {
+        return 'X';
     } else if (strcmp(ext, "txt") == 0) {
-        ret = '0';
+        return '0';
     } else if (strcmp(ext, "hqx") == 0) {
-        ret = '4';
+        return '4';
     } else if (strcmp(ext, "dos") == 0) {
-        ret = '5';
+        return '5';
     } else if (strcmp(ext, "exe") == 0) {
-        ret = '9';
+        return '9';
+    } else if (strcmp(ext, "gif") == 0) {
+        return 'g';
     } else if (strcmp(ext, "jpg") == 0) {
-        ret = 'I';
+        return 'I';
+    } else if (strcmp(ext, "png") == 0) {
+        return 'I';
     }
-    free(ext);
-    return ret;
+    return 'X';
 }
 
 void readDirectory(_string path, _string response) {
@@ -79,7 +71,7 @@ void readDirectory(_string path, _string response) {
         snprintf(selector, sizeof(selector), "%s\\%s", path, data.cFileName);
         // TODO directory type
         if (selector[strlen(selector) - 1] != '.') {
-            snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", gopherType(data.cFileName), data.cFileName, selector, "localhost");
+            snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", parseFileName(data.cFileName), data.cFileName, selector, "localhost");
             strcat(response, line);
         }
     } while (FindNextFile(hFind, &data));
@@ -89,7 +81,7 @@ void readDirectory(_string path, _string response) {
 
 int startup() {}
 
-_string errorString() {
+char* errorString() {
     return strerror(errno);
 }
 
@@ -97,6 +89,54 @@ int setNonblocking(_socket s) {
     return fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK);
 }
 
-void readDirectory(_string path, _string response);
+// TODO
+bool isDirectory(char* path) {
+}
+
+// TODO
+char gopherType(char* ext) {
+    if (ext == 0) {
+        return 'X';
+    } else if (strcmp(ext, "txt") == 0) {
+        return '0';
+    } else if (strcmp(ext, "hqx") == 0) {
+        return '4';
+    } else if (strcmp(ext, "dos") == 0) {
+        return '5';
+    } else if (strcmp(ext, "exe") == 0) {
+        return '9';
+    } else if (strcmp(ext, "gif") == 0) {
+        return 'g';
+    } else if (strcmp(ext, "jpg") == 0) {
+        return 'I';
+    } else if (strcmp(ext, "png") == 0) {
+        return 'I';
+    }
+    return 'X';
+}
+
+void readDirectory(char* path, char* response);
 
 #endif
+
+char parseFileName(_string file) {
+    char ret;
+    int extLen = 0;
+    char ext[10] = 0;
+    if (file[0] == '.') {
+        ret = 'H';
+    } else if (isDirectory(file)) {
+        ret = '1';
+    } else {
+        for (int i = strlen(file) - 1; i > 0; i--) {
+            if (file[i] == '.') {
+                memcpy(ext, &file[i + 1], extLen);
+                ext[extLen] = '\0';
+                break;
+            }
+            extLen++;
+        }
+        ret = gopherType(ext);
+    }
+    return ret;
+}

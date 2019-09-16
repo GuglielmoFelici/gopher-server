@@ -1,8 +1,8 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include "everything.h"
 #include "datatypes.h"
+#include "everything.h"
 #include "platform.h"
 
 #define _CONFIG_ERROR "Impossibile leggere il file di configurazione, verranno usate le impostazioni di default."
