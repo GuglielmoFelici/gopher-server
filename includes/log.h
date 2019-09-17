@@ -24,6 +24,7 @@
 #define INFO "log/info"
 #define ERR "log/err"
 #define DEBUG "log/debug"
+#define TEST "log/test"
 
 _string currentTime();
 

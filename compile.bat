@@ -1,0 +1,1 @@
+gcc -g platform.c server.c log/*.c config/*.c -o winserver -lws2_32
