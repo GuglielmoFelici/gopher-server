@@ -23,10 +23,10 @@ int startup();
 
 int setNonblocking(_socket s);
 
-bool isDirectory(_fileData data);
+bool isDirectory(const _fileData* file);
 
-char gopherType(_fileData data);
+char gopherType(char* file);
 
-void readDirectory(_string path, _string response);
+void readDirectory(const _string path, _string response);
 
 #endif

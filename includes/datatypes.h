@@ -16,7 +16,7 @@ typedef WIN32_FIND_DATA _fileData;
 
 typedef int _socket;
 typedef char* _string;
-typedef struct stat _fileData;
+typedef char _fileData;  // Vedi platform -> isDirectory, versione linux
 
 #endif
 

@@ -14,6 +14,8 @@
 #define _LISTEN_ERROR "Errore in fase di listen"
 #define _NONBLOCK_ERR "Impossibile settare il socket come nonblocking"
 #define _SELECT_ERR "Errore nella select"
+
+#define _EXEC_ERR "Errore nell'esecuzione del comando"
 #define _READDIR_ERR "Errore nella lettura della directory"
 
 #define _SOCKET_OPEN "Server socket aperto"
