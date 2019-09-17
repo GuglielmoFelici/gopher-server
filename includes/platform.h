@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 
@@ -21,9 +23,9 @@ int startup();
 
 int setNonblocking(_socket s);
 
-bool isDirectory(_string path);
+bool isDirectory(_fileData data);
 
-char gopherType(_string type, _string path);
+char gopherType(_fileData data);
 
 void readDirectory(_string path, _string response);
 

@@ -29,20 +29,18 @@ int setNonblocking(_socket s) {
     return ioctlsocket(s, FIONBIO, &blocking);
 }
 
-bool isDirectory(LPSTR path) {
-    return GetFileAttributes(path) == FILE_ATTRIBUTE_DIRECTORY;
+bool isDirectory(WIN32_FIND_DATA *data) {
+    /* Windows directory constants */
+    return data->dwFileAttributes == 16 || data->dwFileAttributes == 17 || data->dwFileAttributes == 18 || data->dwFileAttributes == 22 || data->dwFileAttributes == 9238;
 }
 
-char gopherType(LPSTR file, LPSTR path) {
-    char fullPath[MAX_PATH];
-    snprintf(fullPath, MAX_PATH, "%s\\%s", path, file);
+char gopherType(WIN32_FIND_DATA *data) {
+    char *file = data->cFileName;
     char ret = 'X';
     int extLen = 0;
     char ext[10] = "";
     if (file[0] == '.') {
         ret = 'H';
-    } else if (isDirectory(fullPath)) {
-        ret = '1';
     } else {
         for (int i = strlen(file) - 1; i > 0; i--) {
             if (file[i] == '.') {
@@ -77,7 +75,7 @@ void readDirectory(_string path, _string response) {
     char wildcardPath[MAX_PATH];
     char selector[MAX_PATH];
     char line[1 + MAX_PATH + MAX_PATH];
-    int type;
+    char type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
 
@@ -88,9 +86,9 @@ void readDirectory(_string path, _string response) {
     do {
         /* Lunghezza della riga: 1+filename+selector+?host? */
         snprintf(selector, sizeof(selector), "%s\\%s", path, data.cFileName);
-        // TODO directory type
         if (selector[strlen(selector) - 1] != '.') {
-            snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", gopherType(data.cFileName, path), data.cFileName, selector, "localhost");
+            type = isDirectory(&data) ? '1' : gopherType(&data);
+            snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", type, data.cFileName, selector, "localhost");
             strcat(response, line);
         }
     } while (FindNextFile(hFind, &data));
@@ -109,13 +107,17 @@ int setNonblocking(_socket s) {
 }
 
 // TODO
-bool isDirectory(char* path) {
+bool isDirectory(struct stat* data) {
+    return S_ISDIR(data->st_mode);
 }
 
 // TODO
-char gopherType(char* ext) {
+char gopherType(struct stat* data) {
 }
 
-void readDirectory(char* path, char* response);
+// TODO
+void readDirectory(char* path, char* response){
+
+};
 
 #endif
