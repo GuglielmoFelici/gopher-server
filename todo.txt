@@ -1,7 +1,7 @@
+TODO
+
 spostare il protocollo gopher nella libreria generica e realizzare un sistema di riconoscimento tipo file non portabile
-	linux - approfondimento utilizzo 'file'
-	windows - finire lettura di directory 
-	linux - realizzare lettura di directory 
+	
 
 realizzare sistema di connessione con select
 realizzare richiesta e risposta con un solo thread:
@@ -15,6 +15,13 @@ realizzare sistema di cambio di file di configurazione (potrebbe richiedere mult
 realizzare multithreading
 realizzare modalità daemon linux
 
+TOTEST
+
+
+linux - lettura di directory 
+windows - lettura di directory 
+linux - approfondimento utilizzo 'file'
+protocollo gopher
 
 
 
