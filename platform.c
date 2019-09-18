@@ -61,7 +61,7 @@ char gopherType(LPCSTR file) {
 void readDirectory(LPCSTR path, _string response) {
     char wildcardPath[MAX_PATH];
     LPSTR name;
-    char line[1 + MAX_PATH + MAX_PATH];
+    char line[1 + MAX_PATH + 1 + MAX_PATH + 1 + sizeof("localhost")];
     char type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
@@ -102,14 +102,7 @@ char gopherType(_file* file) {
     struct stat fileStat;
     char buffer[600] = "";
     FILE* response;
-    char command[FILENAME_MAX + 5];
-
-    if (stat(file->filePath, &fileStat) < 0) {
-        err(_READFILE_ERR, ERR, true, -1);
-    }
-    if (isDirectory(&fileStat)) {
-        return '1';
-    }
+    char command[FILENAME_MAX + 7];
     sprintf(command, "file \"%s\"", file->filePath);
     if ((response = popen(command, "r")) == NULL) {
         err(_EXEC_ERR, ERR, true, -1);
@@ -117,8 +110,12 @@ char gopherType(_file* file) {
     fread(buffer, 1, 199, response);
     if (strstr(buffer, "executable")) {
         return '9';
-    } else if (strstr(buffer, "PNG")) {
+    } else if (strstr(buffer, "image")) {
         return 'I';
+    } else if (strstr(buffer, "directory")) {
+        return '1';
+    } else if (strstr(buffer, "GIF")) {
+        return 'G';
     } else if (strstr(buffer, "text")) {
         return '0';
     }
@@ -129,7 +126,7 @@ void readDirectory(const char* path, char* response) {
     struct dirent* entry;
     struct stat fileStat;
     _file file;
-    char line[1 + FILENAME_MAX + FILENAME_MAX];
+    char line[1 + FILENAME_MAX + 1 + FILENAME_MAX + 1 + sizeof("localhost")];
 
     if ((dir = opendir(path)) == NULL) {
         err(_READDIR_ERR, ERR, true, -1);
@@ -137,12 +134,14 @@ void readDirectory(const char* path, char* response) {
     while ((entry = readdir(dir)) != NULL) {
         strcpy(file.name, entry->d_name);
         strcpy(file.path, path);
-        snprintf(file.filePath, sizeof(file.filePath), "%s/%s", path, file.name);
+        strcpy(file.filePath, path);
+        strcat(strcat(file.filePath, "/"), file.name);
         if (file.name[strlen(file.name) - 1] != '.') {
-            snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", gopherType(&file), file.name, file.filePath, "localhost");
+            sprintf(line, "%c%s\t%s\t%s\n", gopherType(&file), file.name, file.filePath, "localhost");
             strcat(response, line);
         }
     }
+    strcat(response, ".");
 };
 
 #endif
