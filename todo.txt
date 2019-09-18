@@ -1,7 +1,8 @@
 TODO
 
 spostare il protocollo gopher nella libreria generica e realizzare un sistema di riconoscimento tipo file non portabile
-	
+	?? rimovibile 'H' da windows?
+	riscrivere lettura dir windows usando _file
 
 realizzare sistema di connessione con select
 realizzare richiesta e risposta con un solo thread:

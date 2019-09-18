@@ -17,6 +17,7 @@
 
 #define _EXEC_ERR "Errore nell'esecuzione del comando"
 #define _READDIR_ERR "Errore nella lettura della directory"
+#define _READFILE_ERR "Errore nella lettura del file"
 
 #define _SOCKET_OPEN "Server socket aperto"
 #define _SOCKET_LISTENING "Socket in ascolto"

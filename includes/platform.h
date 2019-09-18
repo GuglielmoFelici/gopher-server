@@ -18,15 +18,16 @@
 #include <unistd.h>
 #endif
 
-_string errorString();
+_string
+errorString();
 
 int startup();
 
 int setNonblocking(_socket s);
 
-bool isDirectory(const _fileData* file);
+bool isDirectory(_fileData* file);
 
-char gopherType(_cstring file);
+char gopherType(_file* file);
 
 void readDirectory(_cstring path, _string response);
 
