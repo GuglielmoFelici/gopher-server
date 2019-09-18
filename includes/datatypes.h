@@ -9,9 +9,9 @@ typedef LPSTR _string;
 typedef LPCSTR _cstring;
 typedef WIN32_FIND_DATA _fileData;
 typedef struct _file {
-    char name[PATH_MAX];
-    char path[PATH_MAX];
-    char filePath[PATH_MAX];
+    char name[MAX_PATH];
+    char path[MAX_PATH];
+    char filePath[MAX_PATH];
 } _file;
 
 #else

@@ -27,7 +27,7 @@ int setNonblocking(_socket s);
 
 bool isDirectory(_fileData* file);
 
-char gopherType(_file* file);
+char gopherType(const _file* file);
 
 void readDirectory(_cstring path, _string response);
 

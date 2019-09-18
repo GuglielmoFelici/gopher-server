@@ -29,28 +29,28 @@ int setNonblocking(_socket s) {
     return ioctlsocket(s, FIONBIO, &blocking);
 }
 
-bool isDirectory(WIN32_FIND_DATA *file) {
+bool isDirectory(WIN32_FIND_DATA* file) {
     /* Windows directory constants */
     return file->dwFileAttributes == 16 || file->dwFileAttributes == 17 || file->dwFileAttributes == 18 || file->dwFileAttributes == 22 || file->dwFileAttributes == 9238;
 }
 
-char gopherType(LPCSTR file) {
+char gopherType(const _file* file) {
     char ret = 'X';
     char ext[4];
-    memcpy(&ext, &file[strlen(file) - 3], 4);
-    if (!strstr(file, ".")) {
+    memcpy(&ext, &file->name[strlen(file->name) - 3], 4);
+    if (!strstr(file->name, ".")) {
         ret = 'X';
-    } else if (strcmp(ext, "txt") == 0) {
+    } else if (!strcmp(ext, "txt") || !strcmp(ext, "doc")) {
         ret = '0';
-    } else if (strcmp(ext, "hqx") == 0) {
+    } else if (!strcmp(ext, "hqx")) {
         ret = '4';
-    } else if (strcmp(ext, "dos") == 0) {
+    } else if (!strcmp(ext, "dos")) {
         ret = '5';
-    } else if (strcmp(ext, "exe") == 0) {
+    } else if (!strcmp(ext, "exe")) {
         ret = '9';
-    } else if (strcmp(ext, "gif") == 0) {
+    } else if (!strcmp(ext, "gif")) {
         ret = 'g';
-    } else if (strcmp(ext, "jpg") == 0) {
+    } else if (!strcmp(ext, "jpg") || !strcmp(ext, "png")) {
         ret = 'I';
     } else if (strcmp(ext, "png") == 0) {
         ret = 'I';
@@ -59,8 +59,8 @@ char gopherType(LPCSTR file) {
 }
 
 void readDirectory(LPCSTR path, _string response) {
-    char wildcardPath[MAX_PATH];
-    LPSTR name;
+    char wildcardPath[MAX_PATH + 2];
+    _file file;
     char line[1 + MAX_PATH + 1 + MAX_PATH + 1 + sizeof("localhost")];
     char type;
     WIN32_FIND_DATA data;
@@ -71,12 +71,13 @@ void readDirectory(LPCSTR path, _string response) {
         err(_READDIR_ERR, ERR, true, -1);
     }
     do {
-        name = data.cFileName;
-        /* TODO Lunghezza della riga: 1+filename+selector+?host? */
-        //snprintf(selector, sizeof(selector), "%s\\%s", path, name);
-        if (name[strlen(name) - 1] != '.') {
-            type = isDirectory(&data) ? '1' : gopherType(name);
-            snprintf(line, sizeof(line), "%c%s\t%s\\%s\t%s\n", type, name, path, name, "localhost");
+        strcpy(file.name, data.cFileName);
+        if (file.name[strlen(file.name) - 1] != '.') {
+            strcpy(file.path, path);
+            strcpy(file.filePath, path);
+            strcat(strcat(file.filePath, "\\"), file.name);
+            type = isDirectory(&data) ? '1' : gopherType(&file);
+            snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", type, file.name, file.filePath, "localhost");
             strcat(response, line);
         }
     } while (FindNextFile(hFind, &data));
@@ -98,7 +99,7 @@ bool isDirectory(struct stat* file) {
     return S_ISDIR(file->st_mode);
 }
 
-char gopherType(_file* file) {
+char gopherType(const _file* file) {
     struct stat fileStat;
     char buffer[600] = "";
     FILE* response;
@@ -133,10 +134,10 @@ void readDirectory(const char* path, char* response) {
     }
     while ((entry = readdir(dir)) != NULL) {
         strcpy(file.name, entry->d_name);
-        strcpy(file.path, path);
-        strcpy(file.filePath, path);
-        strcat(strcat(file.filePath, "/"), file.name);
         if (file.name[strlen(file.name) - 1] != '.') {
+            strcpy(file.path, path);
+            strcpy(file.filePath, path);
+            strcat(strcat(file.filePath, "/"), file.name);
             sprintf(line, "%c%s\t%s\t%s\n", gopherType(&file), file.name, file.filePath, "localhost");
             strcat(response, line);
         }
