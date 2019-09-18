@@ -34,7 +34,7 @@ bool isDirectory(const WIN32_FIND_DATA *file) {
     return file->dwFileAttributes == 16 || file->dwFileAttributes == 17 || file->dwFileAttributes == 18 || file->dwFileAttributes == 22 || file->dwFileAttributes == 9238;
 }
 
-char gopherType(char *file) {
+char gopherType(LPCSTR file) {
     char ret = 'X';
     char ext[4];
     if (file[0] == '.') {
@@ -62,9 +62,9 @@ char gopherType(char *file) {
     return ret;
 }
 
-void readDirectory(const _string path, _string response) {
+void readDirectory(LPCSTR path, _string response) {
     char wildcardPath[MAX_PATH];
-    char name[MAX_PATH];
+    LPSTR name;
     char line[1 + MAX_PATH + MAX_PATH];
     char type;
     WIN32_FIND_DATA data;
@@ -75,12 +75,12 @@ void readDirectory(const _string path, _string response) {
         err(_READDIR_ERR, ERR, true, -1);
     }
     do {
-        data.cFileName;
+        name = data.cFileName;
         /* TODO Lunghezza della riga: 1+filename+selector+?host? */
-        //snprintf(selector, sizeof(selector), "%s\\%s", path, data.cFileName);
-        if (data.cFileName[strlen(data.cFileName) - 1] != '.') {
-            type = isDirectory(&data) ? '1' : gopherType(data.cFileName);
-            snprintf(line, sizeof(line), "%c%s\t%s\\%s\t%s\n", type, data.cFileName, path, data.cFileName, "localhost");
+        //snprintf(selector, sizeof(selector), "%s\\%s", path, name);
+        if (name[strlen(name) - 1] != '.') {
+            type = isDirectory(&data) ? '1' : gopherType(name);
+            snprintf(line, sizeof(line), "%c%s\t%s\\%s\t%s\n", type, name, path, name, "localhost");
             strcat(response, line);
         }
     } while (FindNextFile(hFind, &data));
@@ -103,15 +103,16 @@ bool isDirectory(const char* file) {
     if (stat(file, &data) < 0) {
         err(_READDIR_ERR, ERR, true, -1);
     };
-    return S_ISDIR(data->st_mode);
+    return S_ISDIR(data.st_mode);
 }
 
 char gopherType(const char* file) {
     char buffer[200];
+    FILE* response;
     if (isDirectory(file)) {
         return '1';
     }
-    if ((FILE* response = popen("file", "r")) == NULL) {
+    if ((response = popen("file", "r")) == NULL) {
         err(_EXEC_ERR, ERR, true, -1);
     }
     fread(buffer, 1, 199, response);
@@ -124,9 +125,9 @@ char gopherType(const char* file) {
 
 void readDirectory(const char* path, char* response) {
     DIR* dir;
-    struct dirent entry;
-    char line[1 + MAX_PATH + MAX_PATH];
-    char name[MAX_PATH];
+    struct dirent* entry;
+    char line[1 + FILENAME_MAX + FILENAME_MAX];
+    char* name;
 
     if ((dir = opendir(path)) == NULL) {
         err(_READDIR_ERR, ERR, true, -1);

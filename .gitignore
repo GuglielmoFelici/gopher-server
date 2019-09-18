@@ -58,6 +58,7 @@ test.c
 log/debug
 log/err
 log/info
+log/test
 config/config
 test/
 

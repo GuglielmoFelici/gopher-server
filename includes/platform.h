@@ -9,6 +9,7 @@
 #include <windows.h>
 #else
 #include <arpa/inet.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -25,8 +26,8 @@ int setNonblocking(_socket s);
 
 bool isDirectory(const _fileData* file);
 
-char gopherType(char* file);
+char gopherType(_cstring file);
 
-void readDirectory(const _string path, _string response);
+void readDirectory(_cstring path, _string response);
 
 #endif
