@@ -8,6 +8,10 @@ int startup() {
     return WSAStartup(versionWanted, &wsaData);
 }
 
+int sockErr() {
+    return WSAGetLastError();
+}
+
 /* Took from  https://docs.microsoft.com/it-it/windows/win32/debug/retrieving-the-last-error-code*/
 _string errorString() {
     LPVOID lpMsgBuf;
@@ -58,7 +62,7 @@ char gopherType(const _file* file) {
     return ret;
 }
 
-void readDirectory(LPCSTR path, _string response) {
+void gopherResponse(LPCSTR path, _string response) {
     char wildcardPath[MAX_PATH + 2];
     _file file;
     char line[1 + MAX_PATH + 1 + MAX_PATH + 1 + sizeof("localhost")];
@@ -86,6 +90,10 @@ void readDirectory(LPCSTR path, _string response) {
 #else /* Linux functions */
 
 int startup() {}
+
+int sockErr() {
+    return errno;
+}
 
 char* errorString() {
     return strerror(errno);
@@ -122,7 +130,7 @@ char gopherType(const _file* file) {
     }
 }
 
-void readDirectory(const char* path, char* response) {
+void gopherResponse(const char* path, char* response) {
     DIR* dir;
     struct dirent* entry;
     struct stat fileStat;

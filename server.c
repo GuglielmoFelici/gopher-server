@@ -48,9 +48,27 @@ int main(int argc, _string* argv) {
         err(_LISTEN_ERROR, ERR, true, -1);
     }
     _log(_SOCKET_LISTENING, INFO, false);
-    FD_ZERO(&incomingConnections);
-    FD_SET(server, &incomingConnections);
-    selectRet = select(server + 1, &incomingConnections, NULL, NULL, NULL);
+
+    while (true) {
+        FD_ZERO(&incomingConnections);
+        FD_SET(server, &incomingConnections);
+        if (selectRet = select(server + 1, &incomingConnections, NULL, NULL, NULL) < 0) {
+            /*
+        TODO sighup handling
+        if (sockErr() == EINTR) {
+        }
+        */
+            if (selectRet == -1) {
+                err(_SELECT_ERR, ERR, true, -1);
+            }
+        } else {
+            // TODO thread accept
+            struct sockaddr_in clientAddr;
+            int addrLen = sizeof(clientAddr);
+            printf("incoming connection");
+            _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
+        }
+    }
 
     printf("All done.\n");
     return 0;

@@ -29,6 +29,8 @@ bool isDirectory(_fileData* file);
 
 char gopherType(const _file* file);
 
-void readDirectory(_cstring path, _string response);
+void gopherResponse(_cstring path, _string response);
+
+int sockerr();
 
 #endif
