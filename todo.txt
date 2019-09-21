@@ -1,21 +1,34 @@
 TODO
 realizzare sistema di connessione con select
-realizzare richiesta e risposta con un solo thread:
+realizzare richiesta e risposta con più thread:
 	realizzare nel thread sistema di riconoscimento dell'input
 	realizzare riconoscimento directory vs file
 	realizzare meccanismo di risposta
 	realizzare meccanismo di trasferimento file
 	meccanismo di lock??
 	meccanismo di logging
+	Linux:
+		thread detached
+		thread specific data o array?
+			tenere conto dei thread creati?
+			se specific, cleanup alla fine
 realizzare sistema di cambio di file di configurazione (potrebbe richiedere multithreading)
-realizzare multithreading
 realizzare modalità daemon linux
+analizzare BENE necessità di cleanup 
 
 TOTEST
 
 
 linux - lettura di directory 
 windows - lettura di directory 
+
+
+PROBLEMATICHE
+
+esecuzionek multithread:
+	condivisione e chiusura di socket in contesto multithread/processo
+	gestione degli interrupt
+	i thread devono ignorare sighup? 
 
 
 

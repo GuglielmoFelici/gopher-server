@@ -1,6 +1,7 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#include "config.h"
 #include "datatypes.h"
 #include "everything.h"
 #include "log.h"
@@ -18,19 +19,32 @@
 #include <unistd.h>
 #endif
 
-_string
-errorString();
+/* Utils */
+_string errorString();
 
 int startup();
 
-int setNonblocking(_socket s);
-
 bool isDirectory(_fileData* file);
+
+int sockerr();
+
+// int setNonblocking(_socket s);
+
+/* Gopher */
 
 char gopherType(const _file* file);
 
 void gopherResponse(_cstring path, _string response);
 
-int sockerr();
+/* Threads */
+
+struct threadArgs {
+    _socket socket;
+    struct config options;
+};
+
+void task(const struct threadArgs* args);
+
+void serve(_socket socket, const struct config options);
 
 #endif

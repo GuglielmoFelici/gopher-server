@@ -1,6 +1,11 @@
 #include "includes/platform.h"
 
-#if defined(_WIN32) /* Windows functions */
+/*****************************************************************************************************************/
+/*                                             WINDOWS FUNCTIONS                                                 */
+
+/*****************************************************************************************************************/
+
+#if defined(_WIN32)
 
 int startup() {
     WORD versionWanted = MAKEWORD(1, 1);
@@ -37,6 +42,8 @@ bool isDirectory(WIN32_FIND_DATA* file) {
     /* Windows directory constants */
     return file->dwFileAttributes == 16 || file->dwFileAttributes == 17 || file->dwFileAttributes == 18 || file->dwFileAttributes == 22 || file->dwFileAttributes == 9238;
 }
+
+/*********************************************** GOPHER ***************************************************************/
 
 char gopherType(const _file* file) {
     char ret = 'X';
@@ -87,7 +94,12 @@ void gopherResponse(LPCSTR path, _string response) {
     } while (FindNextFile(hFind, &data));
 }
 
-#else /* Linux functions */
+/*****************************************************************************************************************/
+/*                                             UNIX FUNCTIONS                                                    */
+
+/*****************************************************************************************************************/
+
+#else
 
 int startup() {}
 
@@ -107,6 +119,8 @@ bool isDirectory(struct stat* file) {
     return S_ISDIR(file->st_mode);
 }
 
+/*********************************************** GOPHER ***************************************************************/
+
 char gopherType(const _file* file) {
     struct stat fileStat;
     char buffer[600] = "";
@@ -114,7 +128,7 @@ char gopherType(const _file* file) {
     char command[FILENAME_MAX + 7];
     sprintf(command, "file \"%s\"", file->filePath);
     if ((response = popen(command, "r")) == NULL) {
-        err(_EXEC_ERR, ERR, true, -1);
+        err(_EXEC_ERR, ERR, true, errno);
     }
     fread(buffer, 1, 199, response);
     if (strstr(buffer, "executable")) {
@@ -138,7 +152,7 @@ void gopherResponse(const char* path, char* response) {
     char line[1 + FILENAME_MAX + 1 + FILENAME_MAX + 1 + sizeof("localhost")];
 
     if ((dir = opendir(path)) == NULL) {
-        err(_READDIR_ERR, ERR, true, -1);
+        err(_READDIR_ERR, ERR, true, errno);
     }
     while ((entry = readdir(dir)) != NULL) {
         strcpy(file.name, entry->d_name);
@@ -151,6 +165,24 @@ void gopherResponse(const char* path, char* response) {
         }
     }
     strcat(response, ".");
-};
+}
+
+/*********************************************** MULTI ***************************************************************/
+
+// TODO
+void task(const struct threadArgs* args) {
+}
+
+void serve(_socket socket, const struct config options) {
+    pid_t pid;
+    if (options.multiProcess) {
+        pid = fork();
+        if (pid < 0) {
+            err(_FORK_ERR, ERR, true, errno);
+        }
+
+    } else {
+    }
+}
 
 #endif

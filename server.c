@@ -4,10 +4,6 @@
 #include "includes/log.h"
 #include "includes/platform.h"
 
-void gopher(_socket s, _string request) {
-    _string response;
-}
-
 int main(int argc, _string* argv) {
     struct config options;
     _socket server;
@@ -35,9 +31,9 @@ int main(int argc, _string* argv) {
     if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
         _log(_REUSE_ERROR, ERR, true);
     }
-    if (setNonblocking(server) < 0) {
-        err(_NONBLOCK_ERR, ERR, true, -1);
-    }
+    // if (setNonblocking(server) < 0) {
+    //     err(_NONBLOCK_ERR, ERR, true, -1);
+    // }
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(options.port);
