@@ -174,14 +174,26 @@ void task(const struct threadArgs* args) {
 }
 
 void serve(_socket socket, const struct config options) {
+    pthread_t tid;
     pid_t pid;
+    struct threadArgs args;
     if (options.multiProcess) {
         pid = fork();
         if (pid < 0) {
             err(_FORK_ERR, ERR, true, errno);
+        } else if (pid == 0) {
+            return;
+        } else {
+            // TODO
         }
 
     } else {
+        args.socket = socket;
+        args.options = options;
+        if (pthread_create(&tid, NULL, task, &args)) {
+            err(_THREAD_ERR, ERR, true, -1);
+        }
+        pthread_detach(tid);
     }
 }
 

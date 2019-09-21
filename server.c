@@ -51,6 +51,7 @@ int main(int argc, _string* argv) {
         if (selectRet = select(server + 1, &incomingConnections, NULL, NULL, NULL) < 0) {
             /*
         TODO sighup handling
+        TODO check primitive interrupting
         if (sockErr() == EINTR) {
         }
         */
