@@ -4,16 +4,12 @@
 #include "includes/log.h"
 #include "includes/platform.h"
 
-bool sig = false;
-
-void sigHandler(int signum) {
-    sig = true;
-}
-
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address, bool reload) {
     char enable = 1;
     if (reload) {
-        closeSocket(server);
+        if (closeSocket(server) < 0) {
+            err(_CLOSE_SOCKET_ERR, ERR, true, -1);
+        };
     }
     if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         err(_SOCKET_ERROR, ERR, true, server);
@@ -38,16 +34,17 @@ int main(int argc, _string* argv) {
     struct sockaddr_in address;
     _socket server;
     int _errno;
+    int selResult;
+    int ready = 0;
     fd_set incomingConnections;
-    int selectRet;
 
     /* Configuration */
 
-    installSigHandler(sigHandler);
-    setvbuf(stdout, NULL, _IONBF, 0);
     if ((_errno = startup()) != 0) {
         err(_WINSOCK_ERROR, ERR, false, _errno);
     }
+    installSigHandler();
+    setvbuf(stdout, NULL, _IONBF, 0);
     if ((_errno = initLog()) != 0) {
         err(_LOG_ERROR, ERR, true, _errno);
     }
@@ -62,13 +59,12 @@ int main(int argc, _string* argv) {
     /* Main loop*/
 
     while (true) {
-        FD_ZERO(&incomingConnections);
-        FD_SET(server, &incomingConnections);
         do {
-            if (sockErr() < 0) {
+            if (ready < 0 && sockErr() != EINTR) {
                 err(_SELECT_ERR, ERR, true, -1);
             }
             if (sig) {
+                printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
                     _log(_CONFIG_ERROR, ERR, true);
                 }
@@ -77,8 +73,12 @@ int main(int argc, _string* argv) {
                 }
                 sig = false;
             }
-        } while (select(server + 1, &incomingConnections, NULL, NULL, NULL) < 0);
+            FD_ZERO(&incomingConnections);
+            FD_SET(server, &incomingConnections);
+            FD_SET(wakeSelect, &incomingConnections);
+        } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
         // TODO thread accept
+        printf("incoming connection at port %d\n", htons(address.sin_port));
         struct sockaddr_in clientAddr;
         int addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);

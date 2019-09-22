@@ -28,6 +28,7 @@ int initLog() {
 }
 
 void _log(const _string message, const _string level, bool stderror) {
+    char error[50];
     FILE *out;
     if ((out = fopen(level, "a")) == NULL) {
         fprintf(stderr, _LOG_ERROR);
@@ -35,7 +36,8 @@ void _log(const _string message, const _string level, bool stderror) {
     }
     fprintf(out, "%s\n", message);
     if (stderror) {
-        fprintf(out, "Descrizione errore: %s\n", errorString());
+        errorString(error);
+        fprintf(out, "Descrizione errore: %s\n", error);
     }
     fclose(out);
 }

@@ -1,11 +1,29 @@
 #include "includes/platform.h"
 
+bool sig = false;
+_socket wakeSelect;
+struct sockaddr_in wakeAddr;
+
+#if defined(_WIN32)
+
 /*****************************************************************************************************************/
 /*                                             WINDOWS FUNCTIONS                                                 */
 
 /*****************************************************************************************************************/
 
-#if defined(_WIN32)
+/************************************************** UTILS ********************************************************/
+
+/* Took from  https://docs.microsoft.com/it-it/windows/win32/debug/retrieving-the-last-error-code*/
+void errorString(char* error) {
+    sprintf(error, "Error: %d, Socket error: %d", GetLastError(), WSAGetLastError());
+}
+
+bool isDirectory(WIN32_FIND_DATA* file) {
+    /* Windows directory constants */
+    return file->dwFileAttributes == 16 || file->dwFileAttributes == 17 || file->dwFileAttributes == 18 || file->dwFileAttributes == 22 || file->dwFileAttributes == 9238;
+}
+
+/********************************************** SOCKETS *************************************************************/
 
 int startup() {
     WORD versionWanted = MAKEWORD(1, 1);
@@ -17,30 +35,41 @@ int sockErr() {
     return WSAGetLastError();
 }
 
-/* Took from  https://docs.microsoft.com/it-it/windows/win32/debug/retrieving-the-last-error-code*/
-_string errorString() {
-    LPVOID lpMsgBuf;
-    DWORD dw = GetLastError();
-    FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER |
-            FORMAT_MESSAGE_FROM_SYSTEM |
-            FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
-        dw,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR)&lpMsgBuf,
-        0, NULL);
-    return (LPTSTR)lpMsgBuf;
-}
-
-int setNonblocking(_socket s) {
+int setNonblocking(SOCKET s) {
     unsigned long blocking = 1;
     return ioctlsocket(s, FIONBIO, &blocking);
 }
 
-bool isDirectory(WIN32_FIND_DATA* file) {
-    /* Windows directory constants */
-    return file->dwFileAttributes == 16 || file->dwFileAttributes == 17 || file->dwFileAttributes == 18 || file->dwFileAttributes == 22 || file->dwFileAttributes == 9238;
+int closeSocket(SOCKET s) {
+    return closesocket(s);
+}
+
+/********************************************** SIGNALS *************************************************************/
+
+// TODO ???
+BOOL ctrlBreak(DWORD sign) {
+    if (sign == CTRL_BREAK_EVENT) {
+        printf("Richiesta chiusura");
+        exit(0);
+    }
+}
+
+BOOL sigHandler(DWORD signum) {
+    printf("segnale ricevuto\n");
+    sendto(socket(AF_INET, SOCK_DGRAM, 0), "", 0, 0, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
+    sig = true;
+    return signum == CTRL_C_EVENT;
+}
+
+void installSigHandler() {
+    wakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
+    memset(&wakeAddr, 0, sizeof(wakeAddr));
+    wakeAddr.sin_family = AF_INET;
+    wakeAddr.sin_port = htons(49152);
+    wakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    bind(wakeSelect, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlBreak, true);
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, true);
 }
 
 /*********************************************** GOPHER ***************************************************************/
@@ -94,6 +123,8 @@ void gopherResponse(LPCSTR path, _string response) {
     } while (FindNextFile(hFind, &data));
 }
 
+#else
+
 /*****************************************************************************************************************/
 /*                                             UNIX FUNCTIONS                                                    */
 
@@ -101,12 +132,8 @@ void gopherResponse(LPCSTR path, _string response) {
 
 /************************************************** UTILS ********************************************************/
 
-#else
-
-int startup() {}
-
-char* errorString() {
-    return strerror(errno);
+void errorString(char* error) {
+    sprintf(error, strerror(errno));
 }
 
 bool isDirectory(struct stat* file) {
@@ -114,6 +141,8 @@ bool isDirectory(struct stat* file) {
 }
 
 /********************************************** SOCKETS *************************************************************/
+
+int startup() {}
 
 int sockErr() {
     return errno;
@@ -124,16 +153,21 @@ int setNonblocking(_socket s) {
 }
 
 int closeSocket(int s) {
-    close(s);
+    return close(s);
 }
 
 /********************************************** SIGNALS *************************************************************/
 
-void installSigHandler(void (*handler)(int)) {
-    struct sigaction action;
-    action.sa_handler = handler;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = SA_RESTART;
+void sigHandler(int signum) {
+    printf("Registrato segnale \n");
+    sig = true;
+}
+
+void installSigHandler() {
+    struct sigaction sHup;
+    struct sigaction sInt;
+    sHup.sa_handler = sigHandler;
+    sInt.sa_handler = sigemptyset(&action.sa_mask);
     sigaction(SIGHUP, &action, NULL);
 }
 

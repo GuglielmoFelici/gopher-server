@@ -21,12 +21,17 @@
 #include <unistd.h>
 #endif
 
+extern bool sig;
+extern _socket wakeSelect;
+
 /* Utils */
-_string errorString();
+void errorString(char* error);
 
 int startup();
 
 bool isDirectory(_fileData* file);
+
+/* Signals */
 
 void installSigHandler();
 

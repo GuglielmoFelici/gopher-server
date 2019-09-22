@@ -15,7 +15,7 @@ typedef struct _file {
     char path[MAX_PATH];
     char filePath[MAX_PATH];
 } _file;
-typedef WSAEINTR _eintr;
+typedef BOOL _handlerRet;
 
 #else
 
@@ -33,6 +33,8 @@ typedef struct _file {
     char path[FILENAME_MAX];
     char filePath[FILENAME_MAX];
 } _file;
+typedef void _handlerRet;
+typedef void (*handler)(int) _handler;
 
 #endif
 
