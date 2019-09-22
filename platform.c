@@ -133,7 +133,7 @@ void gopherResponse(LPCSTR path, _string response) {
 /************************************************** UTILS ********************************************************/
 
 void errorString(char* error) {
-    sprintf(error, strerror(errno));
+    sprintf(error, "%s", strerror(errno));
 }
 
 bool isDirectory(struct stat* file) {
@@ -167,8 +167,9 @@ void installSigHandler() {
     struct sigaction sHup;
     struct sigaction sInt;
     sHup.sa_handler = sigHandler;
-    sInt.sa_handler = sigemptyset(&action.sa_mask);
-    sigaction(SIGHUP, &action, NULL);
+    sigemptyset(&sHup.sa_mask);
+    sHup.sa_flags = SA_NODEFER;
+    sigaction(SIGHUP, &sHup, NULL);
 }
 
 /*********************************************** GOPHER ***************************************************************/

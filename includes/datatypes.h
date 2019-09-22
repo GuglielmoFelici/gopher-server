@@ -34,7 +34,6 @@ typedef struct _file {
     char filePath[FILENAME_MAX];
 } _file;
 typedef void _handlerRet;
-typedef void (*handler)(int) _handler;
 
 #endif
 
