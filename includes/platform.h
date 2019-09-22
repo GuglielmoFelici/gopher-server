@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <signal.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -27,7 +28,13 @@ int startup();
 
 bool isDirectory(_fileData* file);
 
-int sockerr();
+void installSigHandler();
+
+/* Sockets */
+
+int sockErr();
+
+int closeSocket(_socket s);
 
 // int setNonblocking(_socket s);
 
@@ -44,7 +51,7 @@ struct threadArgs {
     struct config options;
 };
 
-void task(const struct threadArgs* args);
+void* task(void* args);
 
 void serve(_socket socket, const struct config options);
 

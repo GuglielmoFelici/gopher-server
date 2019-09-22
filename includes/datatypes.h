@@ -4,6 +4,8 @@
 #if defined(_WIN32)
 #include <windows.h>
 
+#define EINTR WSAEINTR
+
 typedef SOCKET _socket;
 typedef LPSTR _string;
 typedef LPCSTR _cstring;
@@ -13,6 +15,7 @@ typedef struct _file {
     char path[MAX_PATH];
     char filePath[MAX_PATH];
 } _file;
+typedef WSAEINTR _eintr;
 
 #else
 

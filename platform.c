@@ -99,24 +99,42 @@ void gopherResponse(LPCSTR path, _string response) {
 
 /*****************************************************************************************************************/
 
+/************************************************** UTILS ********************************************************/
+
 #else
 
 int startup() {}
 
-int sockErr() {
-    return errno;
-}
-
 char* errorString() {
     return strerror(errno);
+}
+
+bool isDirectory(struct stat* file) {
+    return S_ISDIR(file->st_mode);
+}
+
+/********************************************** SOCKETS *************************************************************/
+
+int sockErr() {
+    return errno;
 }
 
 int setNonblocking(_socket s) {
     return fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK);
 }
 
-bool isDirectory(struct stat* file) {
-    return S_ISDIR(file->st_mode);
+int closeSocket(int s) {
+    close(s);
+}
+
+/********************************************** SIGNALS *************************************************************/
+
+void installSigHandler(void (*handler)(int)) {
+    struct sigaction action;
+    action.sa_handler = handler;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_RESTART;
+    sigaction(SIGHUP, &action, NULL);
 }
 
 /*********************************************** GOPHER ***************************************************************/
@@ -170,7 +188,7 @@ void gopherResponse(const char* path, char* response) {
 /*********************************************** MULTI ***************************************************************/
 
 // TODO
-void task(const struct threadArgs* args) {
+void* task(void* args) {
 }
 
 void serve(_socket socket, const struct config options) {
