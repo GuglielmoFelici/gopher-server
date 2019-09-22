@@ -1,6 +1,7 @@
 TODO
-realizzare sistema di cambio di file di configurazione (potrebbe richiedere multithreading)
-signal handling/blocking (pthread_sigmask)
+Windows:
+	realizzare sistema di cambio di file di configurazione (potrebbe richiedere multithreading)
+	signal handling/blocking (pthread_sigmask)
 realizzare richiesta e risposta con più thread:
 	realizzare nel thread sistema di riconoscimento dell'input
 	realizzare riconoscimento directory vs file
