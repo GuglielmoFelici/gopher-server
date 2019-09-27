@@ -5,6 +5,7 @@
 #include "datatypes.h"
 #include "everything.h"
 #include "log.h"
+#include "threads.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -29,8 +30,6 @@ void errorString(char* error);
 
 int startup();
 
-bool isDirectory(_fileData* file);
-
 /* Signals */
 
 void installSigHandler();
@@ -43,21 +42,8 @@ int closeSocket(_socket s);
 
 // int setNonblocking(_socket s);
 
-/* Gopher */
+/* Thread */
 
-char gopherType(const _file* file);
-
-void gopherResponse(_cstring path, _string response);
-
-/* Threads */
-
-struct threadArgs {
-    _socket socket;
-    struct config options;
-};
-
-void* task(void* args);
-
-void serve(_socket socket, const struct config options);
+void serve(_socket socket, bool multiProcess);
 
 #endif

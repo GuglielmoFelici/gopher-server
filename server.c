@@ -82,6 +82,7 @@ int main(int argc, _string* argv) {
         struct sockaddr_in clientAddr;
         int addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
+        serve(client, options.multiProcess);
     }
 
     printf("All done.\n");
