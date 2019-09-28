@@ -15,6 +15,7 @@ realizzare richiesta e risposta con più thread:
 verificare che non si usino funzioni non thread-safe http://man7.org/linux/man-pages/man7/pthreads.7.html
 realizzare modalità daemon linux
 analizzare BENE necessità di cleanup 
+aggiungere supporto a custom cwd
 
 TOTEST
 
@@ -37,3 +38,4 @@ esecuzionek multithread:
 Supporto file nascosti?
 estensioni windows
 estensioni linux
+sandbox richiesta gopher?

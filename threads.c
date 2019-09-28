@@ -35,39 +35,42 @@ char gopherType(const _file* file) {
     return ret;
 }
 
-void gopherResponse(LPCSTR path, _string response) {
+void gopherResponse(LPCSTR selector, _string response) {
     char wildcardPath[MAX_PATH + 2];
     _file file;
     char line[1 + MAX_PATH + 1 + MAX_PATH + 1 + sizeof("localhost")];
     char type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
+    char* failure = "3Error: unknown selector\t\t\r\n.";
 
-    snprintf(wildcardPath, sizeof(wildcardPath), "%s\\*", path);
-    if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
-        err(_READDIR_ERR, ERR, true, -1);
+    if (strstr(selector, "..\\")) {
+        _log(_READDIR_ERR, ERR, true);
+        strcpy(response, failure);
+        return;
     }
-    do {
-        strcpy(file.name, data.cFileName);
-        if (file.name[strlen(file.name) - 1] != '.') {
-            strcpy(file.path, path);
-            strcpy(file.filePath, path);
-            strcat(strcat(file.filePath, "\\"), file.name);
-            type = isDirectory(&data) ? '1' : gopherType(&file);
-            snprintf(line, sizeof(line), "%c%s\t%s\t%s\n", type, file.name, file.filePath, "localhost");
-            strcat(response, line);
-        }
-    } while (FindNextFile(hFind, &data));
-}
 
-void* task(void* args) {
-    printf("starting thread\n");
-    char message[MAX_PATH];
-    _socket sock = *(_socket*)args;
-    recv(sock, message, sizeof(message), 0);
-    printf("received: %s\n", message);
-    free(args);
-    printf("Closing thread...");
+    if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
+        snprintf(wildcardPath, sizeof(wildcardPath), "%s*", (selector[0] == '\0' ? ".\\" : selector));
+        if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
+            _log(_READDIR_ERR, ERR, true);
+            strcpy(response, failure);
+            return;
+        }
+        do {
+            if (strcmp(data.cFileName, ".") && strcmp(data.cFileName, "..")) {
+                strcpy(file.name, data.cFileName);
+                strcpy(file.path, selector);
+                strcat(strcpy(file.filePath, selector), file.name);
+                type = isDirectory(&data) ? '1' : gopherType(&file);
+                snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, file.name, file.filePath, (type == '1' ? "\\" : ""), "localhost");
+                strcat(response, line);
+            }
+        } while (FindNextFile(hFind, &data));
+    } else {  // File
+        ;
+    }
+    strcat(response, ".");
 }
 
 #else
@@ -127,8 +130,20 @@ void gopherResponse(const char* path, char* response) {
     strcat(response, ".");
 }
 
-// TODO
-void* task(void* args) {
-}
-
 #endif
+
+void* task(void* args) {
+    char message[MAX_PATH];
+    char response[10000];
+    printf("starting thread\n");
+    _socket sock = *(_socket*)args;
+    recv(sock, message, sizeof(message), 0);
+    if (!strcmp(message, "\r\n")) {
+        strcpy(message, "");
+    }
+    gopherResponse(message, response);
+    printf("%s\n", response);
+    free(args);
+    closeSocket(sock);
+    printf("Closing thread...\n");
+}
