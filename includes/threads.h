@@ -7,13 +7,8 @@ bool isDirectory(_fileData* file);
 
 char gopherType(const _file* file);
 
-void gopherResponse(LPCSTR path, _string response);
+void gopherResponse(_cstring path, _string response);
 
 void* task(void* args);
-
-struct threadArgs {
-    _socket socket;
-    struct config options;
-};
 
 #endif

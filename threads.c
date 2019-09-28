@@ -44,7 +44,7 @@ void gopherResponse(LPCSTR selector, _string response) {
     HANDLE hFind;
     char* failure = "3Error: unknown selector\t\t\r\n.";
 
-    if (strstr(selector, "..\\")) {
+    if (strstr(selector, ".\\") || strstr(selector, "..\\")) {
         _log(_READDIR_ERR, ERR, true);
         strcpy(response, failure);
         return;
@@ -107,43 +107,66 @@ char gopherType(const _file* file) {
     }
 }
 
-void gopherResponse(const char* path, char* response) {
-    DIR* dir;
-    struct dirent* entry;
+void gopherResponse(const char* selector, char* response) {
     struct stat fileStat;
-    _file file;
-    char line[1 + FILENAME_MAX + 1 + FILENAME_MAX + 1 + sizeof("localhost")];
+    char* err = "3Error: error reading file, check the selector\t\t\r\n.";
 
-    if ((dir = opendir(path)) == NULL) {
-        err(_READDIR_ERR, ERR, true, errno);
+    if (strstr(selector, "./") || strstr(selector, "../") || selector[0] == '/') {
+        _log(_READDIR_ERR, ERR, true);
+        strcpy(response, err);
+        return;
     }
-    while ((entry = readdir(dir)) != NULL) {
-        strcpy(file.name, entry->d_name);
-        if (file.name[strlen(file.name) - 1] != '.') {
-            strcpy(file.path, path);
-            strcpy(file.filePath, path);
-            strcat(strcat(file.filePath, "/"), file.name);
-            sprintf(line, "%c%s\t%s\t%s\n", gopherType(&file), file.name, file.filePath, "localhost");
-            strcat(response, line);
+    if (selector[0] == '\0' || selector[strlen(selector) - 1] == '/') {  // Directory
+        DIR* dir;
+        struct dirent* entry;
+        _file file;
+        char line[1 + FILENAME_MAX + 1 + FILENAME_MAX + 1 + sizeof("localhost")];
+        char type;
+        if ((dir = opendir(selector[0] == '\0' ? "./" : selector)) == NULL) {
+            _log(_READDIR_ERR, ERR, true);
+            strcpy(response, err);
+            return;
         }
+        while ((entry = readdir(dir)) != NULL) {
+            if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
+                strcat(strcpy(file.filePath, selector), entry->d_name);
+                char type = gopherType(&file);
+                snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.filePath, (type == '1' ? "/" : ""), "localhost");
+                strcat(response, line);
+            }
+        }
+    } else {  // File
     }
     strcat(response, ".");
 }
 
 #endif
 
+/*****************************************************************************************************************/
+/*                                             COMMON                                                            */
+
+/*****************************************************************************************************************/
+
+_string trimEnding(_string str) {
+    for (int i = strlen(str) - 1; i >= 0; i--) {
+        if (str[i] == ' ' || str[i] == '\r' || str[i] == '\n') {
+            str[i] = '\0';
+        }
+    }
+    return str;
+}
+
 void* task(void* args) {
-    char message[MAX_PATH];
+    char message[256];
     char response[10000];
     printf("starting thread\n");
     _socket sock = *(_socket*)args;
     recv(sock, message, sizeof(message), 0);
-    if (!strcmp(message, "\r\n")) {
-        strcpy(message, "");
-    }
+    trimEnding(message);
+    printf("received: %s;\n", message);
     gopherResponse(message, response);
     printf("%s\n", response);
-    free(args);
     closeSocket(sock);
+    free(args);
     printf("Closing thread...\n");
 }

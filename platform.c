@@ -75,7 +75,8 @@ void serve(SOCKET socket, bool multiProcess) {
         // TODO
     } else {
         if ((sock = malloc(1 * sizeof(SOCKET))) == NULL) {
-            err(_ALLOC_ERR, ERR, true, -1);
+            _log(_ALLOC_ERR, ERR, true);
+            return;
         }
         *sock = socket;
         thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)task, sock, 0, NULL);
@@ -103,7 +104,7 @@ int sockErr() {
     return errno;
 }
 
-int setNonblocking(_socket s) {
+int setNonblocking(int s) {
     return fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK);
 }
 
@@ -129,10 +130,9 @@ void installSigHandler() {
 
 /*********************************************** MULTI ***************************************************************/
 
-void serve(_socket socket, bool multiProcess) {
+void serve(int socket, bool multiProcess) {
     pthread_t tid;
     pid_t pid;
-    struct threadArgs args;
     int* sock;
     if (multiProcess) {
         pid = fork();
@@ -145,14 +145,16 @@ void serve(_socket socket, bool multiProcess) {
         }
 
     } else {
-        if ((sock = malloc(1 * sizeof(_socket))) == NULL) {
-            err(_ALLOC_ERR, ERR, true, -1);
+        if ((sock = malloc(1 * sizeof(int))) == NULL) {
+            _log(_ALLOC_ERR, ERR, true);
+            return;
         }
         *sock = socket;
-        if (pthread_create(&tid, NULL, task, &args)) {
-            err(_THREAD_ERR, ERR, true, -1);
+        if (pthread_create(&tid, NULL, task, sock)) {
+            _log(_THREAD_ERR, ERR, true);
+            return;
         }
-        pthread_detach(tid);
+        //        pthread_detach(tid);
     }
 }
 
