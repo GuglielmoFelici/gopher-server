@@ -68,13 +68,13 @@ void installSigHandler() {
 
 /*********************************************** MULTI ***************************************************************/
 
-void serve(_socket socket, bool multiProcess) {
+void serve(SOCKET socket, bool multiProcess) {
     HANDLE thread;
-    _socket* sock;
+    SOCKET* sock;
     if (multiProcess) {
         // TODO
     } else {
-        if ((sock = malloc(1 * sizeof(_socket))) == NULL) {
+        if ((sock = malloc(1 * sizeof(SOCKET))) == NULL) {
             err(_ALLOC_ERR, ERR, true, -1);
         }
         *sock = socket;
@@ -133,6 +133,7 @@ void serve(_socket socket, bool multiProcess) {
     pthread_t tid;
     pid_t pid;
     struct threadArgs args;
+    int* sock;
     if (multiProcess) {
         pid = fork();
         if (pid < 0) {
@@ -144,8 +145,10 @@ void serve(_socket socket, bool multiProcess) {
         }
 
     } else {
-        args.socket = socket;
-        args.options = options;
+        if ((sock = malloc(1 * sizeof(_socket))) == NULL) {
+            err(_ALLOC_ERR, ERR, true, -1);
+        }
+        *sock = socket;
         if (pthread_create(&tid, NULL, task, &args)) {
             err(_THREAD_ERR, ERR, true, -1);
         }
