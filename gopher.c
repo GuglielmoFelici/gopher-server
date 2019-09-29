@@ -60,7 +60,9 @@ char gopherType(const _file* file) {
     return ret;
 }
 
-void gopher(LPCSTR selector, _string response) {
+void readDir(const char* path, int sock) {}
+
+void gopher(LPCSTR selector, SOCKET sock) {
     char wildcardPath[MAX_PATH + 2];
     _file file;
     char line[1 + MAX_PATH + 1 + MAX_PATH + 1 + sizeof("localhost")];

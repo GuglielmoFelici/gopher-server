@@ -68,6 +68,19 @@ void installSigHandler() {
 
 /*********************************************** MULTI ***************************************************************/
 
+void* task(void* args) {
+    char message[256];
+    SOCKET sock;
+    printf("starting thread\n");
+    sock = *(SOCKET*)args;
+    free(args);
+    recv(sock, message, sizeof(message), 0);
+    trimEnding(message);
+    printf("received: %s;\n", message);
+    gopher(message, sock);
+    printf("Closing child thread...\n");
+}
+
 void serve(SOCKET socket, bool multiProcess) {
     HANDLE thread;
     SOCKET* sock;
