@@ -68,6 +68,10 @@ void installSigHandler() {
 
 /*********************************************** MULTI ***************************************************************/
 
+void closeThread() {
+    ExitThread(0);
+}
+
 void* task(void* args) {
     char message[256];
     SOCKET sock;
@@ -82,7 +86,6 @@ void* task(void* args) {
 }
 
 void serve(SOCKET socket, bool multiProcess) {
-    HANDLE thread;
     SOCKET* sock;
     if (multiProcess) {
         // TODO
@@ -92,7 +95,7 @@ void serve(SOCKET socket, bool multiProcess) {
             return;
         }
         *sock = socket;
-        thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)task, sock, 0, NULL);
+        CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)task, sock, 0, NULL);
     }
 }
 
@@ -142,6 +145,10 @@ void installSigHandler() {
 }
 
 /*********************************************** MULTI ***************************************************************/
+
+void closeThread() {
+    pthread_exit(NULL);
+}
 
 void* task(void* args) {
     sigset_t set;

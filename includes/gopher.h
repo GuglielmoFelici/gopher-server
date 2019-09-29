@@ -13,4 +13,6 @@ struct sendFileArgs {
     _socket dest;
 };
 
+void* sendFile(void* sendFileArgs);
+
 #endif

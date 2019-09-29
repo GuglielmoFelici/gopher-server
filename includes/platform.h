@@ -47,4 +47,6 @@ int closeSocket(_socket s);
 
 void serve(_socket socket, bool multiProcess);
 
+void closeThread();
+
 #endif

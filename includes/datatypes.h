@@ -13,7 +13,6 @@ typedef WIN32_FIND_DATA _fileData;
 typedef struct _file {
     char name[MAX_PATH];
     char path[MAX_PATH];
-    char filePath[MAX_PATH];
 } _file;
 typedef BOOL _handlerRet;
 
