@@ -21,5 +21,6 @@ bool readConfig(const _string configPath, struct config *options) {
     fgets(multiProcess, 2, configFile);
     options->port = atoi(port);
     options->multiProcess = (bool)atoi(multiProcess);
+    fclose(configFile);
     return 0;
 }

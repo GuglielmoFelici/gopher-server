@@ -50,7 +50,7 @@ BOOL ctrlBreak(DWORD sign) {
 
 BOOL sigHandler(DWORD signum) {
     printf("segnale ricevuto\n");
-    sendto(socket(AF_INET, SOCK_DGRAM, 0), "", 0, 0, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
+    sendto(socket(AF_INET, SOCK_DGRAM, 0), "Wake up!", 0, 0, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
     sig = true;
     return signum == CTRL_C_EVENT;
 }
@@ -130,6 +130,23 @@ void installSigHandler() {
 
 /*********************************************** MULTI ***************************************************************/
 
+void* task(void* args) {
+    sigset_t set;
+    char message[256];
+    int sock;
+    sigemptyset(&set);
+    sigaddset(&set, SIGHUP);
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
+    printf("starting thread\n");
+    sock = *(int*)args;
+    free(args);
+    recv(sock, message, sizeof(message), 0);
+    trimEnding(message);
+    printf("received: %s;\n", message);
+    gopher(message, sock);
+    printf("Closing child thread...\n");
+}
+
 void serve(int socket, bool multiProcess) {
     pthread_t tid;
     pid_t pid;
@@ -154,7 +171,7 @@ void serve(int socket, bool multiProcess) {
             _log(_THREAD_ERR, ERR, true);
             return;
         }
-        //        pthread_detach(tid);
+        pthread_detach(tid);
     }
 }
 

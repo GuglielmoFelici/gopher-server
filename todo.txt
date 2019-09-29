@@ -1,17 +1,11 @@
 TODO
 config parsing usando strtok?
 realizzare richiesta e risposta con più thread:
-	realizzare nel thread sistema di riconoscimento dell'input
-	realizzare riconoscimento directory vs file
-	realizzare meccanismo di risposta
-	realizzare meccanismo di trasferimento file
+	sendFile
+		evitare response?
 	meccanismo di lock??
 	meccanismo di logging
 	Linux:
-		thread detached
-		thread specific data o array?
-			tenere conto dei thread creati?
-			se specific, cleanup alla fine
 verificare che non si usino funzioni non thread-safe http://man7.org/linux/man-pages/man7/pthreads.7.html
 realizzare modalità daemon linux
 analizzare BENE necessità di cleanup 
@@ -30,6 +24,9 @@ esecuzionek multithread:
 	condivisione e chiusura di socket in contesto multithread/processo
 	gestione degli interrupt
 	i thread devono ignorare sighup? 
+allocazione dinamica:
+	malloc o calloc?
+consentiti nomi di directory del tipo "cane."
 
 
 

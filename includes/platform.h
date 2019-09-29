@@ -4,8 +4,8 @@
 #include "config.h"
 #include "datatypes.h"
 #include "everything.h"
+#include "gopher.h"
 #include "log.h"
-#include "threads.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/mman.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
