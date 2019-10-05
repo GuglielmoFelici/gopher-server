@@ -179,7 +179,7 @@ void* task(void* args) {
     trimEnding(message);
     printf("received: %s;\n", message);
     pthread_cleanup_push(errorRoutine, &sock);
-    gopher(message, sock);
+    pthread_detach(gopher(message, sock));
     pthread_cleanup_pop(0);
     printf("Closing child thread...\n");
 }

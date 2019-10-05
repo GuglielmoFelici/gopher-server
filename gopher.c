@@ -152,18 +152,18 @@ void gopher(LPCSTR selector, SOCKET sock) {
 
 void errorRoutine(void* sock) {
     char* err = "3Error retrieving the resource\t\t\r\n.";
-    _log(_THREAD_ERR, ERR, true);
+    _log(_GENERIC_ERR, ERR, true);
     send(*(int*)sock, err, strlen(err), 0);
     closeSocket(*(int*)sock);
 }
 
 char gopherType(const _file* file) {
-    struct stat fileStat;
     char cmdOut[200] = "";
     FILE* response;
     char* command;
     int bytesRead;
-    command = malloc(strlen(file->path) + strlen("file \"%s\""));
+
+    command = malloc(strlen(file->path) + strlen("file \"\"") + 2);
     sprintf(command, "file \"%s\"", file->path);
     response = popen(command, "r");
     bytesRead = fread(cmdOut, 1, 200, response);
@@ -225,7 +225,7 @@ void readDir(const char* path, int sock) {
         pthread_exit(NULL);
     }
     response = calloc(1, 1);
-    responseSize = 1;  // Per il punto finale
+    responseSize = 2;  // Per il punto finale
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
             strcat(strcpy(file.path, path), entry->d_name);
