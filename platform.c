@@ -151,6 +151,20 @@ void closeThread() {
     pthread_exit(NULL);
 }
 
+void processTask(int sock) {
+    sigset_t set;
+    char message[256];
+    sigemptyset(&set);
+    sigaddset(&set, SIGHUP);
+    sigprocmask(SIG_BLOCK, &set, NULL);
+    recv(sock, message, sizeof(message), 0);
+    trimEnding(message);
+    printf("received: %s;\n", message);
+    pthread_join(gopher(message, sock), NULL);
+    printf("Exiting process...\n");
+    exit(0);
+}
+
 void* task(void* args) {
     sigset_t set;
     char message[256];
@@ -164,25 +178,29 @@ void* task(void* args) {
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
     printf("received: %s;\n", message);
+    pthread_cleanup_push(errorRoutine, &sock);
     gopher(message, sock);
+    pthread_cleanup_pop(0);
     printf("Closing child thread...\n");
 }
 
 void serve(int socket, bool multiProcess) {
-    pthread_t tid;
-    pid_t pid;
-    int* sock;
     if (multiProcess) {
+        pid_t pid;
         pid = fork();
         if (pid < 0) {
             err(_FORK_ERR, ERR, true, errno);
         } else if (pid == 0) {
-            return;
+            printf("starting process\n");
+            processTask(socket);
         } else {
-            // TODO
+            close(socket);
+            return;
         }
 
     } else {
+        pthread_t tid;
+        int* sock;
         if ((sock = malloc(1 * sizeof(int))) == NULL) {
             _log(_ALLOC_ERR, ERR, true);
             return;

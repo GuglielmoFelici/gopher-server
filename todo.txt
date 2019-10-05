@@ -11,6 +11,7 @@ aggiungere supporto a custom cwd
 PROBLEMATICHE
 
 esecuzionek multithread:
+	multiprocesso abilitabile durante app?
 	windows:
 		gestione degli interrupt
 consentiti nomi di directory del tipo "cane."

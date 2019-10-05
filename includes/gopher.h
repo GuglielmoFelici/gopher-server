@@ -5,8 +5,9 @@
 
 _string trimEnding(_string str);
 
-void gopher(_cstring selector, _socket sock);
+_thread gopher(_cstring selector, _socket sock);
 
+void errorRoutine(void* sock);
 struct sendFileArgs {
     void* src;
     size_t size;

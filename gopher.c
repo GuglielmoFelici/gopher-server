@@ -186,7 +186,7 @@ char gopherType(const _file* file) {
     return 'X';
 }
 
-void readFile(const char* path, int sock) {
+pthread_t readFile(const char* path, int sock) {
     void* map;
     int fd;
     struct stat statBuf;
@@ -208,7 +208,8 @@ void readFile(const char* path, int sock) {
     if (pthread_create(&tid, NULL, sendFile, args)) {
         pthread_exit(NULL);
     }
-    pthread_detach(tid);
+    //pthread_detach(tid);
+    return tid;
 }
 
 void readDir(const char* path, int sock) {
@@ -217,7 +218,7 @@ void readDir(const char* path, int sock) {
     _file file;
     char line[sizeof(entry->d_name) + sizeof(file.path) + sizeof("localhost") + 4];
     char* response;
-    size_t responseSize;  // Per il punto finale
+    size_t responseSize;
     char type;
 
     if ((dir = opendir(path[0] == '\0' ? "./" : path)) == NULL) {
@@ -230,7 +231,7 @@ void readDir(const char* path, int sock) {
             strcat(strcpy(file.path, path), entry->d_name);
             type = gopherType(&file);
             snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.path, (type == '1' ? "/" : ""), "localhost");
-            if ((response = realloc(response, responseSize + strlen(line) + 1)) == NULL) {
+            if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
                 free(dir);
                 pthread_exit(NULL);
             }
@@ -242,19 +243,17 @@ void readDir(const char* path, int sock) {
     send(sock, response, responseSize, 0);
     free(dir);
     free(response);
-    closeSocket(sock);
+    close(sock);
 }
 
-void gopher(const char* selector, int sock) {
-    pthread_cleanup_push(errorRoutine, &sock);
+_thread gopher(const char* selector, int sock) {
     if (strstr(selector, "./") || strstr(selector, "../") || selector[0] == '/' || strstr(selector, "//")) {
         pthread_exit(NULL);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '/') {  // Directory
         readDir(selector, sock);
     } else {  // File
-        readFile(selector, sock);
+        return readFile(selector, sock);
     }
-    pthread_cleanup_pop(0);
 }
 
 #endif
@@ -274,6 +273,7 @@ _string trimEnding(_string str) {
 }
 
 void* sendFile(void* sendFileArgs) {
+    printf("sending...");
     struct sendFileArgs args;
     void* response;
     args = *((struct sendFileArgs*)sendFileArgs);
