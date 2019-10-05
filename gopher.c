@@ -11,7 +11,7 @@
 
 void errorRoutine(void* sock) {
     LPSTR err = "3Error retrieving the resource\t\t\r\n.";
-    _log(_THREAD_ERR, ERR, true);
+    _log(_GENERIC_ERR, ERR, true);
     send(*(SOCKET*)sock, err, strlen(err), 0);
     closeSocket(*(SOCKET*)sock);
     ExitThread(-1);
@@ -22,64 +22,81 @@ bool isDirectory(WIN32_FIND_DATA* file) {
     return file->dwFileAttributes == 16 || file->dwFileAttributes == 17 || file->dwFileAttributes == 18 || file->dwFileAttributes == 22 || file->dwFileAttributes == 9238;
 }
 
-char gopherType(const _file* file) {
-    char ret = 'X';
-    char ext[4];
-    memcpy(&ext, &file->name[strlen(file->name) - 3], 4);
+char gopherType(_file* file) {
+    char* ext;
+    int i;
+
     if (!strstr(file->name, ".")) {
-        ret = 'X';
-    } else if (!strcmp(ext, "txt") || !strcmp(ext, "doc")) {
-        ret = '0';
-    } else if (!strcmp(ext, "hqx")) {
-        ret = '4';
-    } else if (!strcmp(ext, "dos")) {
-        ret = '5';
-    } else if (!strcmp(ext, "exe")) {
-        ret = '9';
-    } else if (!strcmp(ext, "gif")) {
-        ret = 'g';
-    } else if (!strcmp(ext, "jpg") || !strcmp(ext, "png")) {
-        ret = 'I';
-    } else if (strcmp(ext, "png") == 0) {
-        ret = 'I';
+        return 'X';
     }
-    return ret;
+    i = strlen(file->name) - 1;
+    while (file->name[i] != '.') {
+        i--;
+    }
+    ext = file->name + i + 1;
+    if (!strcmp(ext, "txt") || !strcmp(ext, "doc") || !strcmp(ext, "odt") || !strcmp(ext, "rtf") || !strcmp(ext, "c") || !strcmp(ext, "cpp") || !strcmp(ext, "java")) {
+        return '0';
+    } else if (!strcmp(ext, "hqx")) {
+        return '4';
+    } else if (!strcmp(ext, "dos")) {
+        return '5';
+    } else if (!strcmp(ext, "exe") || !strcmp(ext, "jar") || !strcmp(ext, "apk") || !strcmp(ext, "bin") || !strcmp(ext, "bat")) {
+        return '9';
+    } else if (!strcmp(ext, "gif")) {
+        return 'g';
+    } else if (!strcmp(ext, "jpg") || !strcmp(ext, "jpeg") || !strcmp(ext, "png")) {
+        return 'I';
+    } else if (strcmp(ext, "png") == 0) {
+        return 'I';
+    }
+    return 'X';
 }
 
-void readFile(const char* path, int sock) {
+void readFile(LPCSTR path, SOCKET sock) {
     HANDLE file;
     HANDLE map;
-    HANDLE view;
-    DWORD size;
+    size_t size;
+    LPVOID view;
     struct sendFileArgs* args;
     if ((file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
         errorRoutine(&sock);
     }
     if ((size = GetFileSize(file, NULL)) == 0) {
         send(sock, ".", 2, 0);
+        if (!CloseHandle(file)) {
+            errorRoutine(&sock);
+        }
+        closeSocket(sock);
+        return;
     }
     if ((map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL) {
+        errorRoutine(&sock);
+    }
+    if (!CloseHandle(file)) {
         errorRoutine(&sock);
     }
     if ((view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) == NULL) {
         errorRoutine(&sock);
     }
-    if ((args = malloc(sizeof(args))) == NULL) {
+    if (!CloseHandle(map)) {
+        errorRoutine(&sock);
+    }
+    if ((args = malloc(sizeof(struct sendFileArgs))) == NULL) {
         errorRoutine(&sock);
     }
     args->src = view;
-    args->size = size;
     args->dest = sock;
+    args->size = size;
     CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL);
 }
 
-void readDir(const char* path, int sock) {
+void readDir(LPCSTR path, SOCKET sock) {
     _file file;
     char wildcardPath[MAX_PATH + 2];
     char line[sizeof(file.name) + sizeof(file.path) + sizeof("localhost") + 4];
     LPSTR response;
     size_t responseSize;  // Per il punto finale
-    char type;
+    CHAR type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
 
@@ -95,7 +112,7 @@ void readDir(const char* path, int sock) {
             strcat(strcpy(file.path, path), file.name);
             type = isDirectory(&data) ? '1' : gopherType(&file);
             snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, file.name, file.path, (type == '1' ? "\\" : ""), "localhost");
-            if ((response = realloc(response, responseSize + strlen(line) + 1)) == NULL) {
+            if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
                 errorRoutine(&sock);
             }
             responseSize += strlen(line);
@@ -105,6 +122,7 @@ void readDir(const char* path, int sock) {
     strcat(response, ".");
     send(sock, response, responseSize, 0);
     closesocket(sock);
+    CloseHandle(hFind);
     free(response);
 }
 
@@ -115,7 +133,6 @@ void gopher(LPCSTR selector, SOCKET sock) {
     char type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
-    char* failure = "3Error: unknown selector\t\t\r\n.";
 
     if (strstr(selector, ".\\") || strstr(selector, "..\\") || selector[0] == '\\' || strstr(selector, "\\\\")) {
         errorRoutine(&sock);
@@ -169,6 +186,31 @@ char gopherType(const _file* file) {
     return 'X';
 }
 
+void readFile(const char* path, int sock) {
+    void* map;
+    int fd;
+    struct stat statBuf;
+    struct sendFileArgs* args;
+    pthread_t tid;
+    if ((fd = open(path, O_RDONLY)) < 0) {
+        pthread_exit(NULL);
+    }
+    if (fstat(fd, &statBuf) < 0) {
+        pthread_exit(NULL);
+    }
+    if ((map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
+        pthread_exit(NULL);
+    }
+    args = malloc(sizeof(struct sendFileArgs));
+    args->src = map;
+    args->size = statBuf.st_size;
+    args->dest = sock;
+    if (pthread_create(&tid, NULL, sendFile, args)) {
+        pthread_exit(NULL);
+    }
+    pthread_detach(tid);
+}
+
 void readDir(const char* path, int sock) {
     DIR* dir;
     struct dirent* entry;
@@ -203,31 +245,6 @@ void readDir(const char* path, int sock) {
     closeSocket(sock);
 }
 
-void readFile(const char* path, int sock) {
-    void* map;
-    int fd;
-    struct stat statBuf;
-    struct sendFileArgs* args;
-    pthread_t tid;
-    if ((fd = open(path, O_RDONLY)) < 0) {
-        pthread_exit(NULL);
-    }
-    if (fstat(fd, &statBuf) < 0) {
-        pthread_exit(NULL);
-    }
-    if ((map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
-        pthread_exit(NULL);
-    }
-    args = malloc(sizeof(args));
-    args->src = map;
-    args->size = statBuf.st_size;
-    args->dest = sock;
-    if (pthread_create(&tid, NULL, sendFile, args)) {
-        pthread_exit(NULL);
-    }
-    pthread_detach(tid);
-}
-
 void gopher(const char* selector, int sock) {
     pthread_cleanup_push(errorRoutine, &sock);
     if (strstr(selector, "./") || strstr(selector, "../") || selector[0] == '/' || strstr(selector, "//")) {
@@ -259,12 +276,11 @@ _string trimEnding(_string str) {
 void* sendFile(void* sendFileArgs) {
     struct sendFileArgs args;
     void* response;
-    args = *(struct sendFileArgs*)sendFileArgs;
-    //free(sendFileArgs);
+    args = *((struct sendFileArgs*)sendFileArgs);
+    free(sendFileArgs);
     if ((response = calloc(args.size + 3, 1)) == NULL) {
         errorRoutine(&args.dest);
-        closeThread();
-    };
+    }
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
     // TODO args.size +2 o +3? Su windows \n diverso che su linux?

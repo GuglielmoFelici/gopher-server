@@ -86,11 +86,12 @@ void* task(void* args) {
 }
 
 void serve(SOCKET socket, bool multiProcess) {
+    printf("serving...\n");
     SOCKET* sock;
     if (multiProcess) {
         // TODO
     } else {
-        if ((sock = malloc(1 * sizeof(SOCKET))) == NULL) {
+        if ((sock = malloc(sizeof(SOCKET))) == NULL) {
             _log(_ALLOC_ERR, ERR, true);
             return;
         }

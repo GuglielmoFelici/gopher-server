@@ -8,6 +8,7 @@
 #include "log.h"
 
 #if defined(_WIN32)
+#include <WinSock2.h>
 #include <windows.h>
 #else
 #include <arpa/inet.h>

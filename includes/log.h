@@ -5,6 +5,7 @@
 #include "everything.h"
 #include "platform.h"
 
+#define _GENERIC_ERR "Errore generico"
 #define _CONFIG_ERROR "Impossibile leggere il file di configurazione, verranno usate le impostazioni di default."
 #define _LOG_ERROR "Errore nel logging"
 #define _SOCKET_ERROR "Errore nella creazione del socket"
