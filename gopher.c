@@ -198,7 +198,18 @@ void readFile(const char* path, int sock) {
     if (fstat(fd, &statBuf) < 0) {
         pthread_exit(NULL);
     }
+    if (statBuf.st_size == 0) {
+        send(sock, ".", 2, 0);
+        if (close(fd) < 0) {
+            pthread_exit(NULL);
+        }
+        close(sock);
+        return;
+    }
     if ((map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
+        pthread_exit(NULL);
+    }
+    if (close(fd) < 0) {
         pthread_exit(NULL);
     }
     args = malloc(sizeof(struct sendFileArgs));
@@ -230,7 +241,7 @@ void readDir(const char* path, int sock) {
             strcat(strcpy(file.path, path), entry->d_name);
             type = gopherType(&file);
             snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.path, (type == '1' ? "/" : ""), "localhost");
-            if ((response = realloc(response, responseSize + strlen(line) + 1)) == NULL) {
+            if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
                 free(dir);
                 pthread_exit(NULL);
             }
@@ -242,7 +253,7 @@ void readDir(const char* path, int sock) {
     send(sock, response, responseSize, 0);
     free(dir);
     free(response);
-    closeSocket(sock);
+    close(sock);
 }
 
 void gopher(const char* selector, int sock) {
