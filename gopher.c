@@ -23,7 +23,7 @@ bool isDirectory(WIN32_FIND_DATA* file) {
 }
 
 char gopherType(_file* file) {
-    char* ext;
+    LPSTR ext;
     int i;
 
     if (!strstr(file->name, ".")) {
@@ -133,13 +133,6 @@ void readDir(LPCSTR path, SOCKET sock) {
 }
 
 HANDLE gopher(LPCSTR selector, SOCKET sock) {
-    char wildcardPath[MAX_PATH + 2];
-    _file file;
-    char line[1 + MAX_PATH + 1 + MAX_PATH + 1 + sizeof("localhost")];
-    char type;
-    WIN32_FIND_DATA data;
-    HANDLE hFind;
-
     if (strstr(selector, ".\\") || strstr(selector, "..\\") || selector[0] == '\\' || strstr(selector, "\\\\")) {
         errorRoutine(&sock);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
@@ -147,6 +140,7 @@ HANDLE gopher(LPCSTR selector, SOCKET sock) {
     } else {  // File
         return readFile(selector, sock);
     }
+    return NULL;
 }
 
 #else
@@ -263,7 +257,7 @@ void readDir(const char* path, int sock) {
     close(sock);
 }
 
-_thread gopher(const char* selector, int sock) {
+pthread_t gopher(const char* selector, int sock) {
     if (strstr(selector, "./") || strstr(selector, "../") || selector[0] == '/' || strstr(selector, "//")) {
         pthread_exit(NULL);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '/') {  // Directory
@@ -271,6 +265,7 @@ _thread gopher(const char* selector, int sock) {
     } else {  // File
         return readFile(selector, sock);
     }
+    return NULL;
 }
 
 #endif
