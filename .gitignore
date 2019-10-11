@@ -64,4 +64,5 @@ test/
 
 linuxserver
 
-changeConfig.sh
+*.sh
+*.bat
