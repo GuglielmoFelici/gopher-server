@@ -126,7 +126,7 @@ void readDir(LPCSTR path, SOCKET sock) {
     free(response);
 }
 
-void gopher(LPCSTR selector, SOCKET sock) {
+HANDLE gopher(LPCSTR selector, SOCKET sock) {
     char wildcardPath[MAX_PATH + 2];
     _file file;
     char line[1 + MAX_PATH + 1 + MAX_PATH + 1 + sizeof("localhost")];

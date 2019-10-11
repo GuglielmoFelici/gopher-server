@@ -87,10 +87,18 @@ void* task(void* args) {
 
 void serve(SOCKET socket, bool multiProcess) {
     printf("serving...\n");
-    SOCKET* sock;
+    BOOL a;
     if (multiProcess) {
-        // TODO
+        STARTUPINFO startupInfo;
+        PROCESS_INFORMATION processInfo;
+        memset(&startupInfo, 0, sizeof(startupInfo));
+        memset(&processInfo, 0, sizeof(processInfo));
+        char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)];
+        sprintf(cmdLine, "winGopherProcess.exe %d", socket);
+        a = CreateProcess("winGopherProcess.exe", cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
+        printf("done.\n");
     } else {
+        SOCKET* sock;
         if ((sock = malloc(sizeof(SOCKET))) == NULL) {
             _log(_ALLOC_ERR, ERR, true);
             return;
@@ -152,11 +160,7 @@ void closeThread() {
 }
 
 void processTask(int sock) {
-    sigset_t set;
     char message[256];
-    sigemptyset(&set);
-    sigaddset(&set, SIGHUP);
-    sigprocmask(SIG_BLOCK, &set, NULL);
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
     printf("received: %s;\n", message);
