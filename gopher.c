@@ -52,9 +52,10 @@ char gopherType(_file* file) {
     return 'X';
 }
 
-void readFile(LPCSTR path, SOCKET sock) {
+HANDLE readFile(LPCSTR path, SOCKET sock) {
     HANDLE file;
     HANDLE map;
+    HANDLE thread;
     size_t size;
     LPVOID view;
     struct sendFileArgs* args;
@@ -67,7 +68,7 @@ void readFile(LPCSTR path, SOCKET sock) {
             errorRoutine(&sock);
         }
         closeSocket(sock);
-        return;
+        return NULL;
     }
     if ((map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL) {
         errorRoutine(&sock);
@@ -87,7 +88,11 @@ void readFile(LPCSTR path, SOCKET sock) {
     args->src = view;
     args->dest = sock;
     args->size = size;
-    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL);
+    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
+        errorRoutine(&sock);
+    } else {
+        return thread;
+    }
 }
 
 void readDir(LPCSTR path, SOCKET sock) {
@@ -120,6 +125,7 @@ void readDir(LPCSTR path, SOCKET sock) {
         }
     } while (FindNextFile(hFind, &data));
     strcat(response, ".");
+    printf(response);
     send(sock, response, responseSize, 0);
     closesocket(sock);
     CloseHandle(hFind);
@@ -139,7 +145,7 @@ HANDLE gopher(LPCSTR selector, SOCKET sock) {
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
         readDir(selector, sock);
     } else {  // File
-        readFile(selector, sock);
+        return readFile(selector, sock);
     }
 }
 

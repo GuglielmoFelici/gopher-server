@@ -24,13 +24,18 @@ DWORD main(DWORD argc, LPSTR* argv) {
     // use the console just like a normal one - printf(), getchar(), ...
 
     SOCKET sock;
+    HANDLE thread;
+    char message[256];
     startup();
-    LPSTR a = argv[0];
-    LPSTR b = argv[1];
-    //printf("%s\n", argv[0]);
-    //printf("%s\n", argv[1]);
     sock = atoi(argv[1]);
-    printf("%d\n", sock);
-    printf("%d\n", send(sock, "ciao", 4, 0));
-    printf("%d\n", WSAGetLastError());
+    recv(sock, message, sizeof(message), 0);
+    trimEnding(message);
+    printf("received: %s;\n", message);
+    thread = gopher(message, sock);
+    if (thread != NULL) {
+        WaitForSingleObject(thread, INFINITE);
+    }
+    //closeSocket(sock);
+    printf("Exiting process...\n");
+    return 0;
 }

@@ -87,7 +87,6 @@ void* task(void* args) {
 
 void serve(SOCKET socket, bool multiProcess) {
     printf("serving...\n");
-    BOOL a;
     if (multiProcess) {
         STARTUPINFO startupInfo;
         PROCESS_INFORMATION processInfo;
@@ -95,7 +94,8 @@ void serve(SOCKET socket, bool multiProcess) {
         memset(&processInfo, 0, sizeof(processInfo));
         char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)];
         sprintf(cmdLine, "winGopherProcess.exe %d", socket);
-        a = CreateProcess("winGopherProcess.exe", cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
+        CreateProcess("winGopherProcess.exe", cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
+        closeSocket(socket);
         printf("done.\n");
     } else {
         SOCKET* sock;
