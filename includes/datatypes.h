@@ -15,6 +15,7 @@ typedef struct _file {
     char path[MAX_PATH];
 } _file;
 typedef BOOL _handlerRet;
+typedef HANDLE _thread;
 
 #else
 
@@ -33,6 +34,7 @@ typedef struct _file {
     char filePath[FILENAME_MAX];
 } _file;
 typedef void _handlerRet;
+typedef pthread_t _thread;
 
 #endif
 

@@ -63,3 +63,5 @@ config/config
 test/
 
 linuxserver
+
+changeConfig.sh
