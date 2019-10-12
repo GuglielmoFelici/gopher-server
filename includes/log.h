@@ -2,8 +2,8 @@
 #define LOG_H
 
 #include "datatypes.h"
-#include "everything.h"
 #include "platform.h"
+#include "stdlib.h"
 
 #define _GENERIC_ERR "Errore generico"
 #define _CONFIG_ERROR "Impossibile leggere il file di configurazione, verranno usate le impostazioni di default."

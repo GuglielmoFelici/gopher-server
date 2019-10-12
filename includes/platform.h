@@ -3,9 +3,9 @@
 
 #include "config.h"
 #include "datatypes.h"
-#include "everything.h"
 #include "gopher.h"
 #include "log.h"
+#include "stdlib.h"
 
 #if defined(_WIN32)
 #include <WinSock2.h>

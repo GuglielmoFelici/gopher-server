@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 #include "datatypes.h"
-#include "everything.h"
+#include "stdlib.h"
 
 #define DEFAULT_PORT 70
 #define DEFAULT_MULTI_PROCESS false

@@ -1,8 +1,8 @@
 #include "includes/config.h"
 #include "includes/datatypes.h"
-#include "includes/everything.h"
 #include "includes/log.h"
 #include "includes/platform.h"
+#include "includes/stdlib.h"
 
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address, bool reload) {
     char enable = 1;
