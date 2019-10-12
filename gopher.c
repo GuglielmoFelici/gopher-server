@@ -56,13 +56,15 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     HANDLE file;
     HANDLE map;
     HANDLE thread;
-    size_t size;
+    DWORD sizeLow;
+    DWORD sizeHigh;
     LPVOID view;
+    OVERLAPPED ovlp;
     struct sendFileArgs* args;
     if ((file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
         errorRoutine(&sock);
     }
-    if ((size = GetFileSize(file, NULL)) == 0) {
+    if ((sizeLow = GetFileSize(file, &sizeHigh)) == 0) {
         send(sock, ".", 2, 0);
         if (!CloseHandle(file)) {
             errorRoutine(&sock);
@@ -70,7 +72,17 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
         closeSocket(sock);
         return NULL;
     }
+    memset(&ovlp, 0, sizeof(ovlp));
+    if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, sizeLow, sizeHigh, &ovlp)) {
+        CloseHandle(file);
+        errorRoutine(&sock);
+    }
     if ((map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL) {
+        CloseHandle(file);
+        errorRoutine(&sock);
+    }
+    if (!UnlockFileEx(file, 0, sizeLow, sizeHigh, &ovlp)) {
+        CloseHandle(file);
         errorRoutine(&sock);
     }
     if (!CloseHandle(file)) {
@@ -87,7 +99,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     }
     args->src = view;
     args->dest = sock;
-    args->size = size;
+    args->size = sizeLow;
     if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
         errorRoutine(&sock);
     } else {
