@@ -207,6 +207,9 @@ pthread_t readFile(const char* path, int sock) {
     if ((fd = open(path, O_RDONLY)) < 0) {
         pthread_exit(NULL);
     }
+    if (flock(fd, LOCK_EX) < 0) {
+        pthread_exit(NULL);
+    }
     if (fstat(fd, &statBuf) < 0) {
         pthread_exit(NULL);
     }
@@ -219,6 +222,9 @@ pthread_t readFile(const char* path, int sock) {
         return;
     }
     if ((map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
+        pthread_exit(NULL);
+    }
+    if (flock(fd, LOCK_UN) < 0) {
         pthread_exit(NULL);
     }
     if (close(fd) < 0) {
