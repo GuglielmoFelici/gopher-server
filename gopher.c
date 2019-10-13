@@ -219,7 +219,7 @@ pthread_t readFile(const char* path, int sock) {
             pthread_exit(NULL);
         }
         close(sock);
-        return;
+        return -1;
     }
     if ((map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
         pthread_exit(NULL);
@@ -283,7 +283,7 @@ pthread_t gopher(const char* selector, int sock) {
     } else {  // File
         return readFile(selector, sock);
     }
-    return NULL;
+    return -1;
 }
 
 #endif

@@ -31,7 +31,7 @@ void _log(const _string message, const _string level, bool stderror) {
     char error[50];
     FILE *out;
     if ((out = fopen(level, "a")) == NULL) {
-        fprintf(stderr, _LOG_ERROR);
+        fprintf(stderr, _LOG_ERR);
         perror(level);
     }
     fprintf(out, "%s\n", message);

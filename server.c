@@ -12,19 +12,19 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
         };
     }
     if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        err(_SOCKET_ERROR, ERR, true, server);
+        err(_SOCKET_ERR, ERR, true, server);
     }
     if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
-        _log(_REUSE_ERROR, ERR, true);
+        _log(_REUSE_ERR, ERR, true);
     }
     address->sin_family = AF_INET;
     address->sin_addr.s_addr = INADDR_ANY;
     address->sin_port = htons(options.port);
     if (bind(server, (struct sockaddr*)address, sizeof(*address)) < 0) {
-        err(_BIND_ERROR, ERR, true, -1);
+        err(_BIND_ERR, ERR, true, -1);
     }
     if (listen(server, 5) < 0) {
-        err(_LISTEN_ERROR, ERR, true, -1);
+        err(_LISTEN_ERR, ERR, true, -1);
     }
     return server;
 }
@@ -40,17 +40,17 @@ int main(int argc, _string* argv) {
 
     /* Configuration */
 
-    if ((_errno = startup()) != 0) {
-        err(_WINSOCK_ERROR, ERR, false, _errno);
-    }
+    // if ((_errno = startup()) != 0) {
+    //     err(_STARTUP_ERR, ERR, false, _errno);
+    // }
     installSigHandler();
     setvbuf(stdout, NULL, _IONBF, 0);
     if ((_errno = initLog()) != 0) {
-        err(_LOG_ERROR, ERR, true, _errno);
+        err(_LOG_ERR, ERR, true, _errno);
     }
     initConfig(&options);
     if (readConfig(CONFIG_FILE, &options) != 0) {
-        _log(_CONFIG_ERROR, ERR, true);
+        _log(_CONFIG_ERR, ERR, true);
     }
     server = prepareServer(server, options, &address, false);
     _log(_SOCKET_OPEN, INFO, false);
@@ -66,7 +66,7 @@ int main(int argc, _string* argv) {
             if (sig) {
                 printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
-                    _log(_CONFIG_ERROR, ERR, true);
+                    _log(_CONFIG_ERR, ERR, true);
                 }
                 if (options.port != htons(address.sin_port)) {
                     server = prepareServer(server, options, &address, true);

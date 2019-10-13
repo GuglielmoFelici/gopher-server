@@ -123,7 +123,37 @@ void errorString(char* error) {
 
 /********************************************** SOCKETS *************************************************************/
 
-int startup() {}
+int startup() {
+    int pid;
+    pid = fork();
+    if (pid < 0) {
+        err(_DAEMON_ERR, ERR, true, errno);
+    } else if (pid > 0) {
+        exit(0);
+    } else {
+        sigset_t set;
+        if (setsid() < 0) {
+            err(_DAEMON_ERR, ERR, true, errno);
+        }
+        sigemptyset(&set);
+        sigaddset(&set, SIGHUP);
+        sigprocmask(SIG_BLOCK, &set, NULL);
+        pid = fork();
+        if (pid < 0) {
+            err(_DAEMON_ERR, ERR, true, errno);
+        } else if (pid > 0) {
+            exit(0);
+        } else {
+            int devNull;
+            devNull = open("/dev/null", O_RDWR);
+            if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+                err(_DAEMON_ERR, ERR, true, -1);
+            }
+            return close(devNull);
+        }
+    }
+    return 0;
+}
 
 int sockErr() {
     return errno;
@@ -164,7 +194,9 @@ void processTask(int sock) {
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
     printf("received: %s;\n", message);
+    pthread_cleanup_push(errorRoutine, &sock);
     pthread_join(gopher(message, sock), NULL);
+    pthread_cleanup_pop(0);
     printf("Exiting process...\n");
     exit(0);
 }
