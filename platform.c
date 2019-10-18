@@ -121,6 +121,40 @@ void errorString(char* error) {
     sprintf(error, "%s", strerror(errno));
 }
 
+void startLogger() {
+    int pid;
+    int pipeFd[2];
+    if (pipe2(pipeFd, O_DIRECT) < 0) {
+        err(_GENERIC_ERR, ERR, true, -1);
+    }
+    if ((pid = fork()) < 0) {
+        err(_LOG_ERR, ERR, true, pid);
+    } else if (pid == 0) {
+        int logFile;
+        char buff[PIPE_BUF];
+        prctl(PR_SET_NAME, "Logger");
+        close(pipeFd[1]);
+        logPipe = pipeFd[0];
+        if ((logFile = open("logFile", O_CREAT | O_APPEND)) < 0) {
+            exit(1);
+        }
+        while (1) {
+            if (read(logPipe, buff, PIPE_BUF - 2) < 0) {
+                close(logFile);
+                exit(1);
+            } else if (!strcmp(buff, "KILL")) {
+                break;
+            } else {
+                write(logFile, strcat(buff, "\n"), PIPE_BUF);
+            }
+        }
+        close(logFile);
+    } else {
+        close(pipeFd[0]);
+        logPipe = pipeFd[1];
+    }
+}
+
 /********************************************** SOCKETS *************************************************************/
 
 int startup() {
@@ -176,7 +210,6 @@ void sigHandler(int signum) {
 
 void installSigHandler() {
     struct sigaction sHup;
-    struct sigaction sInt;
     sHup.sa_handler = sigHandler;
     sigemptyset(&sHup.sa_mask);
     sHup.sa_flags = SA_NODEFER;

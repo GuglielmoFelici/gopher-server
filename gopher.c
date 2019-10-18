@@ -2,6 +2,8 @@
 
 #define MAX_LINE 70
 
+_pipe logPipe;
+
 #if defined(_WIN32)
 
 /*****************************************************************************************************************/
@@ -241,6 +243,32 @@ pthread_t readFile(const char* path, int sock) {
     return tid;
 }
 
+void* sendFile(void* sendFileArgs) {
+    printf("sending...");
+    int sent;
+    struct sendFileArgs args;
+    void* response;
+    struct sockaddr clientAddr;
+    socklen_t clientLen;
+    char log[PIPE_BUF];
+    args = *((struct sendFileArgs*)sendFileArgs);
+    free(sendFileArgs);
+    if ((response = calloc(args.size + 3, 1)) == NULL) {
+        errorRoutine(&args.dest);
+    }
+    memcpy(response, args.src, args.size);
+    strcat((char*)response, "\n.");
+    // TODO args.size +2 o +3? Su windows \n diverso che su linux?
+    if ((sent = send(args.dest, response, args.size + 2, 0)) >= 0) {
+        getpeername(args.dest, &clientAddr, &clientLen);
+        snprintf(log, PIPE_BUF, "%s %li %s", "cane", args.size, clientAddr.sa_data);
+        write(logPipe, log, PIPE_BUF);
+    }
+    free(response);
+    closeSocket(args.dest);
+    printf("invio terminato\n");
+}
+
 void readDir(const char* path, int sock) {
     DIR* dir;
     struct dirent* entry;
@@ -300,22 +328,4 @@ _string trimEnding(_string str) {
         }
     }
     return str;
-}
-
-void* sendFile(void* sendFileArgs) {
-    printf("sending...");
-    struct sendFileArgs args;
-    void* response;
-    args = *((struct sendFileArgs*)sendFileArgs);
-    free(sendFileArgs);
-    if ((response = calloc(args.size + 3, 1)) == NULL) {
-        errorRoutine(&args.dest);
-    }
-    memcpy(response, args.src, args.size);
-    strcat((char*)response, "\n.");
-    // TODO args.size +2 o +3? Su windows \n diverso che su linux?
-    send(args.dest, response, args.size + 2, 0);
-    free(response);
-    closeSocket(args.dest);
-    printf("invio terminato\n");
 }

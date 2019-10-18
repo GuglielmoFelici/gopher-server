@@ -55,6 +55,8 @@ int main(int argc, _string* argv) {
     server = prepareServer(server, options, &address, false);
     _log(_SOCKET_OPEN, INFO, false);
     _log(_SOCKET_LISTENING, INFO, false);
+    startLogger();
+    printf("listening on port %i\n", options.port);
 
     /* Main loop*/
 

@@ -16,6 +16,7 @@ typedef struct _file {
 } _file;
 typedef BOOL _handlerRet;
 typedef HANDLE _thread;
+typedef HANDLE _pipe;
 
 #else
 
@@ -35,6 +36,7 @@ typedef struct _file {
 } _file;
 typedef void _handlerRet;
 typedef pthread_t _thread;
+typedef int _pipe;
 
 #endif
 

@@ -3,6 +3,8 @@
 
 #include "platform.h"
 
+extern _pipe logPipe;
+
 _string trimEnding(_string str);
 
 _thread gopher(_cstring selector, _socket sock);
