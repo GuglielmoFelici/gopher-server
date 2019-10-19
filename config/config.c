@@ -1,4 +1,4 @@
-#include "../includes/config.h"
+#include "../includes/gopher.h"
 
 void initConfig(struct config *options) {
     options->port = DEFAULT_PORT;

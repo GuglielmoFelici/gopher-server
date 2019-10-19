@@ -1,8 +1,11 @@
-#include "includes/config.h"
 #include "includes/datatypes.h"
+#include "includes/gopher.h"
 #include "includes/log.h"
-#include "includes/platform.h"
-#include "includes/stdlib.h"
+
+_pipe logPipe;
+struct sockaddr_in wakeAddr;
+_socket wakeSelect;
+bool signaled = false;
 
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address, bool reload) {
     char enable = 1;
@@ -31,8 +34,10 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
 
 int main(int argc, _string* argv) {
     struct config options;
-    struct sockaddr_in address;
+    struct sockaddr_in serverAddr;
+    struct sockaddr_in clientAddr;
     _socket server;
+    _socket client;
     int _errno;
     int selResult;
     int ready = 0;
@@ -52,10 +57,10 @@ int main(int argc, _string* argv) {
     if (readConfig(CONFIG_FILE, &options) != 0) {
         _log(_CONFIG_ERR, ERR, true);
     }
-    server = prepareServer(server, options, &address, false);
+    server = prepareServer(server, options, &serverAddr, false);
     _log(_SOCKET_OPEN, INFO, false);
     _log(_SOCKET_LISTENING, INFO, false);
-    startLogger();
+    startTransferLog();
     printf("listening on port %i\n", options.port);
 
     /* Main loop*/
@@ -65,26 +70,36 @@ int main(int argc, _string* argv) {
             if (ready < 0 && sockErr() != EINTR) {
                 err(_SELECT_ERR, ERR, true, -1);
             }
-            if (sig) {
+            if (signaled) {
                 printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
                     _log(_CONFIG_ERR, ERR, true);
                 }
-                if (options.port != htons(address.sin_port)) {
-                    server = prepareServer(server, options, &address, true);
+                if (options.port != htons(serverAddr.sin_port)) {
+                    server = prepareServer(server, options, &serverAddr, true);
                 }
-                sig = false;
+                signaled = false;
             }
             FD_ZERO(&incomingConnections);
             FD_SET(server, &incomingConnections);
             FD_SET(wakeSelect, &incomingConnections);
         } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
-        // TODO thread accept
-        printf("incoming connection at port %d\n", htons(address.sin_port));
-        struct sockaddr_in clientAddr;
+        printf("incoming connection at port %d\n", htons(serverAddr.sin_port));
         int addrLen = sizeof(clientAddr);
-        _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
-        serve(client, options.multiProcess);
+        client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
+        printf("serving...\n");
+        if (options.multiProcess) {
+            serveProc(client);
+            closeSocket(client);
+        } else {
+            _socket* sock;
+            if ((sock = malloc(sizeof(_socket))) == NULL) {
+                _log(_ALLOC_ERR, ERR, true);
+            } else {
+                *sock = client;
+                serveThread(sock);
+            }
+        }
     }
 
     printf("All done.\n");

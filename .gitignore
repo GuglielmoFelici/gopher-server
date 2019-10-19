@@ -61,6 +61,7 @@ log/info
 log/test
 config/config
 test/
+logFile
 
 linuxserver
 

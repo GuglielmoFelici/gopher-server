@@ -1,9 +1,9 @@
 #ifndef LOG_H
 #define LOG_H
 
+#define _GNU_SOURCE
 #include "datatypes.h"
-#include "platform.h"
-#include "stdlib.h"
+#include "gopher.h"
 
 #define _GENERIC_ERR "Errore generico"
 #define _CONFIG_ERR "Impossibile leggere il file di configurazione, verranno usate le impostazioni di default."

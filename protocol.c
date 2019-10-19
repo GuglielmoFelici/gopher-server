@@ -1,8 +1,7 @@
 #include "includes/gopher.h"
+#include "includes/log.h"
 
 #define MAX_LINE 70
-
-_pipe logPipe;
 
 #if defined(_WIN32)
 
@@ -111,7 +110,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
 
 void readDir(LPCSTR path, SOCKET sock) {
     _file file;
-    char wildcardPath[MAX_PATH + 2];
+    char wildcardPath[MAX_NAME + 2];
     char line[sizeof(file.name) + sizeof(file.path) + sizeof("localhost") + 4];
     LPSTR response;
     size_t responseSize;  // Per il punto finale
@@ -236,6 +235,7 @@ pthread_t readFile(const char* path, int sock) {
     args->src = map;
     args->size = statBuf.st_size;
     args->dest = sock;
+    strncpy(args->name, path, MAX_NAME);
     if (pthread_create(&tid, NULL, sendFile, args)) {
         pthread_exit(NULL);
     }
@@ -244,13 +244,12 @@ pthread_t readFile(const char* path, int sock) {
 }
 
 void* sendFile(void* sendFileArgs) {
-    printf("sending...");
-    int sent;
     struct sendFileArgs args;
     void* response;
-    struct sockaddr clientAddr;
+    struct sockaddr_in clientAddr;
     socklen_t clientLen;
     char log[PIPE_BUF];
+    char address[16];
     args = *((struct sendFileArgs*)sendFileArgs);
     free(sendFileArgs);
     if ((response = calloc(args.size + 3, 1)) == NULL) {
@@ -259,11 +258,14 @@ void* sendFile(void* sendFileArgs) {
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
     // TODO args.size +2 o +3? Su windows \n diverso che su linux?
-    if ((sent = send(args.dest, response, args.size + 2, 0)) >= 0) {
+    if (send(args.dest, response, args.size + 2, 0) >= 0) {
+        clientLen = sizeof(clientAddr);
         getpeername(args.dest, &clientAddr, &clientLen);
-        snprintf(log, PIPE_BUF, "%s %li %s", "cane", args.size, clientAddr.sa_data);
-        write(logPipe, log, PIPE_BUF);
+        inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, address, sizeof(clientAddr));
+        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i", args.name, args.size, address, clientAddr.sin_port);
+        logTransfer(log);
     }
+    munmap(args.src, args.size);
     free(response);
     closeSocket(args.dest);
     printf("invio terminato\n");
