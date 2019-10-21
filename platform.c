@@ -189,9 +189,10 @@ void* task(void* args) {
     trimEnding(message);
     printf("received: %s;\n", message);
     pthread_cleanup_push(errorRoutine, &sock);
-    pthread_detach(gopher(message, sock));
+    gopher(message, sock);
     pthread_cleanup_pop(0);
     printf("Closing child thread...\n");
+    fflush(stdout);
 }
 
 void serveThread(int* sock) {
@@ -208,9 +209,7 @@ void serveProc(int sock) {
     pid = fork();
     if (pid < 0) {
         err(_FORK_ERR, ERR, true, errno);
-    } else if (pid > 0) {
-        close(sock);
-    } else {
+    } else if (pid == 0) {
         char message[256];
         printf("starting process\n");
         recv(sock, message, sizeof(message), 0);
@@ -229,11 +228,11 @@ void serveProc(int sock) {
 pthread_mutex_t* mutexShare;
 pthread_cond_t* condShare;
 
-int logTransfer(char* log) {
+void logTransfer(char* log) {
     pthread_mutex_lock(mutexShare);
+    write(logPipe, log, strlen(log));
     pthread_cond_signal(condShare);
     pthread_mutex_unlock(mutexShare);
-    return write(logPipe, log, strlen(log));
 }
 
 void startTransferLog() {

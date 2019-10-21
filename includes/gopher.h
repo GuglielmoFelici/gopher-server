@@ -94,6 +94,6 @@ void* sendFile(void* sendFileArgs);
 
 void startTransferLog();
 
-int logTransfer();
+void logTransfer();
 
 #endif

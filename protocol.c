@@ -239,7 +239,7 @@ pthread_t readFile(const char* path, int sock) {
     if (pthread_create(&tid, NULL, sendFile, args)) {
         pthread_exit(NULL);
     }
-    //pthread_detach(tid);
+    pthread_detach(tid);
     return tid;
 }
 
@@ -257,7 +257,6 @@ void* sendFile(void* sendFileArgs) {
     }
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
-    // TODO args.size +2 o +3? Su windows \n diverso che su linux?
     if (send(args.dest, response, args.size + 2, 0) >= 0) {
         clientLen = sizeof(clientAddr);
         getpeername(args.dest, &clientAddr, &clientLen);
@@ -313,7 +312,7 @@ pthread_t gopher(const char* selector, int sock) {
     } else {  // File
         return readFile(selector, sock);
     }
-    return -1;
+    return pthread_self();
 }
 
 #endif
