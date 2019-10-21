@@ -40,6 +40,8 @@ int closeSocket(SOCKET s) {
 BOOL ctrlBreak(DWORD sign) {
     if (sign == CTRL_BREAK_EVENT) {
         printf("Richiesta chiusura");
+        AttachConsole(logger);
+        GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, logger);
         exit(0);
     }
 }
@@ -58,8 +60,8 @@ void installSigHandler() {
     wakeAddr.sin_port = htons(49152);
     wakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     bind(wakeSelect, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlBreak, true);
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, true);
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlBreak, TRUE);
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
 }
 
 /*********************************************** MULTI ***************************************************************/
@@ -131,6 +133,7 @@ void startTransferLog() {
         err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
     }
     CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
+    logger = processInfo.hProcess;
     CloseHandle(readPipe);
 }
 

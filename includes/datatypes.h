@@ -11,8 +11,8 @@ typedef LPSTR _string;
 typedef LPCSTR _cstring;
 typedef WIN32_FIND_DATA _fileData;
 typedef BOOL _handlerRet;
-typedef HANDLE _thread;
-typedef HANDLE _pipe;
+typedef HANDLE _thread, _pipe;
+typedef DWORD _procId;
 
 #else
 
@@ -21,13 +21,13 @@ typedef HANDLE _pipe;
 #include <sys/stat.h>
 #include <sys/types.h>
 #define MAX_NAME FILENAME_MAX / 2
-typedef int _socket;
+typedef int _socket, _pipe;
 typedef char* _string;
 typedef const char* _cstring;
 typedef struct stat _fileData;
 typedef void _handlerRet;
 typedef pthread_t _thread;
-typedef int _pipe;
+typedef pid_t _procId;
 
 #endif
 

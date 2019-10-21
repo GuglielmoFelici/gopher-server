@@ -2,12 +2,22 @@
 #include <stdio.h>
 #include <windows.h>
 
+HANDLE logFile;
+HANDLE logEvent;
+
+BOOL sigHandler(DWORD signum) {
+    printf("Chiudo il logger...");
+    CloseHandle(logFile);
+    CloseHandle(logEvent);
+    exit(0);
+    return signum == CTRL_C_EVENT;
+}
+
 DWORD main(DWORD argc, LPSTR* argv) {
-    HANDLE logFile;
     char buff[4096];
     DWORD bytesRead;
     DWORD bytesWritten;
-    HANDLE logEvent;
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
     if ((logFile = CreateFile("logFile", FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
         exit(1);
     }
@@ -23,9 +33,5 @@ DWORD main(DWORD argc, LPSTR* argv) {
             WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL);
         }
     }
-    // munmap(mutexShare, sizeof(pthread_mutex_t));
-    // munmap(condShare, sizeof(pthread_cond_t));
-    // free(mutexShare);
-    // free(condShare);
     CloseHandle(logFile);
 }
