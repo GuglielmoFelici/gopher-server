@@ -5,6 +5,7 @@
 #include <windows.h>
 #define EINTR WSAEINTR
 #define MAX_NAME MAX_PATH / 2
+#define PIPE_BUF 4096
 typedef SOCKET _socket;
 typedef LPSTR _string;
 typedef LPCSTR _cstring;

@@ -8,6 +8,7 @@
 #define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
@@ -21,7 +22,6 @@
 #include <unistd.h>
 #endif
 
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +31,10 @@
 #include "datatypes.h"
 #include "log.h"
 
-extern _pipe logPipe;
-extern bool signaled;
-extern _socket wakeSelect;
+_pipe logPipe;
+bool sig;
+struct sockaddr_in wakeAddr;
+_socket wakeSelect;
 
 /* Utils */
 void errorString(char* error);

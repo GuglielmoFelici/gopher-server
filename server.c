@@ -5,7 +5,7 @@
 _pipe logPipe;
 struct sockaddr_in wakeAddr;
 _socket wakeSelect;
-bool signaled = false;
+bool sig = false;
 
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address, bool reload) {
     char enable = 1;
@@ -37,7 +37,6 @@ int main(int argc, _string* argv) {
     struct sockaddr_in serverAddr;
     struct sockaddr_in clientAddr;
     _socket server;
-    _socket client;
     int _errno;
     int selResult;
     int ready = 0;
@@ -45,9 +44,9 @@ int main(int argc, _string* argv) {
 
     /* Configuration */
 
-    // if ((_errno = startup()) != 0) {
-    //     err(_STARTUP_ERR, ERR, false, _errno);
-    // }
+    if ((_errno = startup()) != 0) {
+        err(_STARTUP_ERR, ERR, false, _errno);
+    }
     installSigHandler();
     setvbuf(stdout, NULL, _IONBF, 0);
     if ((_errno = initLog()) != 0) {
@@ -70,7 +69,7 @@ int main(int argc, _string* argv) {
             if (ready < 0 && sockErr() != EINTR) {
                 err(_SELECT_ERR, ERR, true, -1);
             }
-            if (signaled) {
+            if (sig) {
                 printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
                     _log(_CONFIG_ERR, ERR, true);
@@ -78,7 +77,7 @@ int main(int argc, _string* argv) {
                 if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr, true);
                 }
-                signaled = false;
+                sig = false;
             }
             FD_ZERO(&incomingConnections);
             FD_SET(server, &incomingConnections);
@@ -86,7 +85,7 @@ int main(int argc, _string* argv) {
         } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
         printf("incoming connection at port %d\n", htons(serverAddr.sin_port));
         int addrLen;
-        client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
+        _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
         printf("serving...\n");
         if (options.multiProcess) {
             serveProc(client);

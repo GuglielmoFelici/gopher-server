@@ -12,7 +12,7 @@
 
 void errorRoutine(void* sock) {
     LPSTR err = "3Error retrieving the resource\t\t\r\n.";
-    _log(_GENERIC_ERR, ERR, true);
+    _log("Esecuzione del protocollo gopher - errore generico", ERR, true);
     send(*(SOCKET*)sock, err, strlen(err), 0);
     closeSocket(*(SOCKET*)sock);
     ExitThread(-1);
@@ -51,6 +51,33 @@ char gopherType(_file* file) {
         return 'I';
     }
     return 'X';
+}
+
+void* sendFile(void* sendFileArgs) {
+    struct sendFileArgs args;
+    void* response;
+    struct sockaddr_in clientAddr;
+    int nameLen;
+    int clientLen;
+    char log[PIPE_BUF];
+    char address[16];
+    args = *((struct sendFileArgs*)sendFileArgs);
+    free(sendFileArgs);
+    if ((response = calloc(args.size + 3, 1)) == NULL) {
+        errorRoutine(&args.dest);
+    }
+    memcpy(response, args.src, args.size);
+    strcat((char*)response, "\n.");
+    if (send(args.dest, response, args.size + 2, 0) >= 0) {
+        // getpeername(args.dest, (struct sockaddr*)&clientAddr, &nameLen);
+        // strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
+        // snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i", args.name, args.size, address, clientAddr.sin_port);  //TODO
+        // logTransfer(log);
+    }
+    // munmap(args.src, args.size);
+    free(response);
+    closeSocket(args.dest);
+    printf("invio terminato\n");
 }
 
 HANDLE readFile(LPCSTR path, SOCKET sock) {
@@ -101,6 +128,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     args->src = view;
     args->dest = sock;
     args->size = sizeLow;
+    strncpy(args->name, path, MAX_PATH);
     if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
         errorRoutine(&sock);
     } else {
@@ -138,7 +166,6 @@ void readDir(LPCSTR path, SOCKET sock) {
         }
     } while (FindNextFile(hFind, &data));
     strcat(response, ".");
-    printf(response);
     send(sock, response, responseSize, 0);
     closesocket(sock);
     CloseHandle(hFind);
@@ -165,7 +192,7 @@ HANDLE gopher(LPCSTR selector, SOCKET sock) {
 
 void errorRoutine(void* sock) {
     char* err = "3Error retrieving the resource\t\t\r\n.";
-    _log(_GENERIC_ERR, ERR, true);
+    _log("Esecuzione del protocollo gopher - errore generico", true);
     send(*(int*)sock, err, strlen(err), 0);
     closeSocket(*(int*)sock);
 }

@@ -47,7 +47,7 @@ BOOL ctrlBreak(DWORD sign) {
 BOOL sigHandler(DWORD signum) {
     printf("segnale ricevuto\n");
     sendto(socket(AF_INET, SOCK_DGRAM, 0), "Wake up!", 0, 0, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
-    signaled = true;
+    sig = true;
     return signum == CTRL_C_EVENT;
 }
 
@@ -81,18 +81,53 @@ void* task(void* args) {
     printf("Closing child thread...\n");
 }
 
+void serveThread(SOCKET* sock) {
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)task, sock, 0, NULL);
+}
+
 void serveProc(SOCKET client) {
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
-    char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)];
-    sprintf(cmdLine, "winGopherProcess.exe %d", socket);
+    startupInfo.cb = sizeof(startupInfo);
+    startupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)];  // TODO size??
+    sprintf(cmdLine, "winGopherProcess.exe %d", client);
     CreateProcess("winGopherProcess.exe", cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
 }
 
-void serveThread(SOCKET* sock) {
-    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)task, sock, 0, NULL);
+/*********************************************** LOGGER ***************************************************************/
+
+void logTransfer(LPSTR log) {
+    // TODO mutex
+    DWORD written;
+    WriteFile(logPipe, log, strlen(log), &written, NULL);
+}
+
+void startTransferLog() {
+    HANDLE readPipe;
+    LPSECURITY_ATTRIBUTES attr;
+    STARTUPINFO startupInfo;
+    PROCESS_INFORMATION processInfo;
+    attr->bInheritHandle = TRUE;
+    attr->nLength = sizeof(attr);
+    attr->lpSecurityDescriptor = NULL;
+    if (!CreatePipe(&readPipe, &logPipe, attr, 0)) {
+        err("startTransferLog() - Impossibile creare la pipe", ERR, true, -1);
+    }
+    memset(&startupInfo, 0, sizeof(startupInfo));
+    memset(&processInfo, 0, sizeof(processInfo));
+    startupInfo.cb = sizeof(startupInfo);
+    startupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startupInfo.hStdInput = readPipe;
+    startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
+    CloseHandle(readPipe);
 }
 
 #else
@@ -250,16 +285,16 @@ void startTransferLog() {
     pthread_cond_init(&cond, &condAttr);
     mutexShare = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (mutexShare == MAP_FAILED) {
-        err(_GENERIC_ERR, ERR, true, -1);
+        err("startTransferLog() - impossibile mappare il mutex in memoria", ERR, true, -1);
     }
     *mutexShare = mutex;
     condShare = mmap(NULL, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (condShare == MAP_FAILED) {
-        err(_GENERIC_ERR, ERR, true, -1);
+        err("startTransferLog() - impossibile mappare la condition variable in memoria", ERR, true, -1);
     }
     *condShare = cond;
     if (pipe2(pipeFd, O_DIRECT) < 0) {
-        err(_GENERIC_ERR, ERR, true, -1);
+        err("startTransferLog() - impossibile aprire la pipe", ERR, true, -1);
     }
     if ((pid = fork()) < 0) {
         err(_LOG_ERR, ERR, true, pid);
@@ -290,6 +325,7 @@ void startTransferLog() {
         munmap(condShare, sizeof(pthread_cond_t));
         free(mutexShare);
         free(condShare);
+        close(logPipe);
         close(logFile);
     } else {
         close(pipeFd[0]);
