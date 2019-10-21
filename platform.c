@@ -40,6 +40,7 @@ int closeSocket(SOCKET s) {
 BOOL ctrlBreak(DWORD sign) {
     if (sign == CTRL_BREAK_EVENT) {
         printf("Richiesta chiusura");
+        logTransfer("KILL");
         exit(0);
     }
 }

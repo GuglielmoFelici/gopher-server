@@ -57,7 +57,6 @@ void* sendFile(void* sendFileArgs) {
     struct sendFileArgs args;
     void* response;
     struct sockaddr_in clientAddr;
-    int nameLen;
     int clientLen;
     char log[PIPE_BUF];
     char address[16];
@@ -68,11 +67,12 @@ void* sendFile(void* sendFileArgs) {
     }
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
-    if (send(args.dest, response, args.size + 2, 0) >= 0) {
-        // getpeername(args.dest, (struct sockaddr*)&clientAddr, &nameLen);
-        // strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
-        // snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i", args.name, args.size, address, clientAddr.sin_port);  //TODO
-        // logTransfer(log);
+    if (send(args.dest, response, args.size + 3, 0) >= 0) {
+        clientLen = sizeof(clientAddr);
+        getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen);
+        strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
+        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);  //TODO
+        logTransfer(log);
     }
     // munmap(args.src, args.size);
     free(response);
@@ -128,7 +128,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     args->src = view;
     args->dest = sock;
     args->size = sizeLow;
-    strncpy(args->name, path, MAX_PATH);
+    strncpy(args->name, path, min(strlen(path) + 1, MAX_PATH));
     if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
         errorRoutine(&sock);
     } else {
@@ -147,7 +147,7 @@ void readDir(LPCSTR path, SOCKET sock) {
     HANDLE hFind;
 
     response = calloc(1, 1);
-    responseSize = 1;  // Per il punto finale
+    responseSize = 2;  // Per il punto finale
     snprintf(wildcardPath, sizeof(wildcardPath), "%s*", (path[0] == '\0' ? ".\\" : path));
     if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
         errorRoutine(&sock);
@@ -165,10 +165,9 @@ void readDir(LPCSTR path, SOCKET sock) {
             strcat(response, line);
         }
     } while (FindNextFile(hFind, &data));
-    strcat(response, ".");
-    send(sock, response, responseSize, 0);
+    send(sock, strcat(response, "."), responseSize, 0);
     closesocket(sock);
-    CloseHandle(hFind);
+    FindClose(hFind);
     free(response);
 }
 

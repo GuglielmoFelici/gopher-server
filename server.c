@@ -36,6 +36,7 @@ int main(int argc, _string* argv) {
     struct config options;
     struct sockaddr_in serverAddr;
     struct sockaddr_in clientAddr;
+    int addrLen;
     _socket server;
     int _errno;
     int selResult;
@@ -84,7 +85,7 @@ int main(int argc, _string* argv) {
             FD_SET(wakeSelect, &incomingConnections);
         } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
         printf("incoming connection at port %d\n", htons(serverAddr.sin_port));
-        int addrLen;
+        addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
         printf("serving...\n");
         if (options.multiProcess) {

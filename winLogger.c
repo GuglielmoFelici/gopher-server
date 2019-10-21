@@ -21,7 +21,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
     char buff[4096];
     DWORD bytesRead;
     DWORD bytesWritten;
-    if ((logFile = CreateFile("logFile", GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+    if ((logFile = CreateFile("logFile", FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
         exit(1);
     }
     while (1) {
@@ -32,7 +32,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
         } else if (!strcmp(buff, "KILL")) {
             break;
         } else {
-            WriteFile(logFile, strcat(buff, "\n"), bytesRead + 1, &bytesWritten, NULL);
+            WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL);
         }
     }
     // munmap(mutexShare, sizeof(pthread_mutex_t));
