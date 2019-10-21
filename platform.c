@@ -40,7 +40,6 @@ int closeSocket(SOCKET s) {
 BOOL ctrlBreak(DWORD sign) {
     if (sign == CTRL_BREAK_EVENT) {
         printf("Richiesta chiusura");
-        logTransfer("KILL");
         exit(0);
     }
 }
@@ -107,6 +106,7 @@ void logTransfer(LPSTR log) {
     // TODO mutex
     DWORD written;
     WriteFile(logPipe, log, strlen(log), &written, NULL);
+    SetEvent(logEvent);
 }
 
 void startTransferLog() {
@@ -127,6 +127,9 @@ void startTransferLog() {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    if ((logEvent = CreateEvent(attr, FALSE, FALSE, "logEvent")) == NULL) {
+        err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
+    }
     CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
     CloseHandle(readPipe);
 }

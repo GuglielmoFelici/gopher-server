@@ -35,6 +35,7 @@ _pipe logPipe;
 bool sig;
 struct sockaddr_in wakeAddr;
 _socket wakeSelect;
+HANDLE logEvent;
 
 /* Utils */
 void errorString(char* error);

@@ -5,6 +5,7 @@
 _pipe logPipe;
 struct sockaddr_in wakeAddr;
 _socket wakeSelect;
+HANDLE logEvent;
 bool sig = false;
 
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address, bool reload) {
