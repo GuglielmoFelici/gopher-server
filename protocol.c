@@ -191,7 +191,7 @@ HANDLE gopher(LPCSTR selector, SOCKET sock) {
 
 void errorRoutine(void* sock) {
     char* err = "3Error retrieving the resource\t\t\r\n.";
-    _log("Esecuzione del protocollo gopher - errore generico", true);
+    _log("Esecuzione del protocollo gopher - errore generico", ERR, true);
     send(*(int*)sock, err, strlen(err), 0);
     closeSocket(*(int*)sock);
 }

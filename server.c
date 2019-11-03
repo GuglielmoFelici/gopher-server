@@ -5,12 +5,11 @@
 _pipe logPipe;
 struct sockaddr_in wakeAddr;
 _socket wakeSelect;
-HANDLE logEvent;
+_event logEvent;
 _procId logger;
-bool sig = false;
+bool signaled = false;
 
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address, bool reload) {
-    char enable = 1;
     if (reload) {
         if (closeSocket(server) < 0) {
             err(_CLOSE_SOCKET_ERR, ERR, true, -1);
@@ -19,6 +18,7 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
     if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         err(_SOCKET_ERR, ERR, true, server);
     }
+    char enable = 1;
     if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
         _log(_REUSE_ERR, ERR, true);
     }
@@ -36,20 +36,19 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
 
 int main(int argc, _string* argv) {
     struct config options;
+    _socket server;
     struct sockaddr_in serverAddr;
     struct sockaddr_in clientAddr;
-    int addrLen;
-    _socket server;
-    int _errno;
-    int selResult;
-    int ready = 0;
     fd_set incomingConnections;
+    int addrLen;
+    int _errno;
+    int ready;
 
     /* Configuration */
 
-    if ((_errno = startup()) != 0) {
-        err(_STARTUP_ERR, ERR, false, _errno);
-    }
+    // if ((_errno = startup()) != 0) {
+    //     err(_STARTUP_ERR, ERR, false, _errno);
+    // }
     installSigHandler();
     setvbuf(stdout, NULL, _IONBF, 0);
     if ((_errno = initLog()) != 0) {
@@ -67,12 +66,13 @@ int main(int argc, _string* argv) {
 
     /* Main loop*/
 
+    ready = 0;
     while (true) {
         do {
             if (ready < 0 && sockErr() != EINTR) {
                 err(_SELECT_ERR, ERR, true, -1);
             }
-            if (sig) {
+            if (signaled) {
                 printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
                     _log(_CONFIG_ERR, ERR, true);
@@ -80,7 +80,7 @@ int main(int argc, _string* argv) {
                 if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr, true);
                 }
-                sig = false;
+                signaled = false;
             }
             FD_ZERO(&incomingConnections);
             FD_SET(server, &incomingConnections);

@@ -49,7 +49,7 @@ BOOL ctrlBreak(DWORD sign) {
 BOOL sigHandler(DWORD signum) {
     printf("segnale ricevuto\n");
     sendto(socket(AF_INET, SOCK_DGRAM, 0), "Wake up!", 0, 0, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
-    sig = true;
+    signaled = true;
     return signum == CTRL_C_EVENT;
 }
 
