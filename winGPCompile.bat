@@ -1,0 +1,1 @@
+gcc -g winGopherProcess.c platform.c log/log.c config/config.c protocol.c -o winGopherProcess.exe -lws2_32

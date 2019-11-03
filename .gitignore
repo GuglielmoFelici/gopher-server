@@ -64,6 +64,3 @@ test/
 logFile
 
 linuxserver
-
-*.sh
-*.bat
