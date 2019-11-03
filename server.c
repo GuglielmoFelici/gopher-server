@@ -46,9 +46,9 @@ int main(int argc, _string* argv) {
 
     /* Configuration */
 
-    // if ((_errno = startup()) != 0) {
-    //     err(_STARTUP_ERR, ERR, false, _errno);
-    // }
+    if ((_errno = startup()) != 0) {
+        err(_STARTUP_ERR, ERR, false, _errno);
+    }
     installSigHandler();
     setvbuf(stdout, NULL, _IONBF, 0);
     if ((_errno = initLog()) != 0) {

@@ -133,7 +133,7 @@ void startTransferLog() {
         err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
     }
     CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
-    logger = processInfo.hProcess;
+    logger = processInfo.dwProcessId;
     CloseHandle(readPipe);
 }
 

@@ -6,11 +6,10 @@ HANDLE logFile;
 HANDLE logEvent;
 
 BOOL sigHandler(DWORD signum) {
-    printf("Chiudo il logger...");
+    printf("Chiudo il logger...\n");
     CloseHandle(logFile);
     CloseHandle(logEvent);
     exit(0);
-    return signum == CTRL_C_EVENT;
 }
 
 DWORD main(DWORD argc, LPSTR* argv) {
