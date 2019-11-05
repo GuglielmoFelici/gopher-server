@@ -58,8 +58,6 @@ void* sendFile(void* sendFileArgs) {
     void* response;
     struct sockaddr_in clientAddr;
     int clientLen;
-    char log[PIPE_BUF];
-    char address[16];
     args = *((struct sendFileArgs*)sendFileArgs);
     free(sendFileArgs);
     if ((response = calloc(args.size + 3, 1)) == NULL) {
@@ -68,6 +66,8 @@ void* sendFile(void* sendFileArgs) {
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
     if (send(args.dest, response, args.size + 3, 0) >= 0) {
+        char log[PIPE_BUF];
+        char address[16];
         clientLen = sizeof(clientAddr);
         getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen);
         strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
@@ -208,7 +208,7 @@ char gopherType(const _file* file) {
     bytesRead = fread(cmdOut, 1, 200, response);
     free(command);
     fclose(response);
-    if (response == NULL || bytesRead < 0) {
+    if (bytesRead < 0) {
         pthread_exit(NULL);
     }
     if (strstr(cmdOut, "executable") || strstr(cmdOut, "ELF")) {
@@ -274,8 +274,6 @@ void* sendFile(void* sendFileArgs) {
     void* response;
     struct sockaddr_in clientAddr;
     socklen_t clientLen;
-    char log[PIPE_BUF];
-    char address[16];
     args = *((struct sendFileArgs*)sendFileArgs);
     free(sendFileArgs);
     if ((response = calloc(args.size + 3, 1)) == NULL) {
@@ -284,6 +282,8 @@ void* sendFile(void* sendFileArgs) {
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
     if (send(args.dest, response, args.size + 2, 0) >= 0) {
+        char log[PIPE_BUF];
+        char address[16];
         clientLen = sizeof(clientAddr);
         getpeername(args.dest, &clientAddr, &clientLen);
         inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, address, sizeof(clientAddr));

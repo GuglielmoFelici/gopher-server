@@ -13,6 +13,14 @@ void errorString(char* error) {
     sprintf(error, "Error: %d, Socket error: %d", GetLastError(), WSAGetLastError());
 }
 
+void _shutdown() {
+    closeSocket(server);
+    AttachConsole(logger);
+    GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, logger);
+    printf("All done.\n");
+    exit(0);
+}
+
 /********************************************** SOCKETS *************************************************************/
 
 int startup() {
@@ -36,21 +44,30 @@ int closeSocket(SOCKET s) {
 
 /********************************************** SIGNALS *************************************************************/
 
-// TODO ???
-BOOL ctrlBreak(DWORD sign) {
-    if (sign == CTRL_BREAK_EVENT) {
-        printf("Richiesta chiusura");
-        AttachConsole(logger);
-        GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, logger);
-        exit(0);
+void wakeUpServer() {
+    SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
+    sendto(s, "Wake up!", 0, 0, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
+    closeSocket(s);
+}
+
+BOOL ctrlBreak(DWORD signum) {
+    if (signum == CTRL_BREAK_EVENT) {
+        printf("Richiesta chiusura\n");
+        requestShutdown = true;
+        wakeUpServer();
+        return true;
     }
+    return false;
 }
 
 BOOL sigHandler(DWORD signum) {
-    printf("segnale ricevuto\n");
-    sendto(socket(AF_INET, SOCK_DGRAM, 0), "Wake up!", 0, 0, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
-    signaled = true;
-    return signum == CTRL_C_EVENT;
+    if (signum != CTRL_BREAK_EVENT) {
+        printf("segnale ricevuto\n");
+        signaled = true;
+        wakeUpServer();
+        return true;
+    }
+    return false;
 }
 
 void installSigHandler() {
@@ -132,7 +149,9 @@ void startTransferLog() {
     if ((logEvent = CreateEvent(attr, FALSE, FALSE, "logEvent")) == NULL) {
         err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
     }
-    CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
+    if (!CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+        err("startTransferLog() - Impossibile avviare il logger", ERR, true, -1);
+    }
     logger = processInfo.dwProcessId;
     CloseHandle(readPipe);
 }
@@ -152,6 +171,7 @@ void errorString(char* error) {
 
 /********************************************** SOCKETS *************************************************************/
 
+// Demonizzazione
 int startup() {
     int pid;
     pid = fork();
@@ -308,7 +328,6 @@ void startTransferLog() {
     } else if (pid == 0) {
         int logFile;
         char buff[PIPE_BUF + 1];
-        size_t bytesRead;
         prctl(PR_SET_NAME, "Logger");
         close(pipeFd[1]);
         logPipe = pipeFd[0];
@@ -317,6 +336,7 @@ void startTransferLog() {
         }
         pthread_mutex_lock(mutexShare);
         while (1) {
+            size_t bytesRead;
             pthread_cond_wait(condShare, mutexShare);
             printf("entrato in condition variable\n");
             if ((bytesRead = read(logPipe, buff, PIPE_BUF)) < 0) {

@@ -2,15 +2,24 @@
 #include "includes/gopher.h"
 #include "includes/log.h"
 
+// Pipe per il log
 _pipe logPipe;
+// Socket per interrompere la select su windows
 struct sockaddr_in wakeAddr;
 _socket wakeSelect;
+// Evento per lo shutdown del processo di log
 _event logEvent;
+// Id del processo di log
 _procId logger;
+// Controllo della modifica del file di configurazione
 bool signaled = false;
+// Chiusura dell'applicazione
+bool requestShutdown = false;
+// Socket del server
+_socket server;
 
-_socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address, bool reload) {
-    if (reload) {
+_socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address) {
+    if (server != -1) {
         if (closeSocket(server) < 0) {
             err(_CLOSE_SOCKET_ERR, ERR, true, -1);
         };
@@ -36,7 +45,6 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
 
 int main(int argc, _string* argv) {
     struct config options;
-    _socket server;
     struct sockaddr_in serverAddr;
     struct sockaddr_in clientAddr;
     fd_set incomingConnections;
@@ -50,6 +58,7 @@ int main(int argc, _string* argv) {
         err(_STARTUP_ERR, ERR, false, _errno);
     }
     installSigHandler();
+    // Disabilita I/O buffering
     setvbuf(stdout, NULL, _IONBF, 0);
     if ((_errno = initLog()) != 0) {
         err(_LOG_ERR, ERR, true, _errno);
@@ -58,7 +67,7 @@ int main(int argc, _string* argv) {
     if (readConfig(CONFIG_FILE, &options) != 0) {
         _log(_CONFIG_ERR, ERR, true);
     }
-    server = prepareServer(server, options, &serverAddr, false);
+    server = prepareServer(-1, options, &serverAddr);
     _log(_SOCKET_OPEN, INFO, false);
     _log(_SOCKET_LISTENING, INFO, false);
     startTransferLog();
@@ -69,16 +78,16 @@ int main(int argc, _string* argv) {
     ready = 0;
     while (true) {
         do {
-            if (ready < 0 && sockErr() != EINTR) {
+            if (requestShutdown) {
+                _shutdown();
+            } else if (ready < 0 && sockErr() != EINTR) {
                 err(_SELECT_ERR, ERR, true, -1);
-            }
-            if (signaled) {
+            } else if (signaled) {
                 printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
                     _log(_CONFIG_ERR, ERR, true);
-                }
-                if (options.port != htons(serverAddr.sin_port)) {
-                    server = prepareServer(server, options, &serverAddr, true);
+                } else if (options.port != htons(serverAddr.sin_port)) {
+                    server = prepareServer(server, options, &serverAddr);
                 }
                 signaled = false;
             }
@@ -103,7 +112,4 @@ int main(int argc, _string* argv) {
             }
         }
     }
-
-    printf("All done.\n");
-    return 0;
 }

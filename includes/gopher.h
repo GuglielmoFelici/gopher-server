@@ -33,8 +33,10 @@
 #include "datatypes.h"
 #include "log.h"
 
+_socket server;
 _pipe logPipe;
 bool signaled;
+bool requestShutdown;
 struct sockaddr_in wakeAddr;
 _socket wakeSelect;
 _procId logger;
@@ -61,6 +63,8 @@ void initConfig(struct config* options);
 bool readConfig(const _string configPath, struct config* options);
 
 int startup();
+
+void _shutdown();
 
 /* Signals */
 

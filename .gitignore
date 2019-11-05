@@ -64,3 +64,5 @@ test/
 logFile
 
 linuxserver
+
+*cppcheck*
