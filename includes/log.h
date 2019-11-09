@@ -37,7 +37,7 @@ _string currentTime();
 
 int initLog();
 
-void err(const _string message, const _string level, bool stderror, int code);
+void _err(const _string message, const _string level, bool stderror, int code);
 
 void _log(const _string message, const _string level, bool stderror);
 

@@ -35,7 +35,7 @@
 
 _socket server;
 _pipe logPipe;
-bool signaled;
+bool updateConfig;
 bool requestShutdown;
 struct sockaddr_in wakeAddr;
 _socket wakeSelect;

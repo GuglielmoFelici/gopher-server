@@ -9,11 +9,13 @@
 
 /************************************************** UTILS ********************************************************/
 
-void errorString(char* error) {
+void errorString(char *error)
+{
     sprintf(error, "Error: %d, Socket error: %d", GetLastError(), WSAGetLastError());
 }
 
-void _shutdown() {
+void _shutdown()
+{
     closeSocket(server);
     AttachConsole(logger);
     GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, logger);
@@ -23,35 +25,42 @@ void _shutdown() {
 
 /********************************************** SOCKETS *************************************************************/
 
-int startup() {
+int startup()
+{
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
     return WSAStartup(versionWanted, &wsaData);
 }
 
-int sockErr() {
+int sockErr()
+{
     return WSAGetLastError();
 }
 
-int setNonblocking(SOCKET s) {
+int setNonblocking(SOCKET s)
+{
     unsigned long blocking = 1;
     return ioctlsocket(s, FIONBIO, &blocking);
 }
 
-int closeSocket(SOCKET s) {
+int closeSocket(SOCKET s)
+{
     return closesocket(s);
 }
 
 /********************************************** SIGNALS *************************************************************/
 
-void wakeUpServer() {
+void wakeUpServer()
+{
     SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
-    sendto(s, "Wake up!", 0, 0, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
+    sendto(s, "Wake up!", 0, 0, (struct sockaddr *)&wakeAddr, sizeof(wakeAddr));
     closeSocket(s);
 }
 
-BOOL ctrlBreak(DWORD signum) {
-    if (signum == CTRL_BREAK_EVENT) {
+BOOL ctrlBreak(DWORD signum)
+{
+    if (signum == CTRL_BREAK_EVENT)
+    {
         printf("Richiesta chiusura\n");
         requestShutdown = true;
         wakeUpServer();
@@ -60,8 +69,10 @@ BOOL ctrlBreak(DWORD signum) {
     return false;
 }
 
-BOOL sigHandler(DWORD signum) {
-    if (signum != CTRL_BREAK_EVENT) {
+BOOL sigHandler(DWORD signum)
+{
+    if (signum != CTRL_BREAK_EVENT)
+    {
         printf("segnale ricevuto\n");
         signaled = true;
         wakeUpServer();
@@ -70,28 +81,31 @@ BOOL sigHandler(DWORD signum) {
     return false;
 }
 
-void installSigHandler() {
+void installSigHandler()
+{
     wakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
     memset(&wakeAddr, 0, sizeof(wakeAddr));
     wakeAddr.sin_family = AF_INET;
     wakeAddr.sin_port = htons(49152);
     wakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    bind(wakeSelect, (struct sockaddr*)&wakeAddr, sizeof(wakeAddr));
+    bind(wakeSelect, (struct sockaddr *)&wakeAddr, sizeof(wakeAddr));
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlBreak, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
 }
 
 /*********************************************** MULTI ***************************************************************/
 
-void closeThread() {
+void closeThread()
+{
     ExitThread(0);
 }
 
-void* task(void* args) {
+void *task(void *args)
+{
     char message[256];
     SOCKET sock;
     printf("starting thread\n");
-    sock = *(SOCKET*)args;
+    sock = *(SOCKET *)args;
     free(args);
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
@@ -100,11 +114,13 @@ void* task(void* args) {
     printf("Closing child thread...\n");
 }
 
-void serveThread(SOCKET* sock) {
+void serveThread(SOCKET *sock)
+{
     CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)task, sock, 0, NULL);
 }
 
-void serveProc(SOCKET client) {
+void serveProc(SOCKET client)
+{
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
     memset(&startupInfo, 0, sizeof(startupInfo));
@@ -114,21 +130,23 @@ void serveProc(SOCKET client) {
     startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)];  // TODO size??
+    char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)]; // TODO size??
     sprintf(cmdLine, "winGopherProcess.exe %d", client);
     CreateProcess("winGopherProcess.exe", cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
 }
 
 /*********************************************** LOGGER ***************************************************************/
 
-void logTransfer(LPSTR log) {
+void logTransfer(LPSTR log)
+{
     // TODO mutex
     DWORD written;
     WriteFile(logPipe, log, strlen(log), &written, NULL);
     SetEvent(logEvent);
 }
 
-void startTransferLog() {
+void startTransferLog()
+{
     HANDLE readPipe;
     LPSECURITY_ATTRIBUTES attr;
     STARTUPINFO startupInfo;
@@ -136,8 +154,9 @@ void startTransferLog() {
     attr->bInheritHandle = TRUE;
     attr->nLength = sizeof(attr);
     attr->lpSecurityDescriptor = NULL;
-    if (!CreatePipe(&readPipe, &logPipe, attr, 0)) {
-        err("startTransferLog() - Impossibile creare la pipe", ERR, true, -1);
+    if (!CreatePipe(&readPipe, &logPipe, attr, 0))
+    {
+        _err("startTransferLog() - Impossibile creare la pipe", ERR, true, -1);
     }
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
@@ -146,11 +165,13 @@ void startTransferLog() {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    if ((logEvent = CreateEvent(attr, FALSE, FALSE, "logEvent")) == NULL) {
-        err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
+    if ((logEvent = CreateEvent(attr, FALSE, FALSE, "logEvent")) == NULL)
+    {
+        _err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
     }
-    if (!CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
-        err("startTransferLog() - Impossibile avviare il logger", ERR, true, -1);
+    if (!CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo))
+    {
+        _err("startTransferLog() - Impossibile avviare il logger", ERR, true, -1);
     }
     logger = processInfo.dwProcessId;
     CloseHandle(readPipe);
@@ -165,37 +186,51 @@ void startTransferLog() {
 
 /************************************************** UTILS ********************************************************/
 
-void errorString(char* error) {
+void errorString(char *error)
+{
     sprintf(error, "%s", strerror(errno));
 }
 
 /********************************************** SOCKETS *************************************************************/
 
 // Demonizzazione
-int startup() {
+int startup()
+{
     int pid;
     pid = fork();
-    if (pid < 0) {
+    if (pid < 0)
+    {
         err(_DAEMON_ERR, ERR, true, errno);
-    } else if (pid > 0) {
+    }
+    else if (pid > 0)
+    {
         exit(0);
-    } else {
+    }
+    else
+    {
         sigset_t set;
-        if (setsid() < 0) {
+        if (setsid() < 0)
+        {
             err(_DAEMON_ERR, ERR, true, errno);
         }
         sigemptyset(&set);
         sigaddset(&set, SIGHUP);
         sigprocmask(SIG_BLOCK, &set, NULL);
         pid = fork();
-        if (pid < 0) {
+        if (pid < 0)
+        {
             err(_DAEMON_ERR, ERR, true, errno);
-        } else if (pid > 0) {
+        }
+        else if (pid > 0)
+        {
             exit(0);
-        } else {
+        }
+        else
+        {
             int devNull;
             devNull = open("/dev/null", O_RDWR);
-            if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+            if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0)
+            {
                 err(_DAEMON_ERR, ERR, true, -1);
             }
             return close(devNull);
@@ -204,26 +239,31 @@ int startup() {
     return 0;
 }
 
-int sockErr() {
+int sockErr()
+{
     return errno;
 }
 
-int setNonblocking(int s) {
+int setNonblocking(int s)
+{
     return fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK);
 }
 
-int closeSocket(int s) {
+int closeSocket(int s)
+{
     return close(s);
 }
 
 /********************************************** SIGNALS *************************************************************/
 
-void sigHandler(int signum) {
+void sigHandler(int signum)
+{
     printf("Registrato segnale \n");
     signaled = true;
 }
 
-void installSigHandler() {
+void installSigHandler()
+{
     struct sigaction sHup;
     sHup.sa_handler = sigHandler;
     sigemptyset(&sHup.sa_mask);
@@ -233,11 +273,13 @@ void installSigHandler() {
 
 /*********************************************** MULTI ***************************************************************/
 
-void closeThread() {
+void closeThread()
+{
     pthread_exit(NULL);
 }
 
-void* task(void* args) {
+void *task(void *args)
+{
     sigset_t set;
     char message[256];
     int sock;
@@ -245,7 +287,7 @@ void* task(void* args) {
     sigaddset(&set, SIGHUP);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
     printf("starting thread\n");
-    sock = *(int*)args;
+    sock = *(int *)args;
     free(args);
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
@@ -257,21 +299,27 @@ void* task(void* args) {
     fflush(stdout);
 }
 
-void serveThread(int* sock) {
+void serveThread(int *sock)
+{
     pthread_t tid;
-    if (pthread_create(&tid, NULL, task, sock)) {
+    if (pthread_create(&tid, NULL, task, sock))
+    {
         _log(_THREAD_ERR, ERR, true);
         return;
     }
     pthread_detach(tid);
 }
 
-void serveProc(int sock) {
+void serveProc(int sock)
+{
     pid_t pid;
     pid = fork();
-    if (pid < 0) {
+    if (pid < 0)
+    {
         err(_FORK_ERR, ERR, true, errno);
-    } else if (pid == 0) {
+    }
+    else if (pid == 0)
+    {
         char message[256];
         printf("starting process\n");
         recv(sock, message, sizeof(message), 0);
@@ -287,17 +335,19 @@ void serveProc(int sock) {
 
 /*********************************************** LOGGER ***************************************************************/
 
-pthread_mutex_t* mutexShare;
-pthread_cond_t* condShare;
+pthread_mutex_t *mutexShare;
+pthread_cond_t *condShare;
 
-void logTransfer(char* log) {
+void logTransfer(char *log)
+{
     pthread_mutex_lock(mutexShare);
     write(logPipe, log, strlen(log));
     pthread_cond_signal(condShare);
     pthread_mutex_unlock(mutexShare);
 }
 
-void startTransferLog() {
+void startTransferLog()
+{
     int pid;
     int pipeFd[2];
     pthread_mutex_t mutex;
@@ -311,40 +361,53 @@ void startTransferLog() {
     pthread_condattr_setpshared(&condAttr, PTHREAD_PROCESS_SHARED);
     pthread_cond_init(&cond, &condAttr);
     mutexShare = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (mutexShare == MAP_FAILED) {
+    if (mutexShare == MAP_FAILED)
+    {
         err("startTransferLog() - impossibile mappare il mutex in memoria", ERR, true, -1);
     }
     *mutexShare = mutex;
     condShare = mmap(NULL, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (condShare == MAP_FAILED) {
+    if (condShare == MAP_FAILED)
+    {
         err("startTransferLog() - impossibile mappare la condition variable in memoria", ERR, true, -1);
     }
     *condShare = cond;
-    if (pipe2(pipeFd, O_DIRECT) < 0) {
+    if (pipe2(pipeFd, O_DIRECT) < 0)
+    {
         err("startTransferLog() - impossibile aprire la pipe", ERR, true, -1);
     }
-    if ((pid = fork()) < 0) {
+    if ((pid = fork()) < 0)
+    {
         err(_LOG_ERR, ERR, true, pid);
-    } else if (pid == 0) {
+    }
+    else if (pid == 0)
+    {
         int logFile;
         char buff[PIPE_BUF + 1];
         prctl(PR_SET_NAME, "Logger");
         close(pipeFd[1]);
         logPipe = pipeFd[0];
-        if ((logFile = open("logFile", O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
+        if ((logFile = open("logFile", O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0)
+        {
             exit(1);
         }
         pthread_mutex_lock(mutexShare);
-        while (1) {
+        while (1)
+        {
             size_t bytesRead;
             pthread_cond_wait(condShare, mutexShare);
             printf("entrato in condition variable\n");
-            if ((bytesRead = read(logPipe, buff, PIPE_BUF)) < 0) {
+            if ((bytesRead = read(logPipe, buff, PIPE_BUF)) < 0)
+            {
                 close(logFile);
                 exit(1);
-            } else if (!strcmp(buff, "KILL")) {
+            }
+            else if (!strcmp(buff, "KILL"))
+            {
                 break;
-            } else {
+            }
+            else
+            {
                 write(logFile, strcat(buff, "\n"), bytesRead + 1);
             }
         }
@@ -354,7 +417,9 @@ void startTransferLog() {
         free(condShare);
         close(logPipe);
         close(logFile);
-    } else {
+    }
+    else
+    {
         close(pipeFd[0]);
         logPipe = pipeFd[1];
     }

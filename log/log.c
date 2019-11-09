@@ -8,7 +8,7 @@ _string currentTime() {
     return asctime(timeinfo);
 }
 
-void err(const _string message, const _string level, bool stderror, int code) {
+void _err(const _string message, const _string level, bool stderror, int code) {
     _log(message, level, stderror);
     exit(code);
 }
