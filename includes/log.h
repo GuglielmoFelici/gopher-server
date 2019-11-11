@@ -28,10 +28,8 @@
 #define _SOCKET_OPEN "Server socket aperto"
 #define _SOCKET_LISTENING "Socket in ascolto"
 
-#define INFO "log/info"
+#define WARN "log/warn"
 #define ERR "log/err"
-#define DEBUG "log/debug"
-#define TEST "log/test"
 
 _string currentTime();
 

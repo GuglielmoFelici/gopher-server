@@ -29,7 +29,7 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
     }
     char enable = 1;
     if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
-        _log(_REUSE_ERR, ERR, true);
+        _log(_REUSE_ERR, WARN, true);
     }
     address->sin_family = AF_INET;
     address->sin_addr.s_addr = INADDR_ANY;
@@ -65,13 +65,11 @@ int main(int argc, _string* argv) {
     }
     initConfig(&options);
     if (readConfig(CONFIG_FILE, &options) != 0) {
-        _log(_CONFIG_ERR, ERR, true);
+        _log(_CONFIG_ERR, WARN, true);
     }
     server = prepareServer(-1, options, &serverAddr);
-    _log(_SOCKET_OPEN, INFO, false);
-    _log(_SOCKET_LISTENING, INFO, false);
     startTransferLog();
-    printf("listening on port %i\n", options.port);
+    printf("Listening on port %i\n", options.port);
 
     /* Main loop*/
 
@@ -85,7 +83,7 @@ int main(int argc, _string* argv) {
             } else if (updateConfig) {
                 printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
-                    _log(_CONFIG_ERR, ERR, true);
+                    _log(_CONFIG_ERR, WARN, true);
                 } else if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr);
                 }
@@ -95,17 +93,16 @@ int main(int argc, _string* argv) {
             FD_SET(server, &incomingConnections);
             FD_SET(wakeSelect, &incomingConnections);
         } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
-        printf("incoming connection at port %d\n", htons(serverAddr.sin_port));
+        printf("Incoming connection at port %d\n", htons(serverAddr.sin_port));
         addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
-        printf("serving...\n");
         if (options.multiProcess) {
             serveProc(client);
             closeSocket(client);
         } else {
             _socket* sock;
             if ((sock = malloc(sizeof(_socket))) == NULL) {
-                _log(_ALLOC_ERR, ERR, true);
+                _log(_ALLOC_ERR, WARN, true);
             } else {
                 *sock = client;
                 serveThread(sock);

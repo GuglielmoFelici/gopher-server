@@ -14,8 +14,8 @@ void _err(const _string message, const _string level, bool stderror, int code) {
 }
 
 int initLog() {
-    _string logs[3] = {INFO, DEBUG, ERR};
-    for (int i = 0; i < 3; i++) {
+    _string logs[2] = {WARN, ERR};
+    for (int i = 0; i < 2; i++) {
         FILE *logFile = fopen(logs[i], "a");
         if (logFile == NULL) {
             return errno;

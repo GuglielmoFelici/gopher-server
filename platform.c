@@ -130,13 +130,14 @@ void logTransfer(LPSTR log) {
 
 void startTransferLog() {
     HANDLE readPipe;
-    LPSECURITY_ATTRIBUTES attr;
+    SECURITY_ATTRIBUTES attr;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    attr->bInheritHandle = TRUE;
-    attr->nLength = sizeof(attr);
-    attr->lpSecurityDescriptor = NULL;
-    if (!CreatePipe(&readPipe, &logPipe, attr, 0)) {
+    memset(&attr, 0, sizeof(attr));
+    attr.bInheritHandle = TRUE;
+    attr.nLength = sizeof(attr);
+    attr.lpSecurityDescriptor = NULL;
+    if (!CreatePipe(&readPipe, &logPipe, &attr, 0)) {
         _err("startTransferLog() - Impossibile creare la pipe", ERR, true, -1);
     }
     memset(&startupInfo, 0, sizeof(startupInfo));
@@ -146,7 +147,7 @@ void startTransferLog() {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    if ((logEvent = CreateEvent(attr, FALSE, FALSE, "logEvent")) == NULL) {
+    if ((logEvent = CreateEvent(&attr, FALSE, FALSE, "logEvent")) == NULL) {
         _err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
     }
     if (!CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
@@ -260,7 +261,7 @@ void *task(void *args) {
 void serveThread(int *sock) {
     pthread_t tid;
     if (pthread_create(&tid, NULL, task, sock)) {
-        _log(_THREAD_ERR, ERR, true);
+        _log(_THREAD_ERR, WARN, true);
         return;
     }
     pthread_detach(tid);
