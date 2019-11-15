@@ -10,7 +10,7 @@ _socket awakeSelect;
 // Evento per lo shutdown del processo di log
 _event logEvent;
 // Id del processo di log
-_procId logger;
+_procId loggerId;
 // Controllo della modifica del file di configurazione
 bool updateConfig = false;
 // Chiusura dell'applicazione

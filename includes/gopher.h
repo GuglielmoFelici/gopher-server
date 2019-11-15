@@ -39,7 +39,7 @@ bool updateConfig;
 bool requestShutdown;
 struct sockaddr_in awakeAddr;
 _socket awakeSelect;
-_procId logger;
+_procId loggerId;
 _event logEvent;
 
 /* Utils */
