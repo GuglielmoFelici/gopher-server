@@ -36,7 +36,7 @@ void _log(const _string message, const _string level, bool stderror) {
     fprintf(out, "%s\n", message);
     if (stderror) {
         char error[50];
-        errorString(error);
+        errorString(error, 50);
         fprintf(out, "Descrizione errore: %s\n", error);
     }
     fclose(out);

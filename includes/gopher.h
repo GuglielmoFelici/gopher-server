@@ -43,7 +43,7 @@ _procId loggerId;
 _event logEvent;
 
 /* Utils */
-void errorString(char* error);
+void errorString(char* error, size_t size);
 
 _string trimEnding(_string str);
 
