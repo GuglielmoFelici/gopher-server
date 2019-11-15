@@ -77,7 +77,6 @@ void* sendFile(void* sendFileArgs) {
     // munmap(args.src, args.size);
     free(response);
     closeSocket(args.dest);
-    printf("invio terminato\n");
 }
 
 HANDLE readFile(LPCSTR path, SOCKET sock) {
@@ -293,7 +292,6 @@ void* sendFile(void* sendFileArgs) {
     munmap(args.src, args.size);
     free(response);
     closeSocket(args.dest);
-    printf("invio terminato\n");
 }
 
 void readDir(const char* path, int sock) {
