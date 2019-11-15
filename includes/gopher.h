@@ -37,8 +37,8 @@ _socket server;
 _pipe logPipe;
 bool updateConfig;
 bool requestShutdown;
-struct sockaddr_in wakeAddr;
-_socket wakeSelect;
+struct sockaddr_in awakeAddr;
+_socket awakeSelect;
 _procId logger;
 _event logEvent;
 

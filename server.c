@@ -5,8 +5,8 @@
 // Pipe per il log
 _pipe logPipe;
 // Socket per interrompere la select su windows
-struct sockaddr_in wakeAddr;
-_socket wakeSelect;
+struct sockaddr_in awakeAddr;
+_socket awakeSelect;
 // Evento per lo shutdown del processo di log
 _event logEvent;
 // Id del processo di log
@@ -83,6 +83,7 @@ int main(int argc, _string* argv) {
             } else if (updateConfig) {
                 printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
+                    printf(_CONFIG_ERR);
                     _log(_CONFIG_ERR, WARN, true);
                 } else if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr);
@@ -91,9 +92,9 @@ int main(int argc, _string* argv) {
             }
             FD_ZERO(&incomingConnections);
             FD_SET(server, &incomingConnections);
-            FD_SET(wakeSelect, &incomingConnections);
+            FD_SET(awakeSelect, &incomingConnections);
         } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
-        printf("Incoming connection at port %d\n", htons(serverAddr.sin_port));
+        printf("Incoming connection, port %d\n", htons(serverAddr.sin_port));
         addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
         if (options.multiProcess) {
@@ -102,6 +103,7 @@ int main(int argc, _string* argv) {
         } else {
             _socket* sock;
             if ((sock = malloc(sizeof(_socket))) == NULL) {
+                printf("Impossibile servire il client\n.");
                 _log(_ALLOC_ERR, WARN, true);
             } else {
                 *sock = client;

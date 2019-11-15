@@ -9,6 +9,7 @@ _string currentTime() {
 }
 
 void _err(const _string message, const _string level, bool stderror, int code) {
+    printf("Si è verificato un errore, consultare i file di log per ulteriori dettagli\n.");
     _log(message, level, stderror);
     exit(code);
 }

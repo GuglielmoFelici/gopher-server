@@ -9,33 +9,33 @@
 
 /************************************************** UTILS ********************************************************/
 
-void errorString(char *error) {
-    sprintf(error, "Error: %d, Socket error: %d", GetLastError(), WSAGetLastError());
+// TODO eliminare?
+void errorString(char *error, size_t size) {
+    snprintf(error, size, "Error: %d, Socket error: %d", GetLastError(), WSAGetLastError());
 }
 
+/* Termina graziosamente il logger, poi termina il server. */
 void _shutdown() {
     closeSocket(server);
-    AttachConsole(logger);
-    GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, logger);
+    AttachConsole(loggerId);
+    GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, loggerId);
     printf("All done.\n");
     exit(0);
 }
 
 /********************************************** SOCKETS *************************************************************/
 
+/* Inizializza la WSA */
 int startup() {
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
     return WSAStartup(versionWanted, &wsaData);
 }
 
+/* Ritorna l'ultimo codice di errore relativo alle chiamate WSA */
+// TODO eliminare?
 int sockErr() {
     return WSAGetLastError();
-}
-
-int setNonblocking(SOCKET s) {
-    unsigned long blocking = 1;
-    return ioctlsocket(s, FIONBIO, &blocking);
 }
 
 int closeSocket(SOCKET s) {
@@ -44,14 +44,16 @@ int closeSocket(SOCKET s) {
 
 /********************************************** SIGNALS *************************************************************/
 
+/* Invia un messaggio vuoto al socket awakeSelect per interrompere la select del server. */
 void wakeUpServer() {
     SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
-    sendto(s, "Wake up!", 0, 0, (struct sockaddr *)&wakeAddr, sizeof(wakeAddr));
+    sendto(s, "Wake up!", 0, 0, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr));
     closeSocket(s);
 }
 
-BOOL ctrlBreak(DWORD signum) {
-    if (signum == CTRL_BREAK_EVENT) {
+/* Termina graziosamente il programma. */
+BOOL ctrlC(DWORD signum) {
+    if (signum == CTRL_C_EVENT) {
         printf("Richiesta chiusura\n");
         requestShutdown = true;
         wakeUpServer();
@@ -60,9 +62,9 @@ BOOL ctrlBreak(DWORD signum) {
     return false;
 }
 
+/* Richiede la rilettura del file di configurazione */
 BOOL sigHandler(DWORD signum) {
-    if (signum != CTRL_BREAK_EVENT) {
-        printf("segnale ricevuto\n");
+    if (signum != CTRL_C_EVENT) {
         updateConfig = true;
         wakeUpServer();
         return true;
@@ -70,43 +72,47 @@ BOOL sigHandler(DWORD signum) {
     return false;
 }
 
+/* Installa i gestori di eventi console */
 void installSigHandler() {
-    wakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
-    memset(&wakeAddr, 0, sizeof(wakeAddr));
-    wakeAddr.sin_family = AF_INET;
-    wakeAddr.sin_port = htons(49152);
-    wakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    bind(wakeSelect, (struct sockaddr *)&wakeAddr, sizeof(wakeAddr));
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlBreak, TRUE);
+    awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
+    memset(&awakeAddr, 0, sizeof(awakeAddr));
+    awakeAddr.sin_family = AF_INET;
+    awakeAddr.sin_port = htons(49152);
+    awakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr));
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
 }
 
-/*********************************************** MULTI ***************************************************************/
+/*********************************************** THREADS & PROCESSES ***************************************************************/
 
 void closeThread() {
     ExitThread(0);
 }
 
-void *task(void *args) {
+/* Task lanciato da un worker thread che esegue il protocollo Gopher. */
+void *serveThreadTask(void *args) {
     char message[256];
     SOCKET sock;
-    printf("starting thread\n");
+    printf("Starting new thread\n");
     sock = *(SOCKET *)args;
     free(args);
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
-    printf("received: %s;\n", message);
-    gopher(message, sock);
-    printf("Closing child thread...\n");
+    printf("Request: %s;\n", message);
+    gopher(message, sock);  // Il protocollo viene eseguito qui
 }
 
+/* Serve una richiesta in modalità multithreading. */
 void serveThread(SOCKET *sock) {
-    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)task, sock, 0, NULL);
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serveThreadTask, sock, 0, NULL);
 }
 
+/* Serve una richiesta in modalità multiprocesso. */
 void serveProc(SOCKET client) {
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
+    char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)];  // TODO size??
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
@@ -114,8 +120,7 @@ void serveProc(SOCKET client) {
     startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)];  // TODO size??
-    sprintf(cmdLine, "winGopherProcess.exe %d", client);
+    snprintf(cmdLine, sizeof(cmdLine), "winGopherProcess.exe %d", client);
     CreateProcess("winGopherProcess.exe", cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
 }
 
@@ -128,6 +133,7 @@ void logTransfer(LPSTR log) {
     SetEvent(logEvent);
 }
 
+/* Avvia il processo di logging dei trasferimenti. */
 void startTransferLog() {
     HANDLE readPipe;
     SECURITY_ATTRIBUTES attr;
@@ -137,6 +143,7 @@ void startTransferLog() {
     attr.bInheritHandle = TRUE;
     attr.nLength = sizeof(attr);
     attr.lpSecurityDescriptor = NULL;
+    // logPipe è globale, viene acceduta in scrittura quando avviene un trasferimento file
     if (!CreatePipe(&readPipe, &logPipe, &attr, 0)) {
         _err("startTransferLog() - Impossibile creare la pipe", ERR, true, -1);
     }
@@ -147,13 +154,14 @@ void startTransferLog() {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    // Utilizzato per notificare al logger che ci sono dati da leggere sulla pipe
     if ((logEvent = CreateEvent(&attr, FALSE, FALSE, "logEvent")) == NULL) {
         _err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
     }
     if (!CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
         _err("startTransferLog() - Impossibile avviare il logger", ERR, true, -1);
     }
-    logger = processInfo.dwProcessId;
+    loggerId = processInfo.dwProcessId;
     CloseHandle(readPipe);
 }
 
@@ -207,10 +215,6 @@ int startup() {
 
 int sockErr() {
     return errno;
-}
-
-int setNonblocking(int s) {
-    return fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK);
 }
 
 int closeSocket(int s) {
