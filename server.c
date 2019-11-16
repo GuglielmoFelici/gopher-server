@@ -1,6 +1,6 @@
-#include "includes/datatypes.h"
-#include "includes/gopher.h"
-#include "includes/log.h"
+#include "headers/datatypes.h"
+#include "headers/gopher.h"
+#include "headers/log.h"
 
 // Pipe per il log
 _pipe logPipe;
@@ -28,9 +28,7 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
         _err(_SOCKET_ERR, ERR, true, server);
     }
     char enable = 1;
-    if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
-        _log(_REUSE_ERR, WARN, true);
-    }
+    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
     address->sin_family = AF_INET;
     address->sin_addr.s_addr = INADDR_ANY;
     address->sin_port = htons(options.port);
@@ -60,15 +58,13 @@ int main(int argc, _string* argv) {
     installSigHandler();
     // Disabilita I/O buffering
     setvbuf(stdout, NULL, _IONBF, 0);
-    if ((_errno = initLog()) != 0) {
-        _err(_LOG_ERR, ERR, true, _errno);
-    }
     initConfig(&options);
     if (readConfig(CONFIG_FILE, &options) != 0) {
-        _log(_CONFIG_ERR, WARN, true);
+        printf(_CONFIG_ERR);
     }
     server = prepareServer(-1, options, &serverAddr);
     startTransferLog();
+    printf("%d\n", server);
     printf("Listening on port %i\n", options.port);
 
     /* Main loop*/
@@ -84,7 +80,6 @@ int main(int argc, _string* argv) {
                 printf("Reading config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
                     printf(_CONFIG_ERR);
-                    _log(_CONFIG_ERR, WARN, true);
                 } else if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr);
                 }
@@ -103,8 +98,7 @@ int main(int argc, _string* argv) {
         } else {
             _socket* sock;
             if ((sock = malloc(sizeof(_socket))) == NULL) {
-                printf("Impossibile servire il client\n.");
-                _log(_ALLOC_ERR, WARN, true);
+                printf("Impossibile servire il client: %s\n." _ALLOC_ERR);
             } else {
                 *sock = client;
                 serveThread(sock);

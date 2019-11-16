@@ -1,4 +1,4 @@
-#include "includes/gopher.h"
+#include "headers/gopher.h"
 
 #if defined(_WIN32)
 
@@ -9,7 +9,6 @@
 
 /************************************************** UTILS ********************************************************/
 
-// TODO eliminare?
 void errorString(char *error, size_t size) {
     snprintf(error, size, "Error: %d, Socket error: %d", GetLastError(), WSAGetLastError());
 }
@@ -90,7 +89,7 @@ void closeThread() {
     ExitThread(0);
 }
 
-/* Task lanciato da un worker thread che esegue il protocollo Gopher. */
+/* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
 void *serveThreadTask(void *args) {
     char message[256];
     SOCKET sock;
@@ -110,9 +109,10 @@ void serveThread(SOCKET *sock) {
 
 /* Serve una richiesta in modalità multiprocesso. */
 void serveProc(SOCKET client) {
+    _string exec = "helpers/winGopherProcess.exe";
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    char cmdLine[sizeof("winGopherProcess.exe ") + sizeof(SOCKET)];  // TODO size??
+    char cmdLine[sizeof("helpers/winGopherProcess.exe ") + sizeof(SOCKET)];  // TODO size??
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
@@ -120,8 +120,9 @@ void serveProc(SOCKET client) {
     startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    snprintf(cmdLine, sizeof(cmdLine), "winGopherProcess.exe %d", client);
-    CreateProcess("winGopherProcess.exe", cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
+    snprintf(cmdLine, sizeof(cmdLine), "%s %d", exec, client);
+    printf(cmdLine);
+    CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
 }
 
 /*********************************************** LOGGER ***************************************************************/
@@ -135,6 +136,7 @@ void logTransfer(LPSTR log) {
 
 /* Avvia il processo di logging dei trasferimenti. */
 void startTransferLog() {
+    _string exec = "helpers/winLogger.exe";
     HANDLE readPipe;
     SECURITY_ATTRIBUTES attr;
     STARTUPINFO startupInfo;
@@ -158,7 +160,7 @@ void startTransferLog() {
     if ((logEvent = CreateEvent(&attr, FALSE, FALSE, "logEvent")) == NULL) {
         _err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
     }
-    if (!CreateProcess("winLogger.exe", NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
         _err("startTransferLog() - Impossibile avviare il logger", ERR, true, -1);
     }
     loggerId = processInfo.dwProcessId;
@@ -366,3 +368,42 @@ void startTransferLog() {
 }
 
 #endif
+
+/*****************************************************************************************************************/
+/*                                             COMMON FUNCTIONS                                                 */
+
+/*****************************************************************************************************************/
+
+void _err(_cstring message, _cstring level, bool stderror, int code) {
+    char error[50] = "";
+    if (stderror) {
+        errorString(error, 50);
+    }
+    printf("%s: %s - %s\n.", level, message, error);
+    exit(code);
+}
+
+void initConfig(struct config *options) {
+    options->port = DEFAULT_PORT;
+    options->multiProcess = DEFAULT_MULTI_PROCESS;
+}
+
+bool readConfig(const _string configPath, struct config *options) {
+    FILE *configFile;
+    char port[6];
+    char multiProcess[2];
+    configFile = fopen(configPath, "r");
+    if (configFile == NULL) {
+        return errno;
+    }
+    while (fgetc(configFile) != '=')
+        ;
+    fgets(port, 6, configFile);
+    while (fgetc(configFile) != '=')
+        ;
+    fgets(multiProcess, 2, configFile);
+    fclose(configFile);
+    options->port = atoi(port);
+    options->multiProcess = (bool)atoi(multiProcess);
+    return 0;
+}

@@ -1,5 +1,5 @@
-#include "includes/gopher.h"
-#include "includes/log.h"
+#include "headers/gopher.h"
+#include "headers/log.h"
 
 #define MAX_LINE 70
 
@@ -12,7 +12,6 @@
 
 void errorRoutine(void* sock) {
     LPSTR err = "3Error retrieving the resource\t\t\r\n.";
-    _log("Esecuzione del protocollo gopher - errore generico", ERR, true);
     send(*(SOCKET*)sock, err, strlen(err), 0);
     closeSocket(*(SOCKET*)sock);
     ExitThread(-1);
@@ -23,14 +22,14 @@ bool isDirectory(WIN32_FIND_DATA* file) {
     return file->dwFileAttributes == 16 || file->dwFileAttributes == 17 || file->dwFileAttributes == 18 || file->dwFileAttributes == 22 || file->dwFileAttributes == 9238;
 }
 
+/* Ritorna il carattere di codifica del tipo di file */
 char gopherType(_file* file) {
     LPSTR ext;
-    int i;
-
     if (!strstr(file->name, ".")) {
         return 'X';
     }
-    i = strlen(file->name) - 1;
+    // Isola l'estensione del file
+    int i = strlen(file->name) - 1;
     while (file->name[i] != '.') {
         i--;
     }
@@ -53,6 +52,7 @@ char gopherType(_file* file) {
     return 'X';
 }
 
+/* Invia il file al client */
 void* sendFile(void* sendFileArgs) {
     struct sendFileArgs args;
     void* response;
@@ -60,12 +60,13 @@ void* sendFile(void* sendFileArgs) {
     int clientLen;
     args = *((struct sendFileArgs*)sendFileArgs);
     free(sendFileArgs);
-    if ((response = calloc(args.size + 3, 1)) == NULL) {
+    if ((response = calloc(args.size + 2, 1)) == NULL) {
         errorRoutine(&args.dest);
     }
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
-    if (send(args.dest, response, args.size + 3, 0) >= 0) {
+    if (send(args.dest, response, strlen(response), 0) >= 0) {
+        // Logga il trasferimento
         char log[PIPE_BUF];
         char address[16];
         clientLen = sizeof(clientAddr);
@@ -74,11 +75,12 @@ void* sendFile(void* sendFileArgs) {
         snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);  //TODO
         logTransfer(log);
     }
-    // munmap(args.src, args.size);
+    UnmapViewOfFile(args.src);
     free(response);
     closeSocket(args.dest);
 }
 
+/* Mappa il file in memoria e avvia il worker thread di trasmissione */
 HANDLE readFile(LPCSTR path, SOCKET sock) {
     HANDLE file;
     HANDLE map;
@@ -127,7 +129,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     args->src = view;
     args->dest = sock;
     args->size = sizeLow;
-    strncpy(args->name, path, min(strlen(path) + 1, MAX_PATH));
+    strncpy(args->name, path, sizeof(args->name));
     if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
         errorRoutine(&sock);
     } else {
@@ -135,6 +137,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     }
 }
 
+/* Crea la lista dei file e la invia al client */
 void readDir(LPCSTR path, SOCKET sock) {
     _file file;
     char wildcardPath[MAX_NAME + 2];
@@ -170,6 +173,7 @@ void readDir(LPCSTR path, SOCKET sock) {
     free(response);
 }
 
+/* Valida la stringa ed esegue il protocollo */
 HANDLE gopher(LPCSTR selector, SOCKET sock) {
     if (strstr(selector, ".\\") || strstr(selector, "..\\") || selector[0] == '\\' || strstr(selector, "\\\\")) {
         errorRoutine(&sock);

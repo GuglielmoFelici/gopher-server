@@ -1,10 +1,13 @@
-#include "includes/gopher.h"
+#include "../headers/gopher.h"
+
+/* Legge la richiesta ed esegue il protocollo Gopher */
 DWORD main(DWORD argc, LPSTR* argv) {
     SOCKET sock;
     HANDLE thread;
-    char message[256];
+    char message[256] = "";
     startup();
     sock = atoi(argv[1]);
+    printf("%d\n", sock);
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
     printf("wingopher - request: %s\n", message);

@@ -1,1 +1,0 @@
-gcc -g winLogger.c -o winLogger.exe

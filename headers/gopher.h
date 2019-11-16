@@ -45,13 +45,15 @@ _event logEvent;
 /* Utils */
 void errorString(char* error, size_t size);
 
+void _err(_cstring message, _cstring level, bool stderror, int code);
+
 _string trimEnding(_string str);
 
 /* Config */
 
 #define DEFAULT_PORT 70
 #define DEFAULT_MULTI_PROCESS false
-#define CONFIG_FILE "config/config"
+#define CONFIG_FILE "config"
 
 struct config {
     unsigned short port;

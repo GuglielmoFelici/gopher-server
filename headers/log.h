@@ -28,15 +28,7 @@
 #define _SOCKET_OPEN "Server socket aperto"
 #define _SOCKET_LISTENING "Socket in ascolto"
 
-#define WARN "log/warn"
-#define ERR "log/err"
-
-_string currentTime();
-
-int initLog();
-
-void _err(const _string message, const _string level, bool stderror, int code);
-
-void _log(const _string message, const _string level, bool stderror);
+#define WARN "WARNING"
+#define ERR "ERROR"
 
 #endif

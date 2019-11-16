@@ -1,4 +1,3 @@
-#include <fcntl.h>
 #include <stdio.h>
 #include <windows.h>
 
@@ -12,6 +11,7 @@ BOOL sigHandler(DWORD signum) {
     exit(0);
 }
 
+/* Quando riceve un evento logEvent, legge dallo stdInput (estremo in lettura della pipe di log) */
 DWORD main(DWORD argc, LPSTR* argv) {
     char buff[4096];
     DWORD bytesRead;
@@ -21,6 +21,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
         exit(1);
     }
     if ((logEvent = OpenEvent(SYNCHRONIZE, FALSE, "logEvent")) == NULL) {
+        printf("Errore nell'avvio del logger\n.");
         exit(1);
     }
     while (1) {
