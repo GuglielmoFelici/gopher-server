@@ -53,7 +53,6 @@ void wakeUpServer() {
 /* Termina graziosamente il programma. */
 BOOL ctrlC(DWORD signum) {
     if (signum == CTRL_C_EVENT) {
-        printf("Richiesta chiusura\n");
         requestShutdown = true;
         wakeUpServer();
         return true;
@@ -93,12 +92,11 @@ void closeThread() {
 void *serveThreadTask(void *args) {
     char message[256];
     SOCKET sock;
-    printf("Starting new thread\n");
     sock = *(SOCKET *)args;
     free(args);
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
-    printf("Request: %s;\n", message);
+    printf("Request: %s\n", message);
     gopher(message, sock);  // Il protocollo viene eseguito qui
 }
 
@@ -121,7 +119,6 @@ void serveProc(SOCKET client) {
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
     snprintf(cmdLine, sizeof(cmdLine), "%s %d", exec, client);
-    printf(cmdLine);
     CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
 }
 
@@ -177,7 +174,7 @@ void startTransferLog() {
 /************************************************** UTILS ********************************************************/
 
 void _shutdown() {
-    closeSocket(server);
+    close(server);
     printf("Shutting down...\n");
     exit(0);
 }
@@ -272,16 +269,14 @@ void *serveThreadTask(void *args) {
     sigemptyset(&set);
     sigaddset(&set, SIGHUP);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
-    printf("starting thread\n");
     sock = *(int *)args;
     free(args);
     recv(sock, message, sizeof(message), 0);
     trimEnding(message);
-    printf("received: %s;\n", message);
+    printf("Request: %s\n", message);
     pthread_cleanup_push(errorRoutine, &sock);
     gopher(message, sock);
     pthread_cleanup_pop(0);
-    printf("Closing child thread...\n");
     fflush(stdout);
 }
 
@@ -303,14 +298,12 @@ void serveProc(int sock) {
         _err(_FORK_ERR, ERR, true, errno);
     } else if (pid == 0) {
         char message[256];
-        printf("starting process\n");
         recv(sock, message, sizeof(message), 0);
         trimEnding(message);
-        printf("received: %s\n", message);
+        printf("Request: %s\n", message);
         pthread_cleanup_push(errorRoutine, &sock);
         pthread_join(gopher(message, sock), NULL);
         pthread_cleanup_pop(0);
-        printf("Exiting process...\n");
         exit(0);
     }
 }

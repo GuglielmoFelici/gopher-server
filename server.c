@@ -75,9 +75,9 @@ int main(int argc, _string* argv) {
             } else if (ready < 0 && sockErr() != EINTR) {
                 _err(_SELECT_ERR, ERR, true, -1);
             } else if (updateConfig) {
-                printf("Reading config...\n");
+                printf("Updating config...\n");
                 if (readConfig(CONFIG_FILE, &options) != 0) {
-                    printf(_CONFIG_ERR);
+                    printf(WARN " - " _CONFIG_ERR);
                 } else if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr);
                 }
@@ -91,17 +91,21 @@ int main(int argc, _string* argv) {
         printf("Incoming connection, port %d\n", htons(serverAddr.sin_port));
         addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
+        if (client < 0) {
+            printf(WARN "Error serving client\n");
+            continue;
+        }
         if (options.multiProcess) {
             serveProc(client);
             closeSocket(client);
         } else {
             _socket* sock;
             if ((sock = malloc(sizeof(_socket))) == NULL) {
-                printf("Impossibile servire il client: " _ALLOC_ERR);
-            } else {
-                *sock = client;
-                serveThread(sock);
+                printf("Error serving client: " _ALLOC_ERR);
+                continue;
             }
+            *sock = client;
+            serveThread(sock);
         }
     }
 }

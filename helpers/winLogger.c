@@ -5,7 +5,6 @@ HANDLE logFile;
 HANDLE logEvent;
 
 BOOL sigHandler(DWORD signum) {
-    printf("Chiudo il logger...\n");
     CloseHandle(logFile);
     CloseHandle(logEvent);
     exit(0);
@@ -21,7 +20,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
         exit(1);
     }
     if ((logEvent = OpenEvent(SYNCHRONIZE, FALSE, "logEvent")) == NULL) {
-        printf("Errore nell'avvio del logger\n.");
+        printf("Errore starting logger\n.");
         exit(1);
     }
     while (1) {
