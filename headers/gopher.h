@@ -52,12 +52,12 @@ _string trimEnding(_string str);
 /* Config */
 
 #define DEFAULT_PORT 70
-#define DEFAULT_MULTI_PROCESS false
+#define DEFAULT_MULTI_PROCESS 0
 #define CONFIG_FILE "config"
 
 struct config {
     unsigned short port;
-    bool multiProcess;
+    int multiProcess;
 };
 
 void defaultConfig(struct config* options, int which);

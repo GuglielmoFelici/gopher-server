@@ -49,8 +49,11 @@ int main(int argc, _string* argv) {
     char* endptr;
     /* Parse options */
     int opt, opterr = 0;
-    while ((opt = getopt(argc, argv, "pd:")) != -1)
+    while ((opt = getopt(argc, argv, "mhp:d:")) != -1) {
         switch (opt) {
+            case 'h':
+                printf(USAGE "\n");
+                exit(0);
             case 'm':
                 options.multiProcess = 1;
                 break;
@@ -64,18 +67,16 @@ int main(int argc, _string* argv) {
             case 'd':
                 chdir(optarg);
                 break;
-            case 'h':
-                printf(USAGE);
-                exit(0);
             case '?':
-                if (optopt == 'd')
-                    fprintf(stderr, "Option -d requires an argument (a valid working directory).\n");
+                if (optopt == 'd' || optopt == 'p')
+                    fprintf(stderr, "Option -%c requires an argument (use -h for usage info).\n", optopt);
                 else
                     fprintf(stderr, "Unknown option `-%c'.\n", optopt);
                 exit(1);
             default:
                 abort();
         }
+    }
     if (options.port == -1) {
         if (readConfig(CONFIG_FILE, &options, READ_PORT) != 0) {
             fprintf(stderr, WARN " - " _PORT_CONFIG_ERR "\n");
@@ -102,6 +103,7 @@ int main(int argc, _string* argv) {
 
     /* Main loop*/
 
+    printf("Listening on port %i (%s)\n", options.port, options.multiProcess ? "multiprocess mode" : "multithreaded mode");
     ready = 0;
     while (true) {
         do {
@@ -119,7 +121,6 @@ int main(int argc, _string* argv) {
                 }
                 updateConfig = false;
             }
-            printf("Listening on port %i\n", options.port);
             FD_ZERO(&incomingConnections);
             FD_SET(server, &incomingConnections);
             FD_SET(awakeSelect, &incomingConnections);
