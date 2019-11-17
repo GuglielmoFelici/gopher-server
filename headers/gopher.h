@@ -60,9 +60,12 @@ struct config {
     bool multiProcess;
 };
 
-void initConfig(struct config* options);
+void defaultConfig(struct config* options, int which);
 
-bool readConfig(const _string configPath, struct config* options);
+#define READ_PORT 1
+#define READ_MULTIPROCESS 2
+#define READ_BOTH 3
+int readConfig(const _string configPath, struct config* options, int which);
 
 int startup();
 

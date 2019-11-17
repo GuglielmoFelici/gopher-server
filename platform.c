@@ -32,7 +32,6 @@ int startup() {
 }
 
 /* Ritorna l'ultimo codice di errore relativo alle chiamate WSA */
-// TODO eliminare?
 int sockErr() {
     return WSAGetLastError();
 }
@@ -284,7 +283,7 @@ void *serveThreadTask(void *args) {
 void serveThread(int *sock) {
     pthread_t tid;
     if (pthread_create(&tid, NULL, serveThreadTask, sock)) {
-        printf(_THREAD_ERR);
+        printf(_THREAD_ERR "\n");
         return;
     }
     pthread_detach(tid);
@@ -402,16 +401,20 @@ void _err(_cstring message, _cstring level, bool stderror, int code) {
     if (stderror) {
         errorString(error, 50);
     }
-    printf("%s: %s - %s\n.", level, message, error);
+    printf("%s: %s - %s\n", level, message, error);
     exit(code);
 }
 
-void initConfig(struct config *options) {
-    options->port = DEFAULT_PORT;
-    options->multiProcess = DEFAULT_MULTI_PROCESS;
+void defaultConfig(struct config *options, int which) {
+    if (which == READ_PORT | READ_BOTH) {
+        options->port = DEFAULT_PORT;
+    }
+    if (which == READ_MULTIPROCESS | READ_BOTH) {
+        options->multiProcess = DEFAULT_MULTI_PROCESS;
+    }
 }
 
-bool readConfig(const _string configPath, struct config *options) {
+int readConfig(const _string configPath, struct config *options, int which) {
     FILE *configFile;
     char port[6];
     char multiProcess[2];
@@ -426,7 +429,11 @@ bool readConfig(const _string configPath, struct config *options) {
         ;
     fgets(multiProcess, 2, configFile);
     fclose(configFile);
-    options->port = atoi(port);
-    options->multiProcess = (bool)atoi(multiProcess);
+    if (which == READ_PORT | READ_BOTH) {
+        options->port = atoi(port);
+    }
+    if (which == READ_MULTIPROCESS | READ_BOTH) {
+        options->multiProcess = (bool)atoi(multiProcess);
+    }
     return 0;
 }

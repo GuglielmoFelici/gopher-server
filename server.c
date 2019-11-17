@@ -21,11 +21,11 @@ _socket server;
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address) {
     if (server != -1) {
         if (closeSocket(server) < 0) {
-            _err(_CLOSE_SOCKET_ERR, ERR, true, -1);
+            _err("prepareServer() - " _CLOSE_SOCKET_ERR, ERR, true, -1);
         };
     }
     if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        _err(_SOCKET_ERR, ERR, true, server);
+        _err("prepareServer() - "_SOCKET_ERR, ERR, true, server);
     }
     char enable = 1;
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
@@ -33,22 +33,61 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
     address->sin_addr.s_addr = INADDR_ANY;
     address->sin_port = htons(options.port);
     if (bind(server, (struct sockaddr*)address, sizeof(*address)) < 0) {
-        _err(_BIND_ERR, ERR, true, -1);
+        _err("prepareServer() - "_BIND_ERR, ERR, true, -1);
     }
     if (listen(server, 5) < 0) {
-        _err(_LISTEN_ERR, ERR, true, -1);
+        _err("prepareServer() - "_LISTEN_ERR, ERR, true, -1);
     }
     return server;
 }
 
 int main(int argc, _string* argv) {
-    struct config options;
-    struct sockaddr_in serverAddr;
-    struct sockaddr_in clientAddr;
+    struct config options = {.port = -1, .multiProcess = -1};
+    struct sockaddr_in serverAddr, clientAddr;
     fd_set incomingConnections;
-    int addrLen;
-    int _errno;
-    int ready;
+    int addrLen, _errno, ready;
+    char* endptr;
+    /* Parse options */
+    int opt, opterr = 0;
+    while ((opt = getopt(argc, argv, "pd:")) != -1)
+        switch (opt) {
+            case 'm':
+                options.multiProcess = 1;
+                break;
+            case 'p':
+                options.port = atoi(optarg);
+                if (options.port == 0) {
+                    fprintf(stderr, "Invalid port number: %s\n", optarg);
+                    exit(1);
+                }
+                break;
+            case 'd':
+                chdir(optarg);
+                break;
+            case 'h':
+                printf(USAGE);
+                exit(0);
+            case '?':
+                if (optopt == 'd')
+                    fprintf(stderr, "Option -d requires an argument (a valid working directory).\n");
+                else
+                    fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                exit(1);
+            default:
+                abort();
+        }
+    if (options.port == -1) {
+        if (readConfig(CONFIG_FILE, &options, READ_PORT) != 0) {
+            fprintf(stderr, WARN " - " _PORT_CONFIG_ERR "\n");
+            defaultConfig(&options, READ_PORT);
+        }
+    }
+    if (options.multiProcess == -1) {
+        if (readConfig(CONFIG_FILE, &options, READ_MULTIPROCESS) != 0) {
+            defaultConfig(&options, READ_MULTIPROCESS);
+            fprintf(stderr, WARN " - " _MULTIPROCESS_CONFIG_ERR "\n");
+        }
+    }
 
     /* Configuration */
 
@@ -58,10 +97,6 @@ int main(int argc, _string* argv) {
     installSigHandler();
     // Disabilita I/O buffering
     setvbuf(stdout, NULL, _IONBF, 0);
-    initConfig(&options);
-    if (readConfig(CONFIG_FILE, &options) != 0) {
-        printf(_CONFIG_ERR);
-    }
     startTransferLog();
     server = prepareServer(-1, options, &serverAddr);
 
@@ -73,11 +108,12 @@ int main(int argc, _string* argv) {
             if (requestShutdown) {
                 _shutdown();
             } else if (ready < 0 && sockErr() != EINTR) {
-                _err(_SELECT_ERR, ERR, true, -1);
+                _err("Server - "_SELECT_ERR, ERR, true, -1);
             } else if (updateConfig) {
                 printf("Updating config...\n");
-                if (readConfig(CONFIG_FILE, &options) != 0) {
-                    printf(WARN " - " _CONFIG_ERR);
+                if (readConfig(CONFIG_FILE, &options, READ_BOTH) != 0) {
+                    fprintf(stderr, WARN " - " _CONFIG_ERR "\n");
+                    defaultConfig(&options, READ_PORT);
                 } else if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr);
                 }
@@ -101,7 +137,7 @@ int main(int argc, _string* argv) {
         } else {
             _socket* sock;
             if ((sock = malloc(sizeof(_socket))) == NULL) {
-                printf("Error serving client: " _ALLOC_ERR);
+                printf("Error serving client: " _ALLOC_ERR "\n");
                 continue;
             }
             *sock = client;

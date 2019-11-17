@@ -72,7 +72,7 @@ void* sendFile(void* sendFileArgs) {
         clientLen = sizeof(clientAddr);
         getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen);
         strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
-        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);  //TODO
+        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
         logTransfer(log);
     }
     UnmapViewOfFile(args.src);
