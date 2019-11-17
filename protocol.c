@@ -137,7 +137,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     }
 }
 
-/* Crea la lista dei file e la invia al client */
+/* Costruisce la lista dei file e la invia al client */
 void readDir(LPCSTR path, SOCKET sock) {
     _file file;
     char wildcardPath[MAX_NAME + 2];
@@ -192,19 +192,22 @@ HANDLE gopher(LPCSTR selector, SOCKET sock) {
 
 /*****************************************************************************************************************/
 
+/* Cleanup e notifica di errore */
 void errorRoutine(void* sock) {
+    int* retVal = malloc(1 * sizeof(int));
+    *retVal = 0;
     char* err = "3Error retrieving the resource\t\t\r\n.";
-    _err("Esecuzione del protocollo gopher - errore", ERR, true, -1);
     send(*(int*)sock, err, strlen(err), 0);
     closeSocket(*(int*)sock);
+    printf("Gopher: %s\n", strerror(errno));
 }
 
+/* Ritorna il carattere di codifica del tipo di file */
 char gopherType(const _file* file) {
     char cmdOut[200] = "";
     FILE* response;
     char* command;
     int bytesRead;
-
     command = malloc(strlen(file->path) + strlen("file \"\"") + 2);
     sprintf(command, "file \"%s\"", file->path);
     response = popen(command, "r");
@@ -228,6 +231,34 @@ char gopherType(const _file* file) {
     return 'X';
 }
 
+/* Invia il file al client */
+void* sendFile(void* sendFileArgs) {
+    struct sendFileArgs args;
+    void* response;
+    struct sockaddr_in clientAddr;
+    socklen_t clientLen;
+    args = *((struct sendFileArgs*)sendFileArgs);
+    free(sendFileArgs);
+    if ((response = calloc(args.size + 3, 1)) == NULL) {
+        pthread_exit(NULL);
+    }
+    memcpy(response, args.src, args.size);
+    strcat((char*)response, "\n.");
+    if (send(args.dest, response, args.size + 2, 0) >= 0) {
+        char log[PIPE_BUF];
+        char address[16];
+        clientLen = sizeof(clientAddr);
+        getpeername(args.dest, &clientAddr, &clientLen);
+        inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, address, sizeof(clientAddr));
+        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
+        logTransfer(log);
+    }
+    munmap(args.src, args.size);
+    free(response);
+    closeSocket(args.dest);
+}
+
+/* Mappa il file in memoria e avvia il worker thread di trasmissione */
 pthread_t readFile(const char* path, int sock) {
     void* map;
     int fd;
@@ -271,32 +302,7 @@ pthread_t readFile(const char* path, int sock) {
     return tid;
 }
 
-void* sendFile(void* sendFileArgs) {
-    struct sendFileArgs args;
-    void* response;
-    struct sockaddr_in clientAddr;
-    socklen_t clientLen;
-    args = *((struct sendFileArgs*)sendFileArgs);
-    free(sendFileArgs);
-    if ((response = calloc(args.size + 3, 1)) == NULL) {
-        errorRoutine(&args.dest);
-    }
-    memcpy(response, args.src, args.size);
-    strcat((char*)response, "\n.");
-    if (send(args.dest, response, args.size + 2, 0) >= 0) {
-        char log[PIPE_BUF];
-        char address[16];
-        clientLen = sizeof(clientAddr);
-        getpeername(args.dest, &clientAddr, &clientLen);
-        inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, address, sizeof(clientAddr));
-        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
-        logTransfer(log);
-    }
-    munmap(args.src, args.size);
-    free(response);
-    closeSocket(args.dest);
-}
-
+/* Costruisce la lista dei file e la invia al client */
 void readDir(const char* path, int sock) {
     DIR* dir;
     struct dirent* entry;
@@ -305,7 +311,6 @@ void readDir(const char* path, int sock) {
     char* response;
     size_t responseSize;
     char type;
-
     if ((dir = opendir(path[0] == '\0' ? "./" : path)) == NULL) {
         pthread_exit(NULL);
     }
@@ -331,6 +336,7 @@ void readDir(const char* path, int sock) {
     close(sock);
 }
 
+/* Valida il selettore ed esegue il protocollo */
 pthread_t gopher(const char* selector, int sock) {
     if (strstr(selector, "./") || strstr(selector, "../") || selector[0] == '/' || strstr(selector, "//")) {
         pthread_exit(NULL);

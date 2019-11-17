@@ -18,7 +18,7 @@ void _shutdown() {
     closeSocket(server);
     AttachConsole(loggerId);
     GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, loggerId);
-    printf("All done.\n");
+    printf("Shutting down...\n");
     exit(0);
 }
 
@@ -178,7 +178,7 @@ void startTransferLog() {
 
 void _shutdown() {
     closeSocket(server);
-    printf("All done.\n");
+    printf("Shutting down...\n");
     exit(0);
 }
 
