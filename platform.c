@@ -176,38 +176,44 @@ void startTransferLog() {
 
 /************************************************** UTILS ********************************************************/
 
-void errorString(char *error) {
-    sprintf(error, "%s", strerror(errno));
+void _shutdown() {
+    closeSocket(server);
+    printf("All done.\n");
+    exit(0);
+}
+
+void errorString(char *error, size_t size) {
+    snprintf(error, size, "%s", strerror(errno));
 }
 
 /********************************************** SOCKETS *************************************************************/
 
-// Demonizzazione
+/* Rende il server un processo demone */
 int startup() {
     int pid;
     pid = fork();
     if (pid < 0) {
-        err(_DAEMON_ERR, ERR, true, errno);
+        _err(_DAEMON_ERR, ERR, true, errno);
     } else if (pid > 0) {
         exit(0);
     } else {
         sigset_t set;
         if (setsid() < 0) {
-            err(_DAEMON_ERR, ERR, true, errno);
+            _err(_DAEMON_ERR, ERR, true, errno);
         }
         sigemptyset(&set);
         sigaddset(&set, SIGHUP);
         sigprocmask(SIG_BLOCK, &set, NULL);
         pid = fork();
         if (pid < 0) {
-            err(_DAEMON_ERR, ERR, true, errno);
+            _err(_DAEMON_ERR, ERR, true, errno);
         } else if (pid > 0) {
             exit(0);
         } else {
             int devNull;
             devNull = open("/dev/null", O_RDWR);
             if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
-                err(_DAEMON_ERR, ERR, true, -1);
+                _err(_DAEMON_ERR, ERR, true, -1);
             }
             return close(devNull);
         }
@@ -225,17 +231,31 @@ int closeSocket(int s) {
 
 /********************************************** SIGNALS *************************************************************/
 
+/* Richiede la rilettura del file di configurazione */
 void sigHandler(int signum) {
-    printf("Registrato segnale \n");
-    signaled = true;
+    updateConfig = true;
 }
 
+/* Richiede la terminazione */
+void intHandler(int signum) {
+    requestShutdown = true;
+    if (getpid() != loggerId) {
+        logTransfer("");
+    }
+}
+
+/* Installa i gestori di segnali */
 void installSigHandler() {
     struct sigaction sHup;
+    struct sigaction sInt;
     sHup.sa_handler = sigHandler;
+    sInt.sa_handler = intHandler;
     sigemptyset(&sHup.sa_mask);
+    sigemptyset(&sInt.sa_mask);
+    sInt.sa_flags = 0;
     sHup.sa_flags = SA_NODEFER;
     sigaction(SIGHUP, &sHup, NULL);
+    sigaction(SIGINT, &sInt, NULL);
 }
 
 /*********************************************** MULTI ***************************************************************/
@@ -244,7 +264,8 @@ void closeThread() {
     pthread_exit(NULL);
 }
 
-void *task(void *args) {
+/* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
+void *serveThreadTask(void *args) {
     sigset_t set;
     char message[256];
     int sock;
@@ -264,26 +285,28 @@ void *task(void *args) {
     fflush(stdout);
 }
 
+/* Serve una richiesta in modalità multithreading. */
 void serveThread(int *sock) {
     pthread_t tid;
-    if (pthread_create(&tid, NULL, task, sock)) {
-        _log(_THREAD_ERR, WARN, true);
+    if (pthread_create(&tid, NULL, serveThreadTask, sock)) {
+        printf(_THREAD_ERR);
         return;
     }
     pthread_detach(tid);
 }
 
+/* Serve una richiesta in modalità multiprocesso. */
 void serveProc(int sock) {
     pid_t pid;
     pid = fork();
     if (pid < 0) {
-        err(_FORK_ERR, ERR, true, errno);
+        _err(_FORK_ERR, ERR, true, errno);
     } else if (pid == 0) {
         char message[256];
         printf("starting process\n");
         recv(sock, message, sizeof(message), 0);
         trimEnding(message);
-        printf("received: %s;\n", message);
+        printf("received: %s\n", message);
         pthread_cleanup_push(errorRoutine, &sock);
         pthread_join(gopher(message, sock), NULL);
         pthread_cleanup_pop(0);
@@ -304,6 +327,7 @@ void logTransfer(char *log) {
     pthread_mutex_unlock(mutexShare);
 }
 
+/* Avvia il processo di logging dei trasferimenti. */
 void startTransferLog() {
     int pid;
     int pipeFd[2];
@@ -311,6 +335,7 @@ void startTransferLog() {
     pthread_mutexattr_t mutexAttr;
     pthread_cond_t cond;
     pthread_condattr_t condAttr;
+    // Inizializza mutex e condition variable per notificare il logger che sono pronti nuovi dati sulla pipe.
     pthread_mutexattr_init(&mutexAttr);
     pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED);
     pthread_mutex_init(&mutex, &mutexAttr);
@@ -319,41 +344,45 @@ void startTransferLog() {
     pthread_cond_init(&cond, &condAttr);
     mutexShare = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (mutexShare == MAP_FAILED) {
-        err("startTransferLog() - impossibile mappare il mutex in memoria", ERR, true, -1);
+        _err("startTransferLog() - impossibile mappare il mutex in memoria\n", ERR, true, -1);
     }
     *mutexShare = mutex;
     condShare = mmap(NULL, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (condShare == MAP_FAILED) {
-        err("startTransferLog() - impossibile mappare la condition variable in memoria", ERR, true, -1);
+        _err("startTransferLog() - impossibile mappare la condition variable in memoria\n", ERR, true, -1);
     }
     *condShare = cond;
     if (pipe2(pipeFd, O_DIRECT) < 0) {
-        err("startTransferLog() - impossibile aprire la pipe", ERR, true, -1);
+        _err("startTransferLog() - impossibile aprire la pipe\n", ERR, true, -1);
     }
     if ((pid = fork()) < 0) {
-        err(_LOG_ERR, ERR, true, pid);
-    } else if (pid == 0) {
+        _err("startTransferLog() - fork fallita\n", ERR, true, pid);
+    } else if (pid == 0) {  // Logger
         int logFile;
         char buff[PIPE_BUF + 1];
-        prctl(PR_SET_NAME, "Logger");
+        loggerId = getpid();
+        prctl(PR_SET_NAME, "Gopher logger");
         close(pipeFd[1]);
         logPipe = pipeFd[0];
-        if ((logFile = open("logFile", O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
-            exit(1);
-        }
         pthread_mutex_lock(mutexShare);
         while (1) {
             size_t bytesRead;
             pthread_cond_wait(condShare, mutexShare);
-            printf("entrato in condition variable\n");
+            if (requestShutdown) {
+                pthread_mutex_unlock(mutexShare);
+                break;
+            }
+            if ((logFile = open("logFile", O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
+                _err("startTransferLog() - impossibile aprire il file di logging\n", ERR, true, pid);
+                exit(-1);
+            }
             if ((bytesRead = read(logPipe, buff, PIPE_BUF)) < 0) {
                 close(logFile);
                 exit(1);
-            } else if (!strcmp(buff, "KILL")) {
-                break;
             } else {
-                write(logFile, strcat(buff, "\n"), bytesRead + 1);
+                write(logFile, buff, bytesRead);
             }
+            close(logFile);
         }
         munmap(mutexShare, sizeof(pthread_mutex_t));
         munmap(condShare, sizeof(pthread_cond_t));
@@ -361,9 +390,10 @@ void startTransferLog() {
         free(condShare);
         close(logPipe);
         close(logFile);
-    } else {
+    } else {  // Server
         close(pipeFd[0]);
-        logPipe = pipeFd[1];
+        logPipe = pipeFd[1];  // logPipe è globale, viene acceduta per inviare i dati al logger
+        loggerId = pid;
     }
 }
 

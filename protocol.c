@@ -194,7 +194,7 @@ HANDLE gopher(LPCSTR selector, SOCKET sock) {
 
 void errorRoutine(void* sock) {
     char* err = "3Error retrieving the resource\t\t\r\n.";
-    _log("Esecuzione del protocollo gopher - errore generico", ERR, true);
+    _err("Esecuzione del protocollo gopher - errore", ERR, true, -1);
     send(*(int*)sock, err, strlen(err), 0);
     closeSocket(*(int*)sock);
 }
@@ -268,7 +268,6 @@ pthread_t readFile(const char* path, int sock) {
     if (pthread_create(&tid, NULL, sendFile, args)) {
         pthread_exit(NULL);
     }
-    pthread_detach(tid);
     return tid;
 }
 
@@ -290,7 +289,7 @@ void* sendFile(void* sendFileArgs) {
         clientLen = sizeof(clientAddr);
         getpeername(args.dest, &clientAddr, &clientLen);
         inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, address, sizeof(clientAddr));
-        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i", args.name, args.size, address, clientAddr.sin_port);
+        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
         logTransfer(log);
     }
     munmap(args.src, args.size);

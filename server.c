@@ -52,9 +52,9 @@ int main(int argc, _string* argv) {
 
     /* Configuration */
 
-    if ((_errno = startup()) != 0) {
-        _err(_STARTUP_ERR, ERR, false, _errno);
-    }
+    // if ((_errno = startup()) != 0) {
+    //     _err(_STARTUP_ERR, ERR, false, _errno);
+    // }
     installSigHandler();
     // Disabilita I/O buffering
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -62,10 +62,8 @@ int main(int argc, _string* argv) {
     if (readConfig(CONFIG_FILE, &options) != 0) {
         printf(_CONFIG_ERR);
     }
-    server = prepareServer(-1, options, &serverAddr);
     startTransferLog();
-    printf("%d\n", server);
-    printf("Listening on port %i\n", options.port);
+    server = prepareServer(-1, options, &serverAddr);
 
     /* Main loop*/
 
@@ -85,6 +83,7 @@ int main(int argc, _string* argv) {
                 }
                 updateConfig = false;
             }
+            printf("Listening on port %i\n", options.port);
             FD_ZERO(&incomingConnections);
             FD_SET(server, &incomingConnections);
             FD_SET(awakeSelect, &incomingConnections);
@@ -98,7 +97,7 @@ int main(int argc, _string* argv) {
         } else {
             _socket* sock;
             if ((sock = malloc(sizeof(_socket))) == NULL) {
-                printf("Impossibile servire il client: %s\n." _ALLOC_ERR);
+                printf("Impossibile servire il client: " _ALLOC_ERR);
             } else {
                 *sock = client;
                 serveThread(sock);
