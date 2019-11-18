@@ -1,6 +1,7 @@
 #include "headers/datatypes.h"
 #include "headers/gopher.h"
 #include "headers/log.h"
+#include "headers/wingetopt.h"
 
 // Pipe per il log
 _pipe logPipe;
@@ -17,6 +18,8 @@ bool updateConfig = false;
 bool requestShutdown = false;
 // Socket del server
 _socket server;
+// Installation directory
+char installationDir[MAX_NAME] = "";
 
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address) {
     if (server != -1) {
@@ -42,11 +45,15 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
 }
 
 int main(int argc, _string* argv) {
-    struct config options = {.port = -1, .multiProcess = -1};
+    struct config options = {.port = 0, .multiProcess = -1};
     struct sockaddr_in serverAddr, clientAddr;
     fd_set incomingConnections;
-    int addrLen, _errno, ready;
+    int addrLen, _errno, ready, port;
     char* endptr;
+    if ((_errno = startup()) != 0) {
+        _err(_STARTUP_ERR, ERR, false, _errno);
+    }
+    // TODO controllare che la daemonizzazione non interferisca con getopt
     /* Parse options */
     int opt, opterr = 0;
     while ((opt = getopt(argc, argv, "mhp:d:")) != -1) {
@@ -58,14 +65,16 @@ int main(int argc, _string* argv) {
                 options.multiProcess = 1;
                 break;
             case 'p':
-                options.port = atoi(optarg);
-                if (options.port == 0) {
+                port = atoi(optarg);
+                if (port < 1 || port > 65535) {
                     fprintf(stderr, "Invalid port number: %s\n", optarg);
                     exit(1);
+                } else {
+                    options.port = port;
                 }
                 break;
             case 'd':
-                chdir(optarg);
+                changeCwd(optarg);
                 break;
             case '?':
                 if (optopt == 'd' || optopt == 'p')
@@ -77,14 +86,14 @@ int main(int argc, _string* argv) {
                 abort();
         }
     }
-    if (options.port == -1) {
-        if (readConfig(CONFIG_FILE, &options, READ_PORT) != 0) {
+    if (options.port == 0) {
+        if (readConfig(&options, READ_PORT) != 0) {
             fprintf(stderr, WARN " - " _PORT_CONFIG_ERR "\n");
             defaultConfig(&options, READ_PORT);
         }
     }
     if (options.multiProcess == -1) {
-        if (readConfig(CONFIG_FILE, &options, READ_MULTIPROCESS) != 0) {
+        if (readConfig(&options, READ_MULTIPROCESS) != 0) {
             defaultConfig(&options, READ_MULTIPROCESS);
             fprintf(stderr, WARN " - " _MULTIPROCESS_CONFIG_ERR "\n");
         }
@@ -92,28 +101,26 @@ int main(int argc, _string* argv) {
 
     /* Configuration */
 
-    // if ((_errno = startup()) != 0) {
-    //     _err(_STARTUP_ERR, ERR, false, _errno);
-    // }
     installSigHandler();
     // Disabilita I/O buffering
     setvbuf(stdout, NULL, _IONBF, 0);
     startTransferLog();
     server = prepareServer(-1, options, &serverAddr);
+    printf("*** GOPHER SERVER ***\n");
+    printf("Listening on port %i (%s)\n", options.port, options.multiProcess ? "multiprocess mode" : "multithreaded mode");
 
     /* Main loop*/
 
-    printf("Listening on port %i (%s)\n", options.port, options.multiProcess ? "multiprocess mode" : "multithreaded mode");
     ready = 0;
     while (true) {
         do {
             if (requestShutdown) {
-                _shutdown();
+                exit(0);
             } else if (ready < 0 && sockErr() != EINTR) {
                 _err("Server - "_SELECT_ERR, ERR, true, -1);
             } else if (updateConfig) {
                 printf("Updating config...\n");
-                if (readConfig(CONFIG_FILE, &options, READ_BOTH) != 0) {
+                if (readConfig(&options, READ_BOTH) != 0) {
                     fprintf(stderr, WARN " - " _CONFIG_ERR "\n");
                     defaultConfig(&options, READ_PORT);
                 } else if (options.port != htons(serverAddr.sin_port)) {
@@ -125,7 +132,7 @@ int main(int argc, _string* argv) {
             FD_SET(server, &incomingConnections);
             FD_SET(awakeSelect, &incomingConnections);
         } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
-        printf("Incoming connection, port %d\n", htons(serverAddr.sin_port));
+        printf("Incoming connection on port %d\n", htons(serverAddr.sin_port));
         addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
         if (client < 0) {

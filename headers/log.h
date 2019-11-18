@@ -18,7 +18,7 @@
 #define _THREAD_ERR "Error starting a new thread."
 #define _CLOSE_SOCKET_ERR "Errore closing socket."
 #define _ALLOC_ERR "Memory allocation failed."
-#define USAGE "Available options:\n-h show usage help\n-p=PORT\tsets the port to PORT\n-d=DIR\tchanges cwd of the server to DIR\n-m activates multiprocess mode"
+#define USAGE "Available options:\n-h\tshow usage help\n-p=PORT\tsets the port to PORT\n-d=DIR\tchanges cwd of the server to DIR\n-m\tactivates multiprocess mode"
 
 #define WARN "WARNING"
 #define ERR "ERROR"

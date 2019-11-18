@@ -41,13 +41,19 @@ struct sockaddr_in awakeAddr;
 _socket awakeSelect;
 _procId loggerId;
 _event logEvent;
+char installationDir[MAX_NAME];
 
 /* Utils */
+
+int _shutdown();
+
 void errorString(char* error, size_t size);
 
 void _err(_cstring message, _cstring level, bool stderror, int code);
 
 _string trimEnding(_string str);
+
+void changeCwd(_cstring path);
 
 /* Config */
 
@@ -62,14 +68,12 @@ struct config {
 
 void defaultConfig(struct config* options, int which);
 
-#define READ_PORT 1
-#define READ_MULTIPROCESS 2
-#define READ_BOTH 3
-int readConfig(const _string configPath, struct config* options, int which);
+#define READ_PORT 0
+#define READ_MULTIPROCESS 1
+#define READ_BOTH 2
+int readConfig(struct config* options, int which);
 
 int startup();
-
-void _shutdown();
 
 /* Signals */
 

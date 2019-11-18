@@ -14,12 +14,16 @@ void errorString(char *error, size_t size) {
 }
 
 /* Termina graziosamente il logger, poi termina il server. */
-void _shutdown() {
+int _shutdown() {
     closeSocket(server);
     AttachConsole(loggerId);
     GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, loggerId);
     printf("Shutting down...\n");
     exit(0);
+}
+
+void changeCwd(LPCSTR path) {
+    SetCurrentDirectory(path);
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -28,6 +32,10 @@ void _shutdown() {
 int startup() {
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
+    if (!GetCurrentDirectory(sizeof(installationDir), installationDir)) {
+        _err("Cannot get current working directory", ERR, true, -1);
+    }
+    _onexit(_shutdown);
     return WSAStartup(versionWanted, &wsaData);
 }
 
@@ -106,10 +114,11 @@ void serveThread(SOCKET *sock) {
 
 /* Serve una richiesta in modalità multiprocesso. */
 void serveProc(SOCKET client) {
-    _string exec = "helpers/winGopherProcess.exe";
+    char exec[MAX_NAME];
+    snprintf(exec, sizeof(exec), "%s/helpers/winGopherProcess.exe", installationDir);
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    char cmdLine[sizeof("helpers/winGopherProcess.exe ") + sizeof(SOCKET)];  // TODO size??
+    char cmdLine[sizeof(exec) + 1 + sizeof(SOCKET)];  // TODO size??
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
@@ -132,7 +141,8 @@ void logTransfer(LPSTR log) {
 
 /* Avvia il processo di logging dei trasferimenti. */
 void startTransferLog() {
-    _string exec = "helpers/winLogger.exe";
+    char exec[MAX_NAME];
+    snprintf(exec, sizeof(exec), "%s/helpers/winLogger.exe", installationDir);
     HANDLE readPipe;
     SECURITY_ATTRIBUTES attr;
     STARTUPINFO startupInfo;
@@ -156,7 +166,7 @@ void startTransferLog() {
     if ((logEvent = CreateEvent(&attr, FALSE, FALSE, "logEvent")) == NULL) {
         _err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
     }
-    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installationDir, &startupInfo, &processInfo)) {
         _err("startTransferLog() - Impossibile avviare il logger", ERR, true, -1);
     }
     loggerId = processInfo.dwProcessId;
@@ -172,7 +182,7 @@ void startTransferLog() {
 
 /************************************************** UTILS ********************************************************/
 
-void _shutdown() {
+int _shutdown() {
     close(server);
     printf("Shutting down...\n");
     exit(0);
@@ -182,11 +192,15 @@ void errorString(char *error, size_t size) {
     snprintf(error, size, "%s", strerror(errno));
 }
 
-/********************************************** SOCKETS *************************************************************/
+void changeCwd(const char *path) {
+    chdir(path);
+}
 
 /* Rende il server un processo demone */
 int startup() {
     int pid;
+    getcwd(installationDir, sizeof(installationDir));
+    on_exit(_shutdown, NULL);
     pid = fork();
     if (pid < 0) {
         _err(_DAEMON_ERR, ERR, true, errno);
@@ -216,6 +230,8 @@ int startup() {
     }
     return 0;
 }
+
+/********************************************** SOCKETS *************************************************************/
 
 int sockErr() {
     return errno;
@@ -327,6 +343,7 @@ void startTransferLog() {
     pthread_mutexattr_t mutexAttr;
     pthread_cond_t cond;
     pthread_condattr_t condAttr;
+    char logFilePath[MAX_NAME];
     // Inizializza mutex e condition variable per notificare il logger che sono pronti nuovi dati sulla pipe.
     pthread_mutexattr_init(&mutexAttr);
     pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED);
@@ -350,43 +367,49 @@ void startTransferLog() {
     if ((pid = fork()) < 0) {
         _err("startTransferLog() - fork fallita\n", ERR, true, pid);
     } else if (pid == 0) {  // Logger
-        int logFile;
-        char buff[PIPE_BUF + 1];
-        loggerId = getpid();
-        prctl(PR_SET_NAME, "Gopher logger");
-        close(pipeFd[1]);
-        logPipe = pipeFd[0];
-        pthread_mutex_lock(mutexShare);
-        while (1) {
-            size_t bytesRead;
-            pthread_cond_wait(condShare, mutexShare);
-            if (requestShutdown) {
-                pthread_mutex_unlock(mutexShare);
-                break;
-            }
-            if ((logFile = open("logFile", O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
-                _err("startTransferLog() - impossibile aprire il file di logging\n", ERR, true, pid);
-                exit(-1);
-            }
-            if ((bytesRead = read(logPipe, buff, PIPE_BUF)) < 0) {
-                close(logFile);
-                exit(1);
-            } else {
-                write(logFile, buff, bytesRead);
-            }
-            close(logFile);
-        }
-        munmap(mutexShare, sizeof(pthread_mutex_t));
-        munmap(condShare, sizeof(pthread_cond_t));
-        free(mutexShare);
-        free(condShare);
-        close(logPipe);
-        close(logFile);
+        loggerLoop();
     } else {  // Server
         close(pipeFd[0]);
         logPipe = pipeFd[1];  // logPipe è globale, viene acceduta per inviare i dati al logger
         loggerId = pid;
     }
+}
+
+// TODO test funzione separata
+void loggerLoop() {
+    int logFile;
+    char buff[PIPE_BUF + 1];
+    loggerId = getpid();
+    prctl(PR_SET_NAME, "Gopher logger");
+    close(pipeFd[1]);
+    logPipe = pipeFd[0];
+    pthread_mutex_lock(mutexShare);
+    while (1) {
+        size_t bytesRead;
+        pthread_cond_wait(condShare, mutexShare);
+        if (requestShutdown) {
+            pthread_mutex_unlock(mutexShare);
+            break;
+        }
+        snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);
+        if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
+            _err("startTransferLog() - impossibile aprire il file di logging\n", ERR, true, pid);
+            exit(-1);
+        }
+        if ((bytesRead = read(logPipe, buff, PIPE_BUF)) < 0) {
+            close(logFile);
+            exit(1);
+        } else {
+            write(logFile, buff, bytesRead);
+        }
+        close(logFile);
+    }
+    munmap(mutexShare, sizeof(pthread_mutex_t));
+    munmap(condShare, sizeof(pthread_cond_t));
+    free(mutexShare);
+    free(condShare);
+    close(logPipe);
+    close(logFile);
 }
 
 #endif
@@ -406,18 +429,20 @@ void _err(_cstring message, _cstring level, bool stderror, int code) {
 }
 
 void defaultConfig(struct config *options, int which) {
-    if (which == READ_PORT | READ_BOTH) {
+    if (which == READ_PORT || which == READ_BOTH) {
         options->port = DEFAULT_PORT;
     }
-    if (which == READ_MULTIPROCESS | READ_BOTH) {
+    if (which == READ_MULTIPROCESS || which == READ_BOTH) {
         options->multiProcess = DEFAULT_MULTI_PROCESS;
     }
 }
 
-int readConfig(const _string configPath, struct config *options, int which) {
+int readConfig(struct config *options, int which) {
+    char configPath[MAX_NAME];
     FILE *configFile;
     char port[6];
     char multiProcess[2];
+    snprintf(configPath, sizeof(configPath), "%s/%s", installationDir, CONFIG_FILE);
     configFile = fopen(configPath, "r");
     if (configFile == NULL) {
         return errno;
@@ -429,10 +454,10 @@ int readConfig(const _string configPath, struct config *options, int which) {
         ;
     fgets(multiProcess, 2, configFile);
     fclose(configFile);
-    if (which == READ_PORT | READ_BOTH) {
+    if (which == READ_PORT || which == READ_BOTH) {
         options->port = atoi(port);
     }
-    if (which == READ_MULTIPROCESS | READ_BOTH) {
+    if (which == READ_MULTIPROCESS || which == READ_BOTH) {
         options->multiProcess = (bool)atoi(multiProcess);
     }
     return 0;
