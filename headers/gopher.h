@@ -39,7 +39,8 @@ bool updateConfig;
 bool requestShutdown;
 struct sockaddr_in awakeAddr;
 _socket awakeSelect;
-_procId loggerId;
+_procId loggerPid;
+_procId serverPid;
 _event logEvent;
 char installationDir[MAX_NAME];
 
@@ -85,7 +86,7 @@ int sockErr();
 
 int closeSocket(_socket s);
 
-/* Multi */
+/* Threads & processes */
 
 void serveThread(_socket* socket);
 
@@ -95,7 +96,7 @@ void closeThread();
 
 /* Gopher */
 
-_thread gopher(_cstring selector, _socket sock);
+_thread gopher(_socket sock);
 
 void errorRoutine(void* sock);
 

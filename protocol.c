@@ -194,12 +194,9 @@ HANDLE gopher(LPCSTR selector, SOCKET sock) {
 
 /* Cleanup e notifica di errore */
 void errorRoutine(void* sock) {
-    int* retVal = malloc(1 * sizeof(int));
-    *retVal = 0;
     char* err = "3Error retrieving the resource\t\t\r\n.";
     send(*(int*)sock, err, strlen(err), 0);
     closeSocket(*(int*)sock);
-    printf("Gopher: %s\n", strerror(errno));
 }
 
 /* Ritorna il carattere di codifica del tipo di file */
@@ -309,8 +306,8 @@ void readDir(const char* path, int sock) {
     _file file;
     char line[sizeof(entry->d_name) + sizeof(file.path) + sizeof("localhost") + 4];
     char* response;
-    size_t responseSize;
     char type;
+    size_t responseSize;
     if ((dir = opendir(path[0] == '\0' ? "./" : path)) == NULL) {
         pthread_exit(NULL);
     }
@@ -322,7 +319,7 @@ void readDir(const char* path, int sock) {
             type = gopherType(&file);
             snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.path, (type == '1' ? "/" : ""), "localhost");
             if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
-                free(dir);
+                closedir(dir);
                 pthread_exit(NULL);
             }
             responseSize += strlen(line);
@@ -331,21 +328,25 @@ void readDir(const char* path, int sock) {
     }
     strcat(response, ".");
     send(sock, response, responseSize, 0);
-    free(dir);
+    closedir(dir);
     free(response);
     close(sock);
 }
 
-/* Valida il selettore ed esegue il protocollo */
-pthread_t gopher(const char* selector, int sock) {
+/* Valida il selettore ed esegue il protocollo. Ritorna l'identificativo dell'ultimo thread generato */
+pthread_t gopher(int sock) {
+    char selector[MAX_GOPHER_MSG];
+    recv(sock, selector, MAX_GOPHER_MSG, 0);
+    trimEnding(selector);
+    printf("Request: %s\n", selector);
     if (strstr(selector, "./") || strstr(selector, "../") || selector[0] == '/' || strstr(selector, "//")) {
         pthread_exit(NULL);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '/') {  // Directory
         readDir(selector, sock);
+        return pthread_self();
     } else {  // File
         return readFile(selector, sock);
     }
-    return pthread_self();
 }
 
 #endif

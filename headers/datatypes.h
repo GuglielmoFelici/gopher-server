@@ -22,7 +22,8 @@ typedef DWORD _procId;
 #include <sys/stat.h>
 #include <sys/types.h>
 #define MAX_NAME FILENAME_MAX / 2
-typedef int _socket, _pipe, _event;
+typedef int _socket, _event;
+typedef pthread_key_t _pipe;
 typedef char* _string;
 typedef const char* _cstring;
 typedef struct stat _fileData;
@@ -31,6 +32,8 @@ typedef pthread_t _thread;
 typedef pid_t _procId;
 
 #endif
+
+#define MAX_GOPHER_MSG 256
 
 typedef struct _file {
     char name[MAX_NAME];

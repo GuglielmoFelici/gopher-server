@@ -183,9 +183,9 @@ void startTransferLog() {
 /************************************************** UTILS ********************************************************/
 
 int _shutdown() {
+    close(logPipe);
     close(server);
-    printf("Shutting down...\n");
-    exit(0);
+    pthread_exit(0);
 }
 
 void errorString(char *error, size_t size) {
@@ -200,34 +200,35 @@ void changeCwd(const char *path) {
 int startup() {
     int pid;
     getcwd(installationDir, sizeof(installationDir));
-    on_exit(_shutdown, NULL);
-    pid = fork();
-    if (pid < 0) {
-        _err(_DAEMON_ERR, ERR, true, errno);
-    } else if (pid > 0) {
-        exit(0);
-    } else {
-        sigset_t set;
-        if (setsid() < 0) {
-            _err(_DAEMON_ERR, ERR, true, errno);
-        }
-        sigemptyset(&set);
-        sigaddset(&set, SIGHUP);
-        sigprocmask(SIG_BLOCK, &set, NULL);
-        pid = fork();
-        if (pid < 0) {
-            _err(_DAEMON_ERR, ERR, true, errno);
-        } else if (pid > 0) {
-            exit(0);
-        } else {
-            int devNull;
-            devNull = open("/dev/null", O_RDWR);
-            if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
-                _err(_DAEMON_ERR, ERR, true, -1);
-            }
-            return close(devNull);
-        }
-    }
+    atexit((void (*)(void))_shutdown);
+
+    // pid = fork();
+    // if (pid < 0) {
+    //     _err(_DAEMON_ERR, ERR, true, errno);
+    // } else if (pid > 0) {
+    //     exit(0);
+    // } else {
+    //     sigset_t set;
+    //     if (setsid() < 0) {
+    //         _err(_DAEMON_ERR, ERR, true, errno);
+    //     }
+    //     sigemptyset(&set);
+    //     sigaddset(&set, SIGHUP);
+    //     sigprocmask(SIG_BLOCK, &set, NULL);
+    //     pid = fork();
+    //     if (pid < 0) {
+    //         _err(_DAEMON_ERR, ERR, true, errno);
+    //     } else if (pid > 0) {
+    //         exit(0);
+    //     } else {
+    //         int devNull;
+    //         devNull = open("/dev/null", O_RDWR);
+    //         if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+    //             _err(_DAEMON_ERR, ERR, true, -1);
+    //         }
+    //         return close(devNull);
+    //     }
+    // }
     return 0;
 }
 
@@ -251,7 +252,8 @@ void sigHandler(int signum) {
 /* Richiede la terminazione */
 void intHandler(int signum) {
     requestShutdown = true;
-    if (getpid() != loggerId) {
+    if (getpid() == serverPid) {
+        printf("Shutting down...\n");
         logTransfer("");
     }
 }
@@ -264,35 +266,40 @@ void installSigHandler() {
     sInt.sa_handler = intHandler;
     sigemptyset(&sHup.sa_mask);
     sigemptyset(&sInt.sa_mask);
-    sInt.sa_flags = 0;
     sHup.sa_flags = SA_NODEFER;
+    sInt.sa_flags = 0;
     sigaction(SIGHUP, &sHup, NULL);
     sigaction(SIGINT, &sInt, NULL);
 }
 
-/*********************************************** MULTI ***************************************************************/
+/*********************************************** THREADS & PROCESSES ***************************************************************/
 
 void closeThread() {
     pthread_exit(NULL);
 }
 
+void runGopher(int sock, bool multiProcess) {
+    pthread_cleanup_push(errorRoutine, &sock);
+    _thread tid = gopher(sock);
+    if (multiProcess) {
+        pthread_join(tid, NULL);
+    } else {
+        pthread_detach(tid);
+    }
+    pthread_cleanup_pop(0);
+}
+
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
 void *serveThreadTask(void *args) {
     sigset_t set;
-    char message[256];
+    char message[MAX_GOPHER_MSG];
     int sock;
     sigemptyset(&set);
     sigaddset(&set, SIGHUP);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
     sock = *(int *)args;
     free(args);
-    recv(sock, message, sizeof(message), 0);
-    trimEnding(message);
-    printf("Request: %s\n", message);
-    pthread_cleanup_push(errorRoutine, &sock);
-    gopher(message, sock);
-    pthread_cleanup_pop(0);
-    fflush(stdout);
+    runGopher(sock, false);
 }
 
 /* Serve una richiesta in modalità multithreading. */
@@ -312,13 +319,7 @@ void serveProc(int sock) {
     if (pid < 0) {
         _err(_FORK_ERR, ERR, true, errno);
     } else if (pid == 0) {
-        char message[256];
-        recv(sock, message, sizeof(message), 0);
-        trimEnding(message);
-        printf("Request: %s\n", message);
-        pthread_cleanup_push(errorRoutine, &sock);
-        pthread_join(gopher(message, sock), NULL);
-        pthread_cleanup_pop(0);
+        runGopher(sock, true);
         exit(0);
     }
 }
@@ -335,6 +336,39 @@ void logTransfer(char *log) {
     pthread_mutex_unlock(mutexShare);
 }
 
+/* Logger */
+void loggerLoop(int pipe) {
+    int logFile, exitCode = 0;
+    char buff[PIPE_BUF + 1];
+    char logFilePath[MAX_NAME];
+    prctl(PR_SET_NAME, "Gopher logger");
+    snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);
+    pthread_mutex_lock(mutexShare);
+    while (1) {
+        size_t bytesRead;
+        pthread_cond_wait(condShare, mutexShare);
+        if (requestShutdown) {
+            pthread_mutex_unlock(mutexShare);
+            break;
+        }
+        if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
+            printf(WARN " - Impossibile aprire il file di logging\n");
+        }
+        if ((bytesRead = read(pipe, buff, PIPE_BUF)) < 0) {
+            exitCode = 1;
+            break;
+        } else {
+            write(logFile, buff, bytesRead);
+            close(logFile);
+        }
+    }
+    munmap(mutexShare, sizeof(pthread_mutex_t));
+    munmap(condShare, sizeof(pthread_cond_t));
+    close(pipe);
+    close(logFile);
+    exit(0);
+}
+
 /* Avvia il processo di logging dei trasferimenti. */
 void startTransferLog() {
     int pid;
@@ -343,7 +377,6 @@ void startTransferLog() {
     pthread_mutexattr_t mutexAttr;
     pthread_cond_t cond;
     pthread_condattr_t condAttr;
-    char logFilePath[MAX_NAME];
     // Inizializza mutex e condition variable per notificare il logger che sono pronti nuovi dati sulla pipe.
     pthread_mutexattr_init(&mutexAttr);
     pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED);
@@ -367,49 +400,14 @@ void startTransferLog() {
     if ((pid = fork()) < 0) {
         _err("startTransferLog() - fork fallita\n", ERR, true, pid);
     } else if (pid == 0) {  // Logger
-        loggerLoop();
+        loggerPid = getpid();
+        close(pipeFd[1]);
+        loggerLoop(pipeFd[0]);
     } else {  // Server
         close(pipeFd[0]);
         logPipe = pipeFd[1];  // logPipe è globale, viene acceduta per inviare i dati al logger
-        loggerId = pid;
+        loggerPid = pid;
     }
-}
-
-// TODO test funzione separata
-void loggerLoop() {
-    int logFile;
-    char buff[PIPE_BUF + 1];
-    loggerId = getpid();
-    prctl(PR_SET_NAME, "Gopher logger");
-    close(pipeFd[1]);
-    logPipe = pipeFd[0];
-    pthread_mutex_lock(mutexShare);
-    while (1) {
-        size_t bytesRead;
-        pthread_cond_wait(condShare, mutexShare);
-        if (requestShutdown) {
-            pthread_mutex_unlock(mutexShare);
-            break;
-        }
-        snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);
-        if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
-            _err("startTransferLog() - impossibile aprire il file di logging\n", ERR, true, pid);
-            exit(-1);
-        }
-        if ((bytesRead = read(logPipe, buff, PIPE_BUF)) < 0) {
-            close(logFile);
-            exit(1);
-        } else {
-            write(logFile, buff, bytesRead);
-        }
-        close(logFile);
-    }
-    munmap(mutexShare, sizeof(pthread_mutex_t));
-    munmap(condShare, sizeof(pthread_cond_t));
-    free(mutexShare);
-    free(condShare);
-    close(logPipe);
-    close(logFile);
 }
 
 #endif
@@ -422,7 +420,7 @@ void loggerLoop() {
 void _err(_cstring message, _cstring level, bool stderror, int code) {
     char error[50] = "";
     if (stderror) {
-        errorString(error, 50);
+        errorString(error, sizeof(error));
     }
     printf("%s: %s - %s\n", level, message, error);
     exit(code);

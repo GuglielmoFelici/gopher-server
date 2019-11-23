@@ -8,10 +8,12 @@ _pipe logPipe;
 // Socket per interrompere la select su windows
 struct sockaddr_in awakeAddr;
 _socket awakeSelect;
-// Evento per lo shutdown del processo di log
+// Evento per lo shutdown del processo di log di windows
 _event logEvent;
-// Id del processo di log
-_procId loggerId;
+// Pid del processo di log
+_procId loggerPid;
+// Pid del server
+_procId serverPid;
 // Controllo della modifica del file di configurazione
 bool updateConfig = false;
 // Chiusura dell'applicazione
@@ -50,6 +52,7 @@ int main(int argc, _string* argv) {
     fd_set incomingConnections;
     int addrLen, _errno, ready, port;
     char* endptr;
+    serverPid = getpid();
     if ((_errno = startup()) != 0) {
         _err(_STARTUP_ERR, ERR, false, _errno);
     }
