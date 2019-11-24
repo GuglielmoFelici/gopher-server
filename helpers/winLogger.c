@@ -5,7 +5,6 @@ HANDLE logFile;
 HANDLE logEvent;
 
 BOOL sigHandler(DWORD signum) {
-    CloseHandle(logFile);
     CloseHandle(logEvent);
     exit(0);
 }
@@ -16,21 +15,22 @@ DWORD main(DWORD argc, LPSTR* argv) {
     DWORD bytesRead;
     DWORD bytesWritten;
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
-    if ((logFile = CreateFile("logFile", FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
-        exit(1);
-    }
     if ((logEvent = OpenEvent(SYNCHRONIZE, FALSE, "logEvent")) == NULL) {
         printf("Errore starting logger\n.");
         exit(1);
     }
     while (1) {
         WaitForSingleObject(logEvent, INFINITE);
-        if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buff, sizeof(buff), &bytesRead, NULL)) {
+        if ((logFile = CreateFile("logFile", FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+            printf("Impossibile loggare il trasferimento - Impossibile aprire logFile\n");
+        } else if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buff, sizeof(buff), &bytesRead, NULL)) {
+            printf("Impossibile loggare il trasferimento\n");
             CloseHandle(logFile);
-            exit(1);
         } else {
             WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL);
+            CloseHandle(logFile);
         }
     }
     CloseHandle(logFile);
+    printf("canhio???");
 }

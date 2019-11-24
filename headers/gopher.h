@@ -46,7 +46,7 @@ char installationDir[MAX_NAME];
 
 /* Utils */
 
-int _shutdown();
+void _shutdown();
 
 void errorString(char* error, size_t size);
 
@@ -58,7 +58,7 @@ void changeCwd(_cstring path);
 
 /* Config */
 
-#define DEFAULT_PORT 70
+#define DEFAULT_PORT 7070
 #define DEFAULT_MULTI_PROCESS 0
 #define CONFIG_FILE "config"
 

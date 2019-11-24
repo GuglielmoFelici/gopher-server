@@ -4,13 +4,13 @@
 DWORD main(DWORD argc, LPSTR* argv) {
     SOCKET sock;
     HANDLE thread;
-    char message[256] = "";
-    startup();
-    sock = atoi(argv[1]);
-    recv(sock, message, sizeof(message), 0);
-    trimEnding(message);
-    printf("wingopher - request: %s\n", message);
-    thread = gopher(message, sock);
+    WSADATA wsaData;
+    WORD versionWanted = MAKEWORD(1, 1);
+    WSAStartup(versionWanted, &wsaData);
+    sscanf(argv[1], "%d", &sock);
+    sscanf(argv[2], "%p", &logPipe);
+    sscanf(argv[3], "%p", &logEvent);
+    thread = gopher(sock);
     if (thread != NULL) {
         WaitForSingleObject(thread, 10000);
     }

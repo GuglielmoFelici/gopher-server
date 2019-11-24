@@ -14,10 +14,10 @@ void errorString(char *error, size_t size) {
 }
 
 /* Termina graziosamente il logger, poi termina il server. */
-int _shutdown() {
+void _shutdown() {
     closeSocket(server);
-    AttachConsole(loggerId);
-    GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, loggerId);
+    AttachConsole(loggerPid);
+    GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, loggerPid);
     printf("Shutting down...\n");
     exit(0);
 }
@@ -28,14 +28,13 @@ void changeCwd(LPCSTR path) {
 
 /********************************************** SOCKETS *************************************************************/
 
-/* Inizializza la WSA */
+/* Inizializzazione */
 int startup() {
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
     if (!GetCurrentDirectory(sizeof(installationDir), installationDir)) {
         _err("Cannot get current working directory", ERR, true, -1);
     }
-    _onexit(_shutdown);
     return WSAStartup(versionWanted, &wsaData);
 }
 
@@ -97,14 +96,10 @@ void closeThread() {
 
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
 void *serveThreadTask(void *args) {
-    char message[256];
     SOCKET sock;
     sock = *(SOCKET *)args;
     free(args);
-    recv(sock, message, sizeof(message), 0);
-    trimEnding(message);
-    printf("Request: %s\n", message);
-    gopher(message, sock);  // Il protocollo viene eseguito qui
+    gopher(sock);  // Il protocollo viene eseguito qui
 }
 
 /* Serve una richiesta in modalità multithreading. */
@@ -126,7 +121,7 @@ void serveProc(SOCKET client) {
     startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    snprintf(cmdLine, sizeof(cmdLine), "%s %d", exec, client);
+    snprintf(cmdLine, sizeof(cmdLine), "%s %d %p %p", exec, client, logPipe, logEvent);
     CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
 }
 
@@ -142,18 +137,19 @@ void logTransfer(LPSTR log) {
 /* Avvia il processo di logging dei trasferimenti. */
 void startTransferLog() {
     char exec[MAX_NAME];
-    snprintf(exec, sizeof(exec), "%s/helpers/winLogger.exe", installationDir);
     HANDLE readPipe;
     SECURITY_ATTRIBUTES attr;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
+    snprintf(exec, sizeof(exec), "%s/helpers/winLogger.exe", installationDir);
     memset(&attr, 0, sizeof(attr));
     attr.bInheritHandle = TRUE;
     attr.nLength = sizeof(attr);
     attr.lpSecurityDescriptor = NULL;
-    // logPipe è globale, viene acceduta in scrittura quando avviene un trasferimento file
+    // logPipe è globale/condivisa, viene acceduta in scrittura quando avviene un trasferimento file
     if (!CreatePipe(&readPipe, &logPipe, &attr, 0)) {
-        _err("startTransferLog() - Impossibile creare la pipe", ERR, true, -1);
+        printf("startTransferLog() - Impossibile creare la pipe\n");
+        return;
     }
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
@@ -164,12 +160,12 @@ void startTransferLog() {
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
     // Utilizzato per notificare al logger che ci sono dati da leggere sulla pipe
     if ((logEvent = CreateEvent(&attr, FALSE, FALSE, "logEvent")) == NULL) {
-        _err("startTransferLog() - Impossibile creare l'evento", ERR, true, -1);
+        printf("startTransferLog() - Impossibile creare l'evento\n");
+    } else if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installationDir, &startupInfo, &processInfo)) {
+        printf("startTransferLog() - Impossibile avviare il logger\n");
+    } else {
+        loggerPid = processInfo.dwProcessId;
     }
-    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installationDir, &startupInfo, &processInfo)) {
-        _err("startTransferLog() - Impossibile avviare il logger", ERR, true, -1);
-    }
-    loggerId = processInfo.dwProcessId;
     CloseHandle(readPipe);
 }
 
@@ -182,7 +178,7 @@ void startTransferLog() {
 
 /************************************************** UTILS ********************************************************/
 
-int _shutdown() {
+void _shutdown() {
     close(logPipe);
     close(server);
     pthread_exit(0);
@@ -199,8 +195,8 @@ void changeCwd(const char *path) {
 /* Rende il server un processo demone */
 int startup() {
     int pid;
+    serverPid = getpid();
     getcwd(installationDir, sizeof(installationDir));
-    atexit((void (*)(void))_shutdown);
 
     // pid = fork();
     // if (pid < 0) {

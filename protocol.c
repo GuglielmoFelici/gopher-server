@@ -13,6 +13,9 @@
 void errorRoutine(void* sock) {
     LPSTR err = "3Error retrieving the resource\t\t\r\n.";
     send(*(SOCKET*)sock, err, strlen(err), 0);
+    char err1[200];
+    errorString(err1, 200);
+    printf(err1);
     closeSocket(*(SOCKET*)sock);
     ExitThread(-1);
 }
@@ -173,16 +176,20 @@ void readDir(LPCSTR path, SOCKET sock) {
     free(response);
 }
 
-/* Valida la stringa ed esegue il protocollo */
-HANDLE gopher(LPCSTR selector, SOCKET sock) {
+/* Valida la stringa ed esegue il protocollo. Ritorna l'HANDLE dell'ultimo thread generato */
+HANDLE gopher(SOCKET sock) {
+    char selector[MAX_GOPHER_MSG] = "";
+    recv(sock, selector, MAX_GOPHER_MSG, 0);
+    trimEnding(selector);
+    printf("Request: %s\n", selector);
     if (strstr(selector, ".\\") || strstr(selector, "..\\") || selector[0] == '\\' || strstr(selector, "\\\\")) {
         errorRoutine(&sock);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
         readDir(selector, sock);
+        return GetCurrentThread();
     } else {  // File
         return readFile(selector, sock);
     }
-    return NULL;
 }
 
 #else

@@ -52,10 +52,10 @@ int main(int argc, _string* argv) {
     fd_set incomingConnections;
     int addrLen, _errno, ready, port;
     char* endptr;
-    serverPid = getpid();
     if ((_errno = startup()) != 0) {
         _err(_STARTUP_ERR, ERR, false, _errno);
     }
+    atexit(_shutdown);
     // TODO controllare che la daemonizzazione non interferisca con getopt
     /* Parse options */
     int opt, opterr = 0;
