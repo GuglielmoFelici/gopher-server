@@ -13,9 +13,6 @@
 void errorRoutine(void* sock) {
     LPSTR err = "3Error retrieving the resource\t\t\r\n.";
     send(*(SOCKET*)sock, err, strlen(err), 0);
-    char err1[200];
-    errorString(err1, 200);
-    printf(err1);
     closeSocket(*(SOCKET*)sock);
     ExitThread(-1);
 }
@@ -81,6 +78,7 @@ void* sendFile(void* sendFileArgs) {
     UnmapViewOfFile(args.src);
     free(response);
     closeSocket(args.dest);
+    //printf("Fine sendfile\n");
 }
 
 /* Mappa il file in memoria e avvia il worker thread di trasmissione */
@@ -105,6 +103,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
         return NULL;
     }
     memset(&ovlp, 0, sizeof(ovlp));
+    // TODO è sufficiente createfile con share 0?
     if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, sizeLow, sizeHigh, &ovlp)) {
         CloseHandle(file);
         errorRoutine(&sock);
@@ -138,6 +137,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     } else {
         return thread;
     }
+    printf("fine\n");
 }
 
 /* Costruisce la lista dei file e la invia al client */

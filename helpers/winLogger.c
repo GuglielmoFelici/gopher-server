@@ -14,6 +14,8 @@ DWORD main(DWORD argc, LPSTR* argv) {
     char buff[4096];
     DWORD bytesRead;
     DWORD bytesWritten;
+    OVERLAPPED ovlp;
+    memset(&ovlp, 0, sizeof(ovlp));
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
     if ((logEvent = OpenEvent(SYNCHRONIZE, FALSE, "logEvent")) == NULL) {
         printf("Errore starting logger\n.");
@@ -23,14 +25,21 @@ DWORD main(DWORD argc, LPSTR* argv) {
         WaitForSingleObject(logEvent, INFINITE);
         if ((logFile = CreateFile("logFile", FILE_APPEND_DATA, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
             printf("Impossibile loggare il trasferimento - Impossibile aprire logFile\n");
-        } else if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buff, sizeof(buff), &bytesRead, NULL)) {
+            continue;
+        }
+        if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buff, sizeof(buff), &bytesRead, NULL)) {
             printf("Impossibile loggare il trasferimento\n");
             CloseHandle(logFile);
-        } else {
-            WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL);
-            CloseHandle(logFile);
+            continue;
         }
+        if (LockFileEx(logFile, LOCKFILE_EXCLUSIVE_LOCK, 0, MAXDWORD, MAXDWORD, &ovlp)) {
+            printf("locked");
+            // prova sleep
+            WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL);
+            UnlockFile(logFile, 0, 0, MAXDWORD, MAXDWORD);
+        } else {
+            printf("%d\n", GetLastError());
+        }
+        CloseHandle(logFile);
     }
-    CloseHandle(logFile);
-    printf("canhio???");
 }
