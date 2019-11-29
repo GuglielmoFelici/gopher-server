@@ -55,20 +55,20 @@ char gopherType(_file* file) {
 /* Invia il file al client */
 void* sendFile(void* sendFileArgs) {
     struct sendFileArgs args;
-    void* response;
-    struct sockaddr_in clientAddr;
-    int clientLen;
+    char* response;
     args = *((struct sendFileArgs*)sendFileArgs);
     free(sendFileArgs);
     if ((response = calloc(args.size + 2, 1)) == NULL) {
         errorRoutine(&args.dest);
     }
     memcpy(response, args.src, args.size);
-    strcat((char*)response, "\n.");
+    strcat(response, "\n.");
     if (send(args.dest, response, strlen(response), 0) >= 0) {
         // Logga il trasferimento
         char log[PIPE_BUF];
         char address[16];
+        struct sockaddr_in clientAddr;
+        int clientLen;
         clientLen = sizeof(clientAddr);
         getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen);
         strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
@@ -76,9 +76,9 @@ void* sendFile(void* sendFileArgs) {
         logTransfer(log);
     }
     UnmapViewOfFile(args.src);
+    // TODO    qui crasha a volte
     free(response);
     closeSocket(args.dest);
-    //printf("Fine sendfile\n");
 }
 
 /* Mappa il file in memoria e avvia il worker thread di trasmissione */
@@ -91,11 +91,21 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     LPVOID view;
     OVERLAPPED ovlp;
     struct sendFileArgs* args;
-    if ((file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+    if ((file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
         errorRoutine(&sock);
     }
     if ((sizeLow = GetFileSize(file, &sizeHigh)) == 0) {
         send(sock, ".", 2, 0);
+        // Logga
+        char log[PIPE_BUF];
+        char address[16];
+        struct sockaddr_in clientAddr;
+        int clientLen;
+        clientLen = sizeof(clientAddr);
+        getpeername(sock, (struct sockaddr*)&clientAddr, &clientLen);
+        strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
+        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", path, 0, address, clientAddr.sin_port);
+        logTransfer(log);
         if (!CloseHandle(file)) {
             errorRoutine(&sock);
         }
@@ -137,7 +147,6 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
     } else {
         return thread;
     }
-    printf("fine\n");
 }
 
 /* Costruisce la lista dei file e la invia al client */

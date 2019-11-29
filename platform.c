@@ -16,8 +16,11 @@ void errorString(char *error, size_t size) {
 /* Termina graziosamente il logger, poi termina il server. */
 void _shutdown() {
     closeSocket(server);
-    AttachConsole(loggerPid);
-    GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, loggerPid);
+    CloseHandle(logEvent);
+    CloseHandle(logPipe);
+    if (AttachConsole(loggerPid)) {
+        GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, loggerPid);
+    }
     printf("Shutting down...\n");
     exit(0);
 }
