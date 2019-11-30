@@ -5,6 +5,8 @@ HANDLE logFile;
 HANDLE logEvent;
 
 BOOL sigHandler(DWORD signum) {
+    CloseHandle(logFile);
+    CloseHandle(logEvent);
     exit(0);
 }
 

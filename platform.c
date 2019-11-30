@@ -15,6 +15,7 @@ void errorString(char *error, size_t size) {
 
 /* Termina graziosamente il logger, poi termina il server. */
 void _shutdown() {
+    printf("canio\n");
     closeSocket(server);
     CloseHandle(logEvent);
     CloseHandle(logPipe);
@@ -146,7 +147,7 @@ void startTransferLog() {
     PROCESS_INFORMATION processInfo;
     snprintf(exec, sizeof(exec), "%s/helpers/winLogger.exe", installationDir);
     memset(&attr, 0, sizeof(attr));
-    attr.bInheritHandle = TRUE;
+    attr.bInheritHandle = FALSE;
     attr.nLength = sizeof(attr);
     attr.lpSecurityDescriptor = NULL;
     // logPipe è globale/condivisa, viene acceduta in scrittura quando avviene un trasferimento file
