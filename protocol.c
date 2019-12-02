@@ -187,7 +187,11 @@ void readDir(LPCSTR path, SOCKET sock) {
 /* Valida la stringa ed esegue il protocollo. Ritorna l'HANDLE dell'ultimo thread generato */
 HANDLE gopher(SOCKET sock) {
     char selector[MAX_GOPHER_MSG] = "";
+    char garbage[16];
     recv(sock, selector, MAX_GOPHER_MSG, 0);
+    if (selector[strlen(selector) - 1] != '\n') {
+        recv(sock, garbage, 16, 0);  // Bug fix di curl.exe
+    }
     shutdown(sock, SD_RECEIVE);
     trimEnding(selector);
     printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
