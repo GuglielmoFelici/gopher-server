@@ -10,16 +10,15 @@
 /************************************************** UTILS ********************************************************/
 
 void errorString(char *error, size_t size) {
-    snprintf(error, size, "Error: %d, Socket error: %d", GetLastError(), WSAGetLastError());
+    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                  NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  error, size, NULL);
 }
 
 void _logErr(LPCSTR message) {
-    wchar_t buf[256];
-    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                   buf, 256, NULL);
-    fprintf(stderr, "%s\nSystem error message: ", message);
-    fwprintf(stderr, buf);
+    char buf[256];
+    errorString(buf, 256);
+    fprintf(stderr, "%s\nSystem error message: %s", message, buf);
 }
 
 /* Termina graziosamente il logger, poi termina il server. */

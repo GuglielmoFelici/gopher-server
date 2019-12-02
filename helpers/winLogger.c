@@ -6,17 +6,16 @@ HANDLE logFile;
 HANDLE logEvent;
 
 void _logErr(LPCSTR message) {
-    wchar_t buf[256];
-    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                   buf, 256, NULL);
+    char buf[256];
+    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                  NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  buf, 256, NULL);
     if (FreeConsole()) {
         AllocConsole();
     } else {
         exit(-1);
     }
-    fprintf(stderr, "*** GOPHER LOGGER ***\n%s\n", message);
-    fwprintf(stderr, buf);
+    fprintf(stderr, "*** GOPHER LOGGER ***\n%s\n%s\n", message, buf);
     fprintf(stderr, "\nServer will work, but logging will be disabled\nUse CTRL-C to close the logger.\n");
     Sleep(INFINITE);  // Lascio all'utente la possibilità di leggere l'errore
 }

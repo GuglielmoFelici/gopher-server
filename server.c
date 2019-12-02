@@ -93,7 +93,7 @@ int main(int argc, _string* argv) {
     }
     if (options.port == 0) {
         if (readConfig(&options, READ_PORT) != 0) {
-            _logErr(WARN " - " _PORT_CONFIG_ERR);
+            _err(WARN " - " _PORT_CONFIG_ERR, ERR, true, -1);
             defaultConfig(&options, READ_PORT);
         }
     }
@@ -138,7 +138,7 @@ int main(int argc, _string* argv) {
         printf("Incoming connection on port %d\n", htons(serverAddr.sin_port));
         addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
-        if (client < 0) {
+        if (client == INVALID_SOCKET) {
             _logErr(WARN "Error serving client");
             continue;
         }
