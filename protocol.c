@@ -112,7 +112,6 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
         return NULL;
     }
     memset(&ovlp, 0, sizeof(ovlp));
-    // TODO è sufficiente createfile con share 0?
     if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, sizeLow, sizeHigh, &ovlp)) {
         CloseHandle(file);
         errorRoutine(&sock);
@@ -189,7 +188,8 @@ HANDLE gopher(SOCKET sock) {
     char selector[MAX_GOPHER_MSG] = "";
     char garbage[16];
     recv(sock, selector, MAX_GOPHER_MSG, 0);
-    if (selector[strlen(selector) - 1] != '\n') {
+    //printf("%d %s\n", strlen(selector), selector);
+    if (strlen(selector) > 0 && selector[strlen(selector) - 1] != '\n') {
         recv(sock, garbage, 16, 0);  // Bug fix di curl.exe
     }
     shutdown(sock, SD_RECEIVE);

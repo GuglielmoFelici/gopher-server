@@ -55,7 +55,6 @@ DWORD main(DWORD argc, LPSTR* argv) {
         }
         sizeLow = GetFileSize(logFile, &sizeHigh);
         if (LockFileEx(logFile, LOCKFILE_EXCLUSIVE_LOCK, 0, sizeLow, sizeHigh, &ovlp)) {
-            // TODO prova sleep
             if (!WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL)) {
                 _logErr("Error writing logFile");
             }
