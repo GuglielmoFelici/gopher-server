@@ -15,7 +15,6 @@ void errorString(char *error, size_t size) {
 
 /* Termina graziosamente il logger, poi termina il server. */
 void _shutdown() {
-    printf("canio\n");
     closeSocket(server);
     CloseHandle(logEvent);
     CloseHandle(logPipe);
@@ -55,9 +54,8 @@ int closeSocket(SOCKET s) {
 
 /* Invia un messaggio vuoto al socket awakeSelect per interrompere la select del server. */
 void wakeUpServer() {
-    SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
-    sendto(s, "Wake up!", 0, 0, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr));
-    closeSocket(s);
+    sendto(awakeSelect, "Wake up!", 0, 0, NULL, 0);
+    closeSocket(awakeSelect);
 }
 
 /* Termina graziosamente il programma. */
@@ -83,11 +81,6 @@ BOOL sigHandler(DWORD signum) {
 /* Installa i gestori di eventi console */
 void installSigHandler() {
     awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
-    memset(&awakeAddr, 0, sizeof(awakeAddr));
-    awakeAddr.sin_family = AF_INET;
-    awakeAddr.sin_port = htons(49152);
-    awakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr));
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
 }

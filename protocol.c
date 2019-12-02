@@ -76,7 +76,6 @@ void* sendFile(void* sendFileArgs) {
         logTransfer(log);
     }
     UnmapViewOfFile(args.src);
-    // TODO    qui crasha a volte
     free(response);
     closeSocket(args.dest);
 }

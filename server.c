@@ -6,7 +6,6 @@
 // Pipe per il log
 _pipe logPipe;
 // Socket per interrompere la select su windows
-struct sockaddr_in awakeAddr;
 _socket awakeSelect;
 // Evento per lo shutdown del processo di log di windows
 _event logEvent;
@@ -119,7 +118,6 @@ int main(int argc, _string* argv) {
     ready = 0;
     while (true) {
         do {
-            printf("%d\n", requestShutdown);
             if (requestShutdown) {
                 exit(0);
             } else if (ready < 0 && sockErr() != EINTR) {

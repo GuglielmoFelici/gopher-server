@@ -36,7 +36,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
         }
         sizeLow = GetFileSize(logFile, &sizeHigh);
         if (LockFileEx(logFile, LOCKFILE_EXCLUSIVE_LOCK, 0, sizeLow, sizeHigh, &ovlp)) {
-            // prova sleep
+            // TODO prova sleep
             WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL);
             if (!UnlockFile(logFile, 0, 0, sizeLow, sizeHigh)) {
                 printf("Logger - error unlocking file %d\n", GetLastError());

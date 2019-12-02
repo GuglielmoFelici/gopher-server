@@ -37,7 +37,6 @@ _socket server;
 _pipe logPipe;
 bool updateConfig;
 bool requestShutdown;
-struct sockaddr_in awakeAddr;
 _socket awakeSelect;
 _procId loggerPid;
 _procId serverPid;
