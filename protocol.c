@@ -179,9 +179,9 @@ void readDir(LPCSTR path, SOCKET sock) {
         }
     } while (FindNextFile(hFind, &data));
     send(sock, strcat(response, "."), responseSize, 0);
-    closesocket(sock);
     FindClose(hFind);
     free(response);
+    closesocket(sock);
 }
 
 /* Valida la stringa ed esegue il protocollo. Ritorna l'HANDLE dell'ultimo thread generato */

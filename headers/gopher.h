@@ -5,6 +5,8 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
 #endif
+#include <fcntl.h>
+#include <io.h>
 #include <windows.h>
 #else
 #define _GNU_SOURCE
@@ -34,7 +36,7 @@
 #include "log.h"
 
 _socket server;
-_pipe logPipe;
+pipe logPipe;
 bool updateConfig;
 bool requestShutdown;
 struct sockaddr_in awakeAddr;
@@ -51,6 +53,8 @@ void _shutdown();
 void errorString(char* error, size_t size);
 
 void _err(_cstring message, _cstring level, bool stderror, int code);
+
+void _logErr(_cstring message);
 
 _string trimEnding(_string str);
 

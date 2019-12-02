@@ -12,7 +12,7 @@ typedef LPSTR _string;
 typedef LPCSTR _cstring;
 typedef WIN32_FIND_DATA _fileData;
 typedef BOOL _handlerRet;
-typedef HANDLE _thread, _pipe, _event;
+typedef HANDLE _thread, pipe, _event;
 typedef DWORD _procId;
 
 #else
@@ -23,7 +23,7 @@ typedef DWORD _procId;
 #include <sys/types.h>
 #define MAX_NAME FILENAME_MAX / 2
 typedef int _socket, _event;
-typedef pthread_key_t _pipe;
+typedef int pipe;
 typedef char* _string;
 typedef const char* _cstring;
 typedef struct stat _fileData;

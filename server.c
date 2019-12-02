@@ -4,7 +4,7 @@
 #include "headers/wingetopt.h"
 
 // Pipe per il log
-_pipe logPipe;
+pipe logPipe;
 // Socket per interrompere la select su windows
 _socket awakeSelect;
 struct sockaddr_in awakeAddr;
@@ -52,12 +52,6 @@ int main(int argc, _string* argv) {
     fd_set incomingConnections;
     int addrLen, _errno, ready, port;
     char* endptr;
-    // if (!FreeConsole()) {
-    //     _err("Can't detach from console\n", ERR, false, -1);
-    // }
-    // if (!AllocConsole()) {
-    //     _err("Can't alloc new console\n", ERR, false, -1);
-    // }
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
     if ((_errno = startup()) != 0) {
@@ -99,14 +93,14 @@ int main(int argc, _string* argv) {
     }
     if (options.port == 0) {
         if (readConfig(&options, READ_PORT) != 0) {
-            fprintf(stderr, WARN " - " _PORT_CONFIG_ERR "\n");
+            _logErr(WARN " - " _PORT_CONFIG_ERR);
             defaultConfig(&options, READ_PORT);
         }
     }
     if (options.multiProcess == -1) {
         if (readConfig(&options, READ_MULTIPROCESS) != 0) {
             defaultConfig(&options, READ_MULTIPROCESS);
-            fprintf(stderr, WARN " - " _MULTIPROCESS_CONFIG_ERR "\n");
+            _logErr(WARN " - " _MULTIPROCESS_CONFIG_ERR);
         }
     }
 
@@ -114,8 +108,9 @@ int main(int argc, _string* argv) {
     installSigHandler();
     startTransferLog();
     server = prepareServer(-1, options, &serverAddr);
-    printf("*** GOPHER SERVER ***\n");
+    printf("\n*** GOPHER SERVER ***\n\n");
     printf("Listening on port %i (%s)\n", options.port, options.multiProcess ? "multiprocess mode" : "multithreaded mode");
+    printf("Use CTRL-C to quit, CTRL-BREAK to refresh config file.\n");
 
     /* Main loop*/
 
@@ -129,7 +124,7 @@ int main(int argc, _string* argv) {
             } else if (updateConfig) {
                 printf("Updating config...\n");
                 if (readConfig(&options, READ_BOTH) != 0) {
-                    fprintf(stderr, WARN " - " _CONFIG_ERR "\n");
+                    _logErr(WARN " - " _CONFIG_ERR);
                     defaultConfig(&options, READ_PORT);
                 } else if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr);
@@ -144,7 +139,7 @@ int main(int argc, _string* argv) {
         addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
         if (client < 0) {
-            printf(WARN "Error serving client\n");
+            _logErr(WARN "Error serving client");
             continue;
         }
         if (options.multiProcess) {
@@ -153,7 +148,7 @@ int main(int argc, _string* argv) {
         } else {
             _socket* sock;
             if ((sock = malloc(sizeof(_socket))) == NULL) {
-                printf("Error serving client: " _ALLOC_ERR "\n");
+                _logErr("Error serving client: " _ALLOC_ERR);
                 continue;
             }
             *sock = client;

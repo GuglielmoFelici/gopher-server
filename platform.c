@@ -13,6 +13,15 @@ void errorString(char *error, size_t size) {
     snprintf(error, size, "Error: %d, Socket error: %d", GetLastError(), WSAGetLastError());
 }
 
+void _logErr(LPCSTR message) {
+    wchar_t buf[256];
+    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                   buf, 256, NULL);
+    fprintf(stderr, "%s\nSystem error message: ", message);
+    fwprintf(stderr, buf);
+}
+
 /* Termina graziosamente il logger, poi termina il server. */
 void _shutdown() {
     closeSocket(server);
@@ -28,10 +37,27 @@ void changeCwd(LPCSTR path) {
 
 /********************************************** SOCKETS *************************************************************/
 
-/* Inizializzazione */
+/* Inizializzazione di console e WSA */
 int startup() {
-    WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
+    WORD versionWanted = MAKEWORD(1, 1);
+    if (!FreeConsole()) {
+        _err("Can't detach from console\n", ERR, false, -1);
+    } else {
+        if (!AllocConsole()) {
+            _err("Can't alloc new console\n", ERR, false, -1);
+        }
+        // Redirige gli standard stream verso la nuova console
+        HANDLE handle_out = GetStdHandle(STD_OUTPUT_HANDLE);
+        HANDLE handle_err = GetStdHandle(STD_ERROR_HANDLE);
+        int outFd = _open_osfhandle((intptr_t)handle_out, _O_TEXT);
+        int errFd = _open_osfhandle((intptr_t)handle_out, _O_TEXT);
+        FILE *outFileHandle = _fdopen(outFd, "w");
+        FILE *errFileHandle = _fdopen(errFd, "w");
+        *stdout = *outFileHandle;
+        *stderr = *errFileHandle;
+        SetConsoleTitle("Gopher server");
+    }
     if (!GetCurrentDirectory(sizeof(installationDir), installationDir)) {
         _err("Cannot get current working directory", ERR, true, -1);
     }
@@ -63,7 +89,7 @@ BOOL ctrlC(DWORD signum) {
     if (signum == CTRL_C_EVENT) {
         requestShutdown = true;
         if (wakeUpServer() < 0) {
-            printf("%d\n", WSAGetLastError());
+            exit(-1);
         }
         return true;
     }
@@ -75,7 +101,7 @@ BOOL sigHandler(DWORD signum) {
     if (signum != CTRL_C_EVENT) {
         updateConfig = true;
         if (wakeUpServer() < 0) {
-            fprintf(stderr, "Error updating\n");
+            _logErr("Error updating");
         }
         return true;
     }
@@ -139,7 +165,6 @@ void logTransfer(LPSTR log) {
     // TODO mutex
     DWORD written;
     if (!WriteFile(logPipe, log, strlen(log), &written, NULL)) {
-        fprintf(stderr, "logTransfer() - Errore in scrittura sulla pipe: %d\n");
         return;
     }
     SetEvent(logEvent);
@@ -159,7 +184,7 @@ void startTransferLog() {
     attr.lpSecurityDescriptor = NULL;
     // logPipe è globale/condivisa, viene acceduta in scrittura quando avviene un trasferimento file
     if (!CreatePipe(&readPipe, &logPipe, &attr, 0)) {
-        printf("startTransferLog() - Impossibile creare la pipe\n");
+        _logErr("startTransferLog() - Can't create pipe");
         return;
     }
     memset(&startupInfo, 0, sizeof(startupInfo));
@@ -171,9 +196,9 @@ void startTransferLog() {
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
     // Utilizzato per notificare al logger che ci sono dati da leggere sulla pipe
     if ((logEvent = CreateEvent(&attr, FALSE, FALSE, "logEvent")) == NULL) {
-        printf("startTransferLog() - Impossibile creare l'evento\n");
+        _logErr("startTransferLog() - Can't create logEvent");
     } else if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installationDir, &startupInfo, &processInfo)) {
-        printf("startTransferLog() - Impossibile avviare il logger\n");
+        _logErr("startTransferLog() - Starting logger failed");
     } else {
         loggerPid = processInfo.dwProcessId;
     }
@@ -359,7 +384,7 @@ void loggerLoop(int pipe) {
             break;
         }
         if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
-            printf(WARN " - Impossibile aprire il file di logging\n");
+            printf(WARN " - Can't start logger\n");
         }
         if ((bytesRead = read(pipe, buff, PIPE_BUF)) < 0) {
             exitCode = 1;
