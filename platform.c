@@ -36,7 +36,7 @@ void _shutdown() {
 
 void changeCwd(LPCSTR path) {
     if (!SetCurrentDirectory(path)) {
-        _logErr("Can't set current working directory");
+        _logErr(WARN " - Can't change current working directory");
     }
 }
 
@@ -94,6 +94,7 @@ BOOL ctrlC(DWORD signum) {
     if (signum == CTRL_C_EVENT) {
         requestShutdown = true;
         if (wakeUpServer() < 0) {
+            _logErr("Can't close gracefully, will force shutdown");
             exit(-1);
         }
         return true;
@@ -116,13 +117,20 @@ BOOL sigHandler(DWORD signum) {
 /* Installa i gestori di eventi console */
 void installSigHandler() {
     awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
+    if (awakeSelect == INVALID_SOCKET) {
+        _err("installSigHandler() - Error creating awake socket", ERR, true, -1);
+    }
     memset(&awakeAddr, 0, sizeof(awakeAddr));
     awakeAddr.sin_family = AF_INET;
     awakeAddr.sin_port = 0;
     awakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     int awakeAddrSize = sizeof(awakeAddr);
-    bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr));
-    getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize);
+    if (bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
+        _err("installSigHandler() - Error binding awake socket", ERR, true, -1);
+    }
+    if (getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
+        _err("installSigHandler() - Can't detect socket address", ERR, true, -1);
+    }
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
 }
