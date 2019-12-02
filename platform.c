@@ -23,11 +23,15 @@ void _logErr(LPCSTR message) {
 
 /* Termina graziosamente il logger, poi termina il server. */
 void _shutdown() {
-    closeSocket(server);
-    closeSocket(awakeSelect);
+    closesocket(server);
+    closesocket(awakeSelect);
     CloseHandle(logEvent);
     CloseHandle(logPipe);
     printf("Shutting down...\n");
+    FreeConsole();
+    if (AttachConsole(loggerPid)) {
+        GenerateConsoleCtrlEvent(CTRL_C_EVENT, loggerPid);
+    }
 }
 
 void changeCwd(LPCSTR path) {

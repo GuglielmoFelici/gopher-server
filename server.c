@@ -93,7 +93,7 @@ int main(int argc, _string* argv) {
     }
     if (options.port == 0) {
         if (readConfig(&options, READ_PORT) != 0) {
-            _err(WARN " - " _PORT_CONFIG_ERR, ERR, true, -1);
+            _logErr(WARN " - " _PORT_CONFIG_ERR);
             defaultConfig(&options, READ_PORT);
         }
     }
