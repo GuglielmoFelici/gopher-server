@@ -154,13 +154,13 @@ void readDir(LPCSTR path, SOCKET sock) {
     char wildcardPath[MAX_NAME + 2];
     char line[sizeof(file.name) + sizeof(file.path) + sizeof("localhost") + 4];
     LPSTR response;
-    size_t responseSize;  // Per il punto finale
+    size_t responseSize;
     CHAR type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
 
     response = calloc(1, 1);
-    responseSize = 2;  // Per il punto finale
+    responseSize = 1;  // Per il punto finale
     snprintf(wildcardPath, sizeof(wildcardPath), "%s*", (path[0] == '\0' ? ".\\" : path));
     if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
         errorRoutine(&sock);
@@ -188,6 +188,7 @@ void readDir(LPCSTR path, SOCKET sock) {
 HANDLE gopher(SOCKET sock) {
     char selector[MAX_GOPHER_MSG] = "";
     recv(sock, selector, MAX_GOPHER_MSG, 0);
+    shutdown(sock, SD_RECEIVE);
     trimEnding(selector);
     printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
     if (strstr(selector, ".\\") || strstr(selector, "..\\") || selector[0] == '\\' || strstr(selector, "\\\\")) {
