@@ -35,7 +35,9 @@ void _shutdown() {
 }
 
 void changeCwd(LPCSTR path) {
-    SetCurrentDirectory(path);
+    if (!SetCurrentDirectory(path)) {
+        _logErr("Can't set current working directory");
+    }
 }
 
 /********************************************** SOCKETS *************************************************************/
