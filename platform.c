@@ -16,13 +16,10 @@ void errorString(char *error, size_t size) {
 /* Termina graziosamente il logger, poi termina il server. */
 void _shutdown() {
     closeSocket(server);
+    closeSocket(awakeSelect);
     CloseHandle(logEvent);
     CloseHandle(logPipe);
-    if (AttachConsole(loggerPid)) {
-        GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, loggerPid);
-    }
     printf("Shutting down...\n");
-    exit(0);
 }
 
 void changeCwd(LPCSTR path) {
@@ -53,16 +50,21 @@ int closeSocket(SOCKET s) {
 /********************************************** SIGNALS *************************************************************/
 
 /* Invia un messaggio vuoto al socket awakeSelect per interrompere la select del server. */
-void wakeUpServer() {
-    sendto(awakeSelect, "Wake up!", 0, 0, NULL, 0);
-    closeSocket(awakeSelect);
+int wakeUpServer() {
+    SOCKET s;
+    if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
+        return -1;
+    }
+    return sendto(s, "Wake up!", 0, 0, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr));
 }
 
 /* Termina graziosamente il programma. */
 BOOL ctrlC(DWORD signum) {
     if (signum == CTRL_C_EVENT) {
         requestShutdown = true;
-        wakeUpServer();
+        if (wakeUpServer() < 0) {
+            printf("%d\n", WSAGetLastError());
+        }
         return true;
     }
     return false;
@@ -72,7 +74,9 @@ BOOL ctrlC(DWORD signum) {
 BOOL sigHandler(DWORD signum) {
     if (signum != CTRL_C_EVENT) {
         updateConfig = true;
-        wakeUpServer();
+        if (wakeUpServer() < 0) {
+            fprintf(stderr, "Error updating\n");
+        }
         return true;
     }
     return false;
@@ -81,6 +85,13 @@ BOOL sigHandler(DWORD signum) {
 /* Installa i gestori di eventi console */
 void installSigHandler() {
     awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
+    memset(&awakeAddr, 0, sizeof(awakeAddr));
+    awakeAddr.sin_family = AF_INET;
+    awakeAddr.sin_port = 0;
+    awakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    int awakeAddrSize = sizeof(awakeAddr);
+    bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr));
+    getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
 }
@@ -127,7 +138,10 @@ void serveProc(SOCKET client) {
 void logTransfer(LPSTR log) {
     // TODO mutex
     DWORD written;
-    WriteFile(logPipe, log, strlen(log), &written, NULL);
+    if (!WriteFile(logPipe, log, strlen(log), &written, NULL)) {
+        fprintf(stderr, "logTransfer() - Errore in scrittura sulla pipe: %d\n");
+        return;
+    }
     SetEvent(logEvent);
 }
 
@@ -140,7 +154,7 @@ void startTransferLog() {
     PROCESS_INFORMATION processInfo;
     snprintf(exec, sizeof(exec), "%s/helpers/winLogger.exe", installationDir);
     memset(&attr, 0, sizeof(attr));
-    attr.bInheritHandle = FALSE;
+    attr.bInheritHandle = TRUE;
     attr.nLength = sizeof(attr);
     attr.lpSecurityDescriptor = NULL;
     // logPipe è globale/condivisa, viene acceduta in scrittura quando avviene un trasferimento file

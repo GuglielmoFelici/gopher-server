@@ -58,10 +58,10 @@ void* sendFile(void* sendFileArgs) {
     char* response;
     args = *((struct sendFileArgs*)sendFileArgs);
     free(sendFileArgs);
-    if ((response = calloc(args.size + 2, 1)) == NULL) {
+    if ((response = calloc(args.size + 3, 1)) == NULL) {
         errorRoutine(&args.dest);
     }
-    memcpy(response, args.src, args.size);
+    memcpy((void*)response, args.src, args.size);
     strcat(response, "\n.");
     if (send(args.dest, response, strlen(response), 0) >= 0) {
         // Logga il trasferimento
@@ -189,7 +189,7 @@ HANDLE gopher(SOCKET sock) {
     char selector[MAX_GOPHER_MSG] = "";
     recv(sock, selector, MAX_GOPHER_MSG, 0);
     trimEnding(selector);
-    printf("Request: %s\n", selector);
+    printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
     if (strstr(selector, ".\\") || strstr(selector, "..\\") || selector[0] == '\\' || strstr(selector, "\\\\")) {
         errorRoutine(&sock);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory

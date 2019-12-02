@@ -7,6 +7,7 @@
 _pipe logPipe;
 // Socket per interrompere la select su windows
 _socket awakeSelect;
+struct sockaddr_in awakeAddr;
 // Evento per lo shutdown del processo di log di windows
 _event logEvent;
 // Pid del processo di log
@@ -51,6 +52,12 @@ int main(int argc, _string* argv) {
     fd_set incomingConnections;
     int addrLen, _errno, ready, port;
     char* endptr;
+    // if (!FreeConsole()) {
+    //     _err("Can't detach from console\n", ERR, false, -1);
+    // }
+    // if (!AllocConsole()) {
+    //     _err("Can't alloc new console\n", ERR, false, -1);
+    // }
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
     if ((_errno = startup()) != 0) {
@@ -104,10 +111,7 @@ int main(int argc, _string* argv) {
     }
 
     /* Configuration */
-
     installSigHandler();
-    // Disabilita I/O buffering
-
     startTransferLog();
     server = prepareServer(-1, options, &serverAddr);
     printf("*** GOPHER SERVER ***\n");
