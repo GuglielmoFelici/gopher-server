@@ -158,8 +158,8 @@ void readDir(LPCSTR path, SOCKET sock) {
     WIN32_FIND_DATA data;
     HANDLE hFind;
 
-    response = calloc(1, 1);
-    responseSize = 1;  // Per il punto finale
+    response = calloc(2, 1);
+    responseSize = 2;  // Per il punto finale
     snprintf(wildcardPath, sizeof(wildcardPath), "%s*", (path[0] == '\0' ? ".\\" : path));
     if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
         errorRoutine(&sock);
@@ -174,7 +174,7 @@ void readDir(LPCSTR path, SOCKET sock) {
                 errorRoutine(&sock);
             }
             responseSize += strlen(line);
-            strcat(response, line);
+            response = strcat(response, line);
         }
     } while (FindNextFile(hFind, &data));
     send(sock, strcat(response, "."), responseSize, 0);
@@ -187,11 +187,15 @@ void readDir(LPCSTR path, SOCKET sock) {
 HANDLE gopher(SOCKET sock) {
     char selector[MAX_GOPHER_MSG] = "";
     char garbage[16];
+    /* Bug di curl (?) che divide la richiesta in due chiamate */
+    time_t currentTime = time(NULL);
+    do {
+        if (time(NULL) - currentTime > MAX_SECONDS_WAIT) {
+            errorRoutine(&sock);
+        }
+        recv(sock, selector, MAX_GOPHER_MSG, MSG_PEEK);
+    } while (strlen(selector) > 0 && selector[strlen(selector) - 1] != '\n');
     recv(sock, selector, MAX_GOPHER_MSG, 0);
-    //printf("%d %s\n", strlen(selector), selector);
-    if (strlen(selector) > 0 && selector[strlen(selector) - 1] != '\n') {
-        recv(sock, garbage, 16, 0);  // Bug fix di curl.exe
-    }
     shutdown(sock, SD_RECEIVE);
     trimEnding(selector);
     printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
