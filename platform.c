@@ -222,6 +222,7 @@ void startTransferLog() {
 /************************************************** UTILS ********************************************************/
 
 void _shutdown() {
+    kill(loggerPid, SIGINT);
     close(logPipe);
     close(server);
     pthread_exit(0);
@@ -299,7 +300,6 @@ void hupHandler(int signum) {
 void intHandler(int signum) {
     printf("Shutting down...\n");
     requestShutdown = true;
-    kill(loggerPid, SIGINT);
 }
 
 /* Installa un gestore di segnale */
