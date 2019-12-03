@@ -15,12 +15,6 @@ void errorString(char *error, size_t size) {
                   error, size, NULL);
 }
 
-void _logErr(LPCSTR message) {
-    char buf[256];
-    errorString(buf, 256);
-    fprintf(stderr, "%s\nSystem error message: %s", message, buf);
-}
-
 /* Termina graziosamente il logger, poi termina il server. */
 void _shutdown() {
     closesocket(server);
@@ -115,7 +109,7 @@ BOOL sigHandler(DWORD signum) {
 }
 
 /* Installa i gestori di eventi console */
-void installSigHandler() {
+void installDefaultSigHandlers() {
     awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
     if (awakeSelect == INVALID_SOCKET) {
         _err("installSigHandler() - Error creating awake socket", ERR, true, -1);
@@ -266,12 +260,17 @@ int startup() {
     //     } else if (pid > 0) {
     //         exit(0);
     //     } else {
-    //         int devNull;
-    //         devNull = open("/dev/null", O_RDWR);
-    //         if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+    //         int serverStdIn, serverStdErr, serverStdOut;
+    //         char fileName[PATH_MAX];
+    //         serverStdIn = open("/dev/null", O_RDWR);
+    //         snprintf(fileName, PATH_MAX, "%s/serverStdOut", installationDir);
+    //         serverStdOut = creat(fileName, S_IRWXU);
+    //         snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
+    //         serverStdErr = creat(fileName, S_IRWXU);
+    //         if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
     //             _err(_DAEMON_ERR, ERR, true, -1);
     //         }
-    //         return close(devNull);
+    //         return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
     //     }
     // }
     return 0;
@@ -290,31 +289,30 @@ int closeSocket(int s) {
 /********************************************** SIGNALS *************************************************************/
 
 /* Richiede la rilettura del file di configurazione */
-void sigHandler(int signum) {
+void hupHandler(int signum) {
     updateConfig = true;
 }
 
 /* Richiede la terminazione */
 void intHandler(int signum) {
     requestShutdown = true;
-    if (getpid() == serverPid) {
-        printf("Shutting down...\n");
-        logTransfer("");
-    }
+    printf("Shutting down...\n");
+    kill(loggerPid, SIGINT);
 }
 
-/* Installa i gestori di segnali */
-void installSigHandler() {
-    struct sigaction sHup;
-    struct sigaction sInt;
-    sHup.sa_handler = sigHandler;
-    sInt.sa_handler = intHandler;
-    sigemptyset(&sHup.sa_mask);
-    sigemptyset(&sInt.sa_mask);
-    sHup.sa_flags = SA_NODEFER;
-    sInt.sa_flags = 0;
-    sigaction(SIGHUP, &sHup, NULL);
-    sigaction(SIGINT, &sInt, NULL);
+/* Installa un gestore di segnale */
+void installSigHandler(int sig, void (*func)(int), int flags) {
+    struct sigaction sigact;
+    sigact.sa_handler = func;
+    sigemptyset(&sigact.sa_mask);
+    sigact.sa_flags = flags;
+    sigaction(sig, &sigact, NULL);
+}
+
+/* Installa i gestori predefiniti di segnali */
+void installDefaultSigHandlers() {
+    installSigHandler(SIGHUP, hupHandler, SA_NODEFER);
+    installSigHandler(SIGINT, intHandler, 0);
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
@@ -381,37 +379,41 @@ void logTransfer(char *log) {
     pthread_mutex_unlock(mutexShare);
 }
 
+void logIntHandler(int signum) {
+    requestShutdown = true;
+    pthread_cond_signal(condShare);
+}
+
 /* Logger */
-void loggerLoop(int pipe) {
+void loggerLoop(int inPipe) {
     int logFile, exitCode = 0;
     char buff[PIPE_BUF + 1];
     char logFilePath[MAX_NAME];
     prctl(PR_SET_NAME, "Gopher logger");
     snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);
+    if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
+        printf(WARN " - Can't start logger\n");
+    }
     pthread_mutex_lock(mutexShare);
     while (1) {
         size_t bytesRead;
-        pthread_cond_wait(condShare, mutexShare);
         if (requestShutdown) {
             pthread_mutex_unlock(mutexShare);
             break;
         }
-        if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
-            printf(WARN " - Can't start logger\n");
-        }
-        if ((bytesRead = read(pipe, buff, PIPE_BUF)) < 0) {
+        pthread_cond_wait(condShare, mutexShare);
+        if ((bytesRead = read(inPipe, buff, PIPE_BUF)) < 0) {
             exitCode = 1;
             break;
         } else {
             write(logFile, buff, bytesRead);
-            close(logFile);
         }
     }
     munmap(mutexShare, sizeof(pthread_mutex_t));
     munmap(condShare, sizeof(pthread_cond_t));
-    close(pipe);
+    close(inPipe);
     close(logFile);
-    exit(0);
+    exit(exitCode);
 }
 
 /* Avvia il processo di logging dei trasferimenti. */
@@ -447,6 +449,7 @@ void startTransferLog() {
     } else if (pid == 0) {  // Logger
         loggerPid = getpid();
         close(pipeFd[1]);
+        installSigHandler(SIGINT, logIntHandler, 0);
         loggerLoop(pipeFd[0]);
     } else {  // Server
         close(pipeFd[0]);
@@ -467,8 +470,14 @@ void _err(_cstring message, _cstring level, bool stderror, int code) {
     if (stderror) {
         errorString(error, sizeof(error));
     }
-    printf("%s: %s - %s\n", level, message, error);
+    fprintf(stderr, "%s: %s - %s\n", level, message, error);
     exit(code);
+}
+
+void _logErr(_cstring message) {
+    char buf[256];
+    errorString(buf, 256);
+    fprintf(stderr, "%s\nSystem error message: %s", message, buf);
 }
 
 void defaultConfig(struct config *options, int which) {

@@ -36,9 +36,9 @@
 #include "log.h"
 
 _socket server;
-pipe logPipe;
-bool updateConfig;
-bool requestShutdown;
+myPipe logPipe;
+_sig_atomic updateConfig;
+_sig_atomic requestShutdown;
 struct sockaddr_in awakeAddr;
 _socket awakeSelect;
 _procId loggerPid;
@@ -82,7 +82,7 @@ int startup();
 
 /* Signals */
 
-void installSigHandler();
+void installDefaultSigHandlers();
 
 /* Sockets */
 

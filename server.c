@@ -4,7 +4,7 @@
 #include "headers/wingetopt.h"
 
 // Pipe per il log
-pipe logPipe;
+myPipe logPipe;
 // Socket per interrompere la select su windows
 _socket awakeSelect;
 struct sockaddr_in awakeAddr;
@@ -15,9 +15,9 @@ _procId loggerPid;
 // Pid del server
 _procId serverPid;
 // Controllo della modifica del file di configurazione
-bool updateConfig = false;
+_sig_atomic updateConfig = false;
 // Chiusura dell'applicazione
-bool requestShutdown = false;
+_sig_atomic requestShutdown = false;
 // Socket del server
 _socket server;
 // Installation directory
@@ -105,7 +105,7 @@ int main(int argc, _string* argv) {
     }
 
     /* Configuration */
-    installSigHandler();
+    installDefaultSigHandlers();
     startTransferLog();
     server = prepareServer(-1, options, &serverAddr);
     printf("\n*** GOPHER SERVER ***\n\n");
@@ -144,7 +144,7 @@ int main(int argc, _string* argv) {
         printf("Incoming connection on port %d\n", htons(serverAddr.sin_port));
         addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
-        if (client == INVALID_SOCKET) {
+        if (client < 0) {
             _logErr(WARN "Error serving client");
             continue;
         }
