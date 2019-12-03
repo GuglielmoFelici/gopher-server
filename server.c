@@ -110,7 +110,6 @@ int main(int argc, _string* argv) {
     server = prepareServer(-1, options, &serverAddr);
     printf("\n*** GOPHER SERVER ***\n\n");
     printf("Listening on port %i (%s mode)\n", options.port, options.multiProcess ? "multiprocess" : "multithreaded");
-    printf("Use CTRL-C to quit, CTRL-BREAK to refresh config file.\n");
 
     /* Main loop*/
 

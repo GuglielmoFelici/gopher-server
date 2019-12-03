@@ -262,6 +262,7 @@ int startup() {
         } else {
             int serverStdIn, serverStdErr, serverStdOut;
             char fileName[PATH_MAX];
+            sigprocmask(SIG_UNBLOCK, &set, NULL);
             serverStdIn = open("/dev/null", O_RDWR);
             snprintf(fileName, PATH_MAX, "%s/serverStdOut", installationDir);
             serverStdOut = creat(fileName, S_IRWXU);
@@ -290,13 +291,14 @@ int closeSocket(int s) {
 
 /* Richiede la rilettura del file di configurazione */
 void hupHandler(int signum) {
+    printf("laido\n");
     updateConfig = true;
 }
 
 /* Richiede la terminazione */
 void intHandler(int signum) {
-    requestShutdown = true;
     printf("Shutting down...\n");
+    requestShutdown = true;
     kill(loggerPid, SIGINT);
 }
 
@@ -311,8 +313,8 @@ void installSigHandler(int sig, void (*func)(int), int flags) {
 
 /* Installa i gestori predefiniti di segnali */
 void installDefaultSigHandlers() {
-    installSigHandler(SIGHUP, hupHandler, SA_NODEFER);
-    installSigHandler(SIGINT, intHandler, 0);
+    installSigHandler(SIGINT, &intHandler, 0);
+    installSigHandler(SIGHUP, &hupHandler, SA_NODEFER);
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
