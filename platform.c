@@ -241,38 +241,38 @@ int startup() {
     serverPid = getpid();
     getcwd(installationDir, sizeof(installationDir));
 
-    // pid = fork();
-    // if (pid < 0) {
-    //     _err(_DAEMON_ERR, ERR, true, errno);
-    // } else if (pid > 0) {
-    //     exit(0);
-    // } else {
-    //     sigset_t set;
-    //     if (setsid() < 0) {
-    //         _err(_DAEMON_ERR, ERR, true, errno);
-    //     }
-    //     sigemptyset(&set);
-    //     sigaddset(&set, SIGHUP);
-    //     sigprocmask(SIG_BLOCK, &set, NULL);
-    //     pid = fork();
-    //     if (pid < 0) {
-    //         _err(_DAEMON_ERR, ERR, true, errno);
-    //     } else if (pid > 0) {
-    //         exit(0);
-    //     } else {
-    //         int serverStdIn, serverStdErr, serverStdOut;
-    //         char fileName[PATH_MAX];
-    //         serverStdIn = open("/dev/null", O_RDWR);
-    //         snprintf(fileName, PATH_MAX, "%s/serverStdOut", installationDir);
-    //         serverStdOut = creat(fileName, S_IRWXU);
-    //         snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
-    //         serverStdErr = creat(fileName, S_IRWXU);
-    //         if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
-    //             _err(_DAEMON_ERR, ERR, true, -1);
-    //         }
-    //         return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
-    //     }
-    // }
+    pid = fork();
+    if (pid < 0) {
+        _err(_DAEMON_ERR, ERR, true, errno);
+    } else if (pid > 0) {
+        exit(0);
+    } else {
+        sigset_t set;
+        if (setsid() < 0) {
+            _err(_DAEMON_ERR, ERR, true, errno);
+        }
+        sigemptyset(&set);
+        sigaddset(&set, SIGHUP);
+        sigprocmask(SIG_BLOCK, &set, NULL);
+        pid = fork();
+        if (pid < 0) {
+            _err(_DAEMON_ERR, ERR, true, errno);
+        } else if (pid > 0) {
+            exit(0);
+        } else {
+            int serverStdIn, serverStdErr, serverStdOut;
+            char fileName[PATH_MAX];
+            serverStdIn = open("/dev/null", O_RDWR);
+            snprintf(fileName, PATH_MAX, "%s/serverStdOut", installationDir);
+            serverStdOut = creat(fileName, S_IRWXU);
+            snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
+            serverStdErr = creat(fileName, S_IRWXU);
+            if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
+                _err(_DAEMON_ERR, ERR, true, -1);
+            }
+            return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
+        }
+    }
     return 0;
 }
 
