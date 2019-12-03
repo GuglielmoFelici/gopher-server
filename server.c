@@ -109,7 +109,7 @@ int main(int argc, _string* argv) {
     startTransferLog();
     server = prepareServer(-1, options, &serverAddr);
     printf("\n*** GOPHER SERVER ***\n\n");
-    printf("Listening on port %i (%s)\n", options.port, options.multiProcess ? "multiprocess mode" : "multithreaded mode");
+    printf("Listening on port %i (%s mode)\n", options.port, options.multiProcess ? "multiprocess" : "multithreaded");
     printf("Use CTRL-C to quit, CTRL-BREAK to refresh config file.\n");
 
     /* Main loop*/
@@ -123,11 +123,17 @@ int main(int argc, _string* argv) {
                 _err("Server - "_SELECT_ERR, ERR, true, -1);
             } else if (updateConfig) {
                 printf("Updating config...\n");
+                int prevMultiprocess = options.multiProcess;
                 if (readConfig(&options, READ_BOTH) != 0) {
                     _logErr(WARN " - " _CONFIG_ERR);
                     defaultConfig(&options, READ_PORT);
-                } else if (options.port != htons(serverAddr.sin_port)) {
+                }
+                if (options.port != htons(serverAddr.sin_port)) {
                     server = prepareServer(server, options, &serverAddr);
+                    printf("Switched to port %i\n", options.port);
+                }
+                if (options.multiProcess != prevMultiprocess) {
+                    printf("Switched to %s mode\n", options.multiProcess ? "multiprocess" : "multithreaded");
                 }
                 updateConfig = false;
             }
