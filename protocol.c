@@ -228,7 +228,7 @@ char gopherType(const _file* file) {
     FILE* response;
     char* command;
     int bytesRead;
-    command = malloc(strlen(file->path) + strlen("file \"\"") + 2);
+    command = malloc(strlen(file->path) + strlen("file \"\"") + 1);
     sprintf(command, "file \"%s\"", file->path);
     response = popen(command, "r");
     bytesRead = fread(cmdOut, 1, 200, response);

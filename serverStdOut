@@ -2,7 +2,9 @@
 
 Listening on port 7072 (multithreaded mode)
 Incoming connection on port 7072
+Request: cancro/
+Incoming connection on port 7072
 Request: 
 Incoming connection on port 7072
-Request: cancro/
+Request: server.c
 Shutting down...

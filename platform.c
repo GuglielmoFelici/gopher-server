@@ -138,7 +138,8 @@ void serveProc(SOCKET client) {
     snprintf(exec, sizeof(exec), "%s/helpers/winGopherProcess.exe", installationDir);
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    char cmdLine[sizeof(exec) + 1 + sizeof(SOCKET)];  // TODO size??
+    int cmdLineSize = 1;
+    LPSTR cmdLine = calloc(1, 1);
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
@@ -146,8 +147,16 @@ void serveProc(SOCKET client) {
     startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    snprintf(cmdLine, sizeof(cmdLine), "%s %d %p %p", exec, client, logPipe, logEvent);
+    do {
+        cmdLineSize += 30;
+        cmdLine = realloc(cmdLine, cmdLineSize);
+        if (cmdLine == NULL) {
+            _logErr("Error serving the client with a new process");
+            return;
+        }
+    } while (snprintf(cmdLine, sizeof(cmdLine), "%s %d %p %p", exec, client, logPipe, logEvent));
     CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
+    free(cmdLine);
 }
 
 /*********************************************** LOGGER ***************************************************************/
