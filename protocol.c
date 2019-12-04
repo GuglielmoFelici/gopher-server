@@ -217,7 +217,7 @@ HANDLE gopher(SOCKET sock) {
 
 /* Cleanup e notifica di errore */
 void errorRoutine(void* sock) {
-    char* err = "3Error retrieving the resource\t\t\r\n.";
+    char* err = "3Error (maybe bad request?)\t\t\r\n.";
     send(*(int*)sock, err, strlen(err), 0);
     closeSocket(*(int*)sock);
 }

@@ -379,7 +379,7 @@ void logIntHandler(int signum) {
 /* Loop di logging */
 void loggerLoop(int inPipe) {
     int logFile, exitCode = 0;
-    char buff[PIPE_BUF + 1];
+    char buff[PIPE_BUF];
     char logFilePath[MAX_NAME];
     prctl(PR_SET_NAME, "Gopher logger");
     snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);

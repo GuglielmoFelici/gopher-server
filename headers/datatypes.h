@@ -4,7 +4,6 @@
 #if defined(_WIN32)
 #include <windows.h>
 #define EINTR WSAEINTR
-// TODO perché fratto 2?
 #define MAX_NAME MAX_PATH / 2
 #define PIPE_BUF 4096
 typedef SOCKET _socket;
