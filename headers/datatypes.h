@@ -36,6 +36,7 @@ typedef __sig_atomic_t _sig_atomic;
 
 #define MAX_GOPHER_MSG 256
 #define MAX_SECONDS_WAIT 6
+#define MAX_ERROR_SIZE 60
 #define DOMAIN "localhost"
 
 typedef struct _file {

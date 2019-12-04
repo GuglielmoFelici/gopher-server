@@ -23,14 +23,15 @@ _socket server;
 // Installation directory
 char installationDir[MAX_NAME] = "";
 
+/* Inizializza il socket del server e lo mette in ascolto */
 _socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address) {
     if (server != -1) {
         if (closeSocket(server) < 0) {
-            _err("prepareServer() - " _CLOSE_SOCKET_ERR, ERR, true, -1);
+            _err("prepareServer() - " _CLOSE_SOCKET_ERR, true, -1);
         };
     }
     if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        _err("prepareServer() - "_SOCKET_ERR, ERR, true, server);
+        _err("prepareServer() - "_SOCKET_ERR, true, server);
     }
     char enable = 1;
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
@@ -38,10 +39,10 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
     address->sin_addr.s_addr = INADDR_ANY;
     address->sin_port = htons(options.port);
     if (bind(server, (struct sockaddr*)address, sizeof(*address)) < 0) {
-        _err("prepareServer() - "_BIND_ERR, ERR, true, -1);
+        _err("prepareServer() - "_BIND_ERR, true, -1);
     }
     if (listen(server, 5) < 0) {
-        _err("prepareServer() - "_LISTEN_ERR, ERR, true, -1);
+        _err("prepareServer() - "_LISTEN_ERR, true, -1);
     }
     return server;
 }
@@ -55,11 +56,10 @@ int main(int argc, _string* argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
     if ((_errno = startup()) != 0) {
-        _err(_STARTUP_ERR, ERR, false, _errno);
+        _err(_STARTUP_ERR, false, _errno);
     }
     atexit(_shutdown);
-    // TODO controllare che la daemonizzazione non interferisca con getopt
-    /* Parse options */
+    /* Parsing opzioni */
     int opt, opterr = 0;
     while ((opt = getopt(argc, argv, "mhp:d:")) != -1) {
         switch (opt) {
@@ -104,7 +104,7 @@ int main(int argc, _string* argv) {
         }
     }
 
-    /* Configuration */
+    /* Configurazione */
     installDefaultSigHandlers();
     startTransferLog();
     server = prepareServer(-1, options, &serverAddr);
@@ -119,7 +119,7 @@ int main(int argc, _string* argv) {
             if (requestShutdown) {
                 exit(0);
             } else if (ready < 0 && sockErr() != EINTR) {
-                _err("Server - "_SELECT_ERR, ERR, true, -1);
+                _err("Server - "_SELECT_ERR, true, -1);
             } else if (updateConfig) {
                 printf("Updating config...\n");
                 int prevMultiprocess = options.multiProcess;

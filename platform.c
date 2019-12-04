@@ -42,7 +42,7 @@ int startup() {
     WORD versionWanted = MAKEWORD(1, 1);
     SetConsoleTitle("Gopher server");
     if (!GetCurrentDirectory(sizeof(installationDir), installationDir)) {
-        _err("Cannot get current working directory", ERR, true, -1);
+        _err("Cannot get current working directory", true, -1);
     }
     return WSAStartup(versionWanted, &wsaData);
 }
@@ -96,7 +96,7 @@ BOOL sigHandler(DWORD signum) {
 void installDefaultSigHandlers() {
     awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
     if (awakeSelect == INVALID_SOCKET) {
-        _err("installSigHandler() - Error creating awake socket", ERR, true, -1);
+        _err("installSigHandler() - Error creating awake socket", true, -1);
     }
     memset(&awakeAddr, 0, sizeof(awakeAddr));
     awakeAddr.sin_family = AF_INET;
@@ -104,10 +104,10 @@ void installDefaultSigHandlers() {
     awakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     int awakeAddrSize = sizeof(awakeAddr);
     if (bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
-        _err("installSigHandler() - Error binding awake socket", ERR, true, -1);
+        _err("installSigHandler() - Error binding awake socket", true, -1);
     }
     if (getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
-        _err("installSigHandler() - Can't detect socket address", ERR, true, -1);
+        _err("installSigHandler() - Can't detect socket address", true, -1);
     }
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
@@ -205,6 +205,7 @@ void startTransferLog() {
 
 /************************************************** UTILS ********************************************************/
 
+/* Termina il logger ed esce. */
 void _shutdown() {
     kill(loggerPid, SIGINT);
     close(logPipe);
@@ -217,7 +218,9 @@ void errorString(char *error, size_t size) {
 }
 
 void changeCwd(const char *path) {
-    chdir(path);
+    if (chdir(path) < 0) {
+        _logErr(WARN " - Can't change current working directory");
+    }
 }
 
 /* Rende il server un processo demone */
@@ -228,20 +231,20 @@ int startup() {
 
     pid = fork();
     if (pid < 0) {
-        _err(_DAEMON_ERR, ERR, true, errno);
+        _err(_DAEMON_ERR, true, errno);
     } else if (pid > 0) {
         exit(0);
     } else {
         sigset_t set;
         if (setsid() < 0) {
-            _err(_DAEMON_ERR, ERR, true, errno);
+            _err(_DAEMON_ERR, true, errno);
         }
         sigemptyset(&set);
         sigaddset(&set, SIGHUP);
         sigprocmask(SIG_BLOCK, &set, NULL);
         pid = fork();
         if (pid < 0) {
-            _err(_DAEMON_ERR, ERR, true, errno);
+            _err(_DAEMON_ERR, true, errno);
         } else if (pid > 0) {
             exit(0);
         } else {
@@ -254,7 +257,7 @@ int startup() {
             snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
             serverStdErr = creat(fileName, S_IRWXU);
             if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
-                _err(_DAEMON_ERR, ERR, true, -1);
+                _err(_DAEMON_ERR, true, -1);
             }
             return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
         }
@@ -307,6 +310,7 @@ void closeThread() {
     pthread_exit(NULL);
 }
 
+/* Avvia il processo gopher, predisponendo la routine di cleanup errorRoutine */
 void runGopher(int sock, bool multiProcess) {
     pthread_cleanup_push(errorRoutine, &sock);
     _thread tid = gopher(sock);
@@ -346,7 +350,7 @@ void serveProc(int sock) {
     pid_t pid;
     pid = fork();
     if (pid < 0) {
-        _err(_FORK_ERR, ERR, true, errno);
+        _err(_FORK_ERR, true, errno);
     } else if (pid == 0) {
         runGopher(sock, true);
         exit(0);
@@ -358,6 +362,7 @@ void serveProc(int sock) {
 pthread_mutex_t *mutexShare;
 pthread_cond_t *condShare;
 
+/* Effettua una scrittura sulla pipe di logging */
 void logTransfer(char *log) {
     pthread_mutex_lock(mutexShare);
     write(logPipe, log, strlen(log));
@@ -365,12 +370,13 @@ void logTransfer(char *log) {
     pthread_mutex_unlock(mutexShare);
 }
 
+/* Handler per SIGINT relativo al logger */
 void logIntHandler(int signum) {
     requestShutdown = true;
     pthread_cond_signal(condShare);
 }
 
-/* Logger */
+/* Loop di logging */
 void loggerLoop(int inPipe) {
     int logFile, exitCode = 0;
     char buff[PIPE_BUF + 1];
@@ -419,19 +425,19 @@ void startTransferLog() {
     pthread_cond_init(&cond, &condAttr);
     mutexShare = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (mutexShare == MAP_FAILED) {
-        _err("startTransferLog() - impossibile mappare il mutex in memoria\n", ERR, true, -1);
+        _err("startTransferLog() - impossibile mappare il mutex in memoria\n", true, -1);
     }
     *mutexShare = mutex;
     condShare = mmap(NULL, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (condShare == MAP_FAILED) {
-        _err("startTransferLog() - impossibile mappare la condition variable in memoria\n", ERR, true, -1);
+        _err("startTransferLog() - impossibile mappare la condition variable in memoria\n", true, -1);
     }
     *condShare = cond;
     if (pipe2(pipeFd, O_DIRECT) < 0) {
-        _err("startTransferLog() - impossibile aprire la pipe\n", ERR, true, -1);
+        _err("startTransferLog() - impossibile aprire la pipe\n", true, -1);
     }
     if ((pid = fork()) < 0) {
-        _err("startTransferLog() - fork fallita\n", ERR, true, pid);
+        _err("startTransferLog() - fork fallita\n", true, pid);
     } else if (pid == 0) {  // Logger
         loggerPid = getpid();
         close(pipeFd[1]);
@@ -451,18 +457,20 @@ void startTransferLog() {
 
 /*****************************************************************************************************************/
 
-void _err(_cstring message, _cstring level, bool stderror, int code) {
-    char error[50] = "";
+/* Stampa l'errore su stderr ed esce */
+void _err(_cstring message, bool stderror, int code) {
+    char error[MAX_ERROR_SIZE] = "";
     if (stderror) {
         errorString(error, sizeof(error));
     }
-    fprintf(stderr, "%s: %s - %s\n", level, message, error);
+    fprintf(stderr, "%s - %s\n", message, error);
     exit(code);
 }
 
+/* Stampa l'errore su stderr */
 void _logErr(_cstring message) {
-    char buf[256];
-    errorString(buf, 256);
+    char buf[MAX_ERROR_SIZE];
+    errorString(buf, MAX_ERROR_SIZE);
     fprintf(stderr, "%s\nSystem error message: %s", message, buf);
 }
 

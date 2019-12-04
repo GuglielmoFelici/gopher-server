@@ -186,7 +186,6 @@ void readDir(LPCSTR path, SOCKET sock) {
 /* Valida la stringa ed esegue il protocollo. Ritorna l'HANDLE dell'ultimo thread generato */
 HANDLE gopher(SOCKET sock) {
     char selector[MAX_GOPHER_MSG] = "";
-    char garbage[16];
     /* Bug di curl (?) che divide la richiesta in due chiamate */
     time_t currentTime = time(NULL);
     do {

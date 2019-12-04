@@ -52,7 +52,7 @@ void _shutdown();
 
 void errorString(char* error, size_t size);
 
-void _err(_cstring message, _cstring level, bool stderror, int code);
+void _err(_cstring message, bool stderror, int code);
 
 void _logErr(_cstring message);
 
