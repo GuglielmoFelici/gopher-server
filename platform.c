@@ -40,23 +40,7 @@ void changeCwd(LPCSTR path) {
 int startup() {
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
-    if (!FreeConsole()) {
-        _err("Can't detach from console\n", ERR, false, -1);
-    } else {
-        if (!AllocConsole()) {
-            _err("Can't alloc new console\n", ERR, false, -1);
-        }
-        // Redirige gli standard stream verso la nuova console
-        HANDLE handle_out = GetStdHandle(STD_OUTPUT_HANDLE);
-        HANDLE handle_err = GetStdHandle(STD_ERROR_HANDLE);
-        int outFd = _open_osfhandle((intptr_t)handle_out, _O_TEXT);
-        int errFd = _open_osfhandle((intptr_t)handle_out, _O_TEXT);
-        FILE *outFileHandle = _fdopen(outFd, "w");
-        FILE *errFileHandle = _fdopen(errFd, "w");
-        *stdout = *outFileHandle;
-        *stderr = *errFileHandle;
-        SetConsoleTitle("Gopher server");
-    }
+    SetConsoleTitle("Gopher server");
     if (!GetCurrentDirectory(sizeof(installationDir), installationDir)) {
         _err("Cannot get current working directory", ERR, true, -1);
     }

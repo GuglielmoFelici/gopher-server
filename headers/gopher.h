@@ -36,11 +36,11 @@
 #include "log.h"
 
 _socket server;
-myPipe logPipe;
+_socket awakeSelect;
+struct sockaddr_in awakeAddr;
 _sig_atomic updateConfig;
 _sig_atomic requestShutdown;
-struct sockaddr_in awakeAddr;
-_socket awakeSelect;
+myPipe logPipe;
 _procId loggerPid;
 _procId serverPid;
 _event logEvent;

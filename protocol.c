@@ -151,7 +151,7 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
 void readDir(LPCSTR path, SOCKET sock) {
     _file file;
     char wildcardPath[MAX_NAME + 2];
-    char line[sizeof(file.name) + sizeof(file.path) + sizeof("localhost") + 4];
+    char line[sizeof(file.name) + sizeof(file.path) + sizeof(DOMAIN) + 4];
     LPSTR response;
     size_t responseSize;
     CHAR type;
@@ -169,7 +169,7 @@ void readDir(LPCSTR path, SOCKET sock) {
             strcpy(file.name, data.cFileName);
             strcat(strcpy(file.path, path), file.name);
             type = isDirectory(&data) ? '1' : gopherType(&file);
-            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, file.name, file.path, (type == '1' ? "\\" : ""), "localhost");
+            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, file.name, file.path, (type == '1' ? "\\" : ""), DOMAIN);
             if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
                 errorRoutine(&sock);
             }
@@ -328,7 +328,7 @@ void readDir(const char* path, int sock) {
     DIR* dir;
     struct dirent* entry;
     _file file;
-    char line[sizeof(entry->d_name) + sizeof(file.path) + sizeof("localhost") + 4];
+    char line[sizeof(entry->d_name) + sizeof(file.path) + sizeof(DOMAIN) + 4];
     char* response;
     char type;
     size_t responseSize;
@@ -341,7 +341,7 @@ void readDir(const char* path, int sock) {
         if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
             strcat(strcpy(file.path, path), entry->d_name);
             type = gopherType(&file);
-            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.path, (type == '1' ? "/" : ""), "localhost");
+            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.path, (type == '1' ? "/" : ""), DOMAIN);
             if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
                 closedir(dir);
                 pthread_exit(NULL);
