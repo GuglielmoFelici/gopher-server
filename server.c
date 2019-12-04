@@ -53,8 +53,6 @@ int main(int argc, _string* argv) {
     fd_set incomingConnections;
     int addrLen, _errno, ready, port;
     char* endptr;
-    setvbuf(stdout, NULL, _IONBF, 0);
-    setvbuf(stderr, NULL, _IONBF, 0);
     if ((_errno = startup()) != 0) {
         _err(_STARTUP_ERR, false, _errno);
     }
