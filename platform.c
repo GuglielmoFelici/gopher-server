@@ -22,10 +22,10 @@ void _shutdown() {
     CloseHandle(logEvent);
     CloseHandle(logPipe);
     printf("Shutting down...\n");
-    FreeConsole();
-    if (AttachConsole(loggerPid)) {
-        GenerateConsoleCtrlEvent(CTRL_C_EVENT, loggerPid);
-    }
+    // FreeConsole();
+    // if (AttachConsole(loggerPid)) {
+    //     GenerateConsoleCtrlEvent(CTRL_C_EVENT, loggerPid);
+    // }
 }
 
 void changeCwd(LPCSTR path) {
@@ -92,11 +92,11 @@ BOOL sigHandler(DWORD signum) {
     return false;
 }
 
-/* Installa i gestori di eventi console */
+/* Installa i gestori di eventi */
 void installDefaultSigHandlers() {
     awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
     if (awakeSelect == INVALID_SOCKET) {
-        _err("installSigHandler() - Error creating awake socket", true, -1);
+        _err("installSigHandlers() - Error creating awake socket", true, -1);
     }
     memset(&awakeAddr, 0, sizeof(awakeAddr));
     awakeAddr.sin_family = AF_INET;
@@ -104,10 +104,10 @@ void installDefaultSigHandlers() {
     awakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     int awakeAddrSize = sizeof(awakeAddr);
     if (bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
-        _err("installSigHandler() - Error binding awake socket", true, -1);
+        _err("installSigHandlers() - Error binding awake socket", true, -1);
     }
     if (getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
-        _err("installSigHandler() - Can't detect socket address", true, -1);
+        _err("installSigHandlers() - Can't detect socket address", true, -1);
     }
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);

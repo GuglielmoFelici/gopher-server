@@ -33,8 +33,6 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
     if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         _err("prepareServer() - "_SOCKET_ERR, true, server);
     }
-    char enable = 1;
-    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
     address->sin_family = AF_INET;
     address->sin_addr.s_addr = INADDR_ANY;
     address->sin_port = htons(options.port);
@@ -51,10 +49,10 @@ int main(int argc, _string* argv) {
     struct config options = {.port = 0, .multiProcess = -1};
     struct sockaddr_in serverAddr, clientAddr;
     fd_set incomingConnections;
-    int addrLen, _errno, ready, port;
+    int addrLen, errorCode, ready, port;
     char* endptr;
-    if ((_errno = startup()) != 0) {
-        _err(_STARTUP_ERR, false, _errno);
+    if ((errorCode = startup()) != 0) {
+        _err(_STARTUP_ERR, true, errorCode);
     }
     atexit(_shutdown);
     /* Parsing opzioni */
@@ -97,8 +95,8 @@ int main(int argc, _string* argv) {
     }
     if (options.multiProcess == -1) {
         if (readConfig(&options, READ_MULTIPROCESS) != 0) {
-            defaultConfig(&options, READ_MULTIPROCESS);
             _logErr(WARN " - " _MULTIPROCESS_CONFIG_ERR);
+            defaultConfig(&options, READ_MULTIPROCESS);
         }
     }
 
