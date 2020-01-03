@@ -6,6 +6,7 @@ HANDLE logFile;
 HANDLE logEvent;
 
 void _logErr(LPCSTR message) {
+    return;  // TODO
     char buf[256];
     FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),

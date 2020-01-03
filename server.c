@@ -24,8 +24,8 @@ _socket server;
 char installationDir[MAX_NAME] = "";
 
 /* Inizializza il socket del server e lo mette in ascolto */
-_socket prepareServer(_socket server, const struct config options, struct sockaddr_in* address) {
-    if (server != -1) {
+_socket prepareServer(_socket server, struct config* options, struct sockaddr_in* address) {
+    if (server != SERVER_INIT) {
         if (closeSocket(server) < 0) {
             _err("prepareServer() - " _CLOSE_SOCKET_ERR, true, -1);
         };
@@ -35,7 +35,7 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
     }
     address->sin_family = AF_INET;
     address->sin_addr.s_addr = INADDR_ANY;
-    address->sin_port = htons(options.port);
+    address->sin_port = htons(options->port);
     if (bind(server, (struct sockaddr*)address, sizeof(*address)) < 0) {
         _err("prepareServer() - "_BIND_ERR, true, -1);
     }
@@ -46,7 +46,7 @@ _socket prepareServer(_socket server, const struct config options, struct sockad
 }
 
 int main(int argc, _string* argv) {
-    struct config options = {.port = 0, .multiProcess = -1};
+    struct config options = {.port = INVALID_PORT, .multiProcess = INVALID_MULTIPROCESS};
     struct sockaddr_in serverAddr, clientAddr;
     fd_set incomingConnections;
     int addrLen, errorCode, ready, port;
@@ -87,13 +87,13 @@ int main(int argc, _string* argv) {
                 abort();
         }
     }
-    if (options.port == 0) {
+    if (options.port == INVALID_PORT) {
         if (readConfig(&options, READ_PORT) != 0) {
             _logErr(WARN " - " _PORT_CONFIG_ERR);
             defaultConfig(&options, READ_PORT);
         }
     }
-    if (options.multiProcess == -1) {
+    if (options.multiProcess == INVALID_MULTIPROCESS) {
         if (readConfig(&options, READ_MULTIPROCESS) != 0) {
             _logErr(WARN " - " _MULTIPROCESS_CONFIG_ERR);
             defaultConfig(&options, READ_MULTIPROCESS);
@@ -103,7 +103,7 @@ int main(int argc, _string* argv) {
     /* Configurazione */
     installDefaultSigHandlers();
     startTransferLog();
-    server = prepareServer(-1, options, &serverAddr);
+    server = prepareServer(SERVER_INIT, &options, &serverAddr);
     printf("*** GOPHER SERVER ***\n\n");
     printf("Listening on port %i (%s mode)\n", options.port, options.multiProcess ? "multiprocess" : "multithreaded");
 
@@ -119,12 +119,12 @@ int main(int argc, _string* argv) {
             } else if (updateConfig) {
                 printf("Updating config...\n");
                 int prevMultiprocess = options.multiProcess;
-                if (readConfig(&options, READ_BOTH) != 0) {
+                if (readConfig(&options, READ_PORT | READ_MULTIPROCESS) != 0) {
                     _logErr(WARN " - " _CONFIG_ERR);
                     defaultConfig(&options, READ_PORT);
                 }
                 if (options.port != htons(serverAddr.sin_port)) {
-                    server = prepareServer(server, options, &serverAddr);
+                    server = prepareServer(server, &options, &serverAddr);
                     printf("Switched to port %i\n", options.port);
                 }
                 if (options.multiProcess != prevMultiprocess) {

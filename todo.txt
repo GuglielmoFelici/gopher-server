@@ -1,5 +1,6 @@
 Controllare il funzionamento di atexit
 InstallDefaultSigHandlers
+Windows Logger
 Ballino:
     compara byte per byte
     non usare stringhe hardcoded

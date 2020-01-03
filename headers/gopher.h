@@ -65,6 +65,9 @@ void changeCwd(_cstring path);
 #define DEFAULT_PORT 7070
 #define DEFAULT_MULTI_PROCESS 0
 #define CONFIG_FILE "config"
+#define SERVER_INIT -1
+#define INVALID_PORT 0
+#define INVALID_MULTIPROCESS -1
 
 struct config {
     unsigned short port;
@@ -73,9 +76,8 @@ struct config {
 
 void defaultConfig(struct config* options, int which);
 
-#define READ_PORT 0
-#define READ_MULTIPROCESS 1
-#define READ_BOTH 2
+#define READ_PORT 1
+#define READ_MULTIPROCESS 2
 int readConfig(struct config* options, int which);
 
 int startup();

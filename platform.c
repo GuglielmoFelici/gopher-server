@@ -40,7 +40,6 @@ void changeCwd(LPCSTR path) {
 int startup() {
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
-    SetConsoleTitle("Gopher server");
     if (!GetCurrentDirectory(sizeof(installationDir), installationDir)) {
         _err("Cannot get current working directory", true, -1);
     }
@@ -484,36 +483,42 @@ void _logErr(_cstring message) {
 }
 
 void defaultConfig(struct config *options, int which) {
-    if (which == READ_PORT || which == READ_BOTH) {
+    if (which & READ_PORT) {
         options->port = DEFAULT_PORT;
     }
-    if (which == READ_MULTIPROCESS || which == READ_BOTH) {
+    if (which & READ_MULTIPROCESS) {
         options->multiProcess = DEFAULT_MULTI_PROCESS;
     }
 }
 
 int readConfig(struct config *options, int which) {
-    char configPath[MAX_NAME];
+    char *configPath, *endptr;
     FILE *configFile;
     char port[6];
     char multiProcess[2];
-    snprintf(configPath, sizeof(configPath), "%s/%s", installationDir, CONFIG_FILE);
-    configFile = fopen(configPath, "r");
-    if (configFile == NULL) {
-        return errno;
+    size_t configPathSize = strlen(installationDir) + strlen(CONFIG_FILE) + 2;
+    if ((configPath = malloc(configPathSize)) == NULL) {
+        return -1;
     }
+    if (snprintf(configPath, configPathSize, "%s/%s", installationDir, CONFIG_FILE) < configPathSize - 1) {
+        return -1;
+    }
+    if ((configFile = fopen(configPath, "r")) == NULL) {
+        return -1;
+    }
+    free(configPath);
     while (fgetc(configFile) != '=')
         ;
-    fgets(port, 6, configFile);
+    fgets(port, sizeof(port), configFile);
     while (fgetc(configFile) != '=')
         ;
-    fgets(multiProcess, 2, configFile);
+    fgets(multiProcess, sizeof(multiProcess), configFile);
     fclose(configFile);
-    if (which == READ_PORT || which == READ_BOTH) {
-        options->port = atoi(port);
+    if (which & READ_PORT) {
+        options->port = strtol(port, &endptr, 10);
     }
-    if (which == READ_MULTIPROCESS || which == READ_BOTH) {
-        options->multiProcess = (bool)atoi(multiProcess);
+    if (which & READ_MULTIPROCESS) {
+        options->multiProcess = strtol(multiProcess, &endptr, 10);
     }
     return 0;
 }
