@@ -513,9 +513,14 @@ int readConfig(struct config *options, int which) {
     while (fgetc(configFile) != '=')
         ;
     fgets(multiProcess, sizeof(multiProcess), configFile);
-    fclose(configFile);
+    if (fclose(configFile) != 0) {
+        return -1;
+    }
     if (which & READ_PORT) {
         options->port = strtol(port, &endptr, 10);
+        if (options->port < 1 || options->port > 65535) {
+            return -1;
+        }
     }
     if (which & READ_MULTIPROCESS) {
         options->multiProcess = strtol(multiProcess, &endptr, 10);
