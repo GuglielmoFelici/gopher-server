@@ -71,7 +71,7 @@ BOOL ctrlC(DWORD signum) {
     if (signum == CTRL_C_EVENT) {
         requestShutdown = true;
         if (wakeUpServer() < 0) {
-            _logErr("Can't close gracefully, will force shutdown");
+            _logErr("Can't close gracefully");
             exit(-1);
         }
         return true;
@@ -100,13 +100,13 @@ void installDefaultSigHandlers() {
     memset(&awakeAddr, 0, sizeof(awakeAddr));
     awakeAddr.sin_family = AF_INET;
     awakeAddr.sin_port = 0;
-    awakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    awakeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     int awakeAddrSize = sizeof(awakeAddr);
     if (bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
         _err("installSigHandlers() - Error binding awake socket", true, -1);
     }
     if (getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
-        _err("installSigHandlers() - Can't detect socket address", true, -1);
+        _err("installSigHandlers() - Can't detect socket address info", true, -1);
     }
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
@@ -494,8 +494,7 @@ void defaultConfig(struct config *options, int which) {
 int readConfig(struct config *options, int which) {
     char *configPath, *endptr;
     FILE *configFile;
-    char port[6];
-    char multiProcess[2];
+    char port[6], multiProcess[2];
     size_t configPathSize = strlen(installationDir) + strlen(CONFIG_FILE) + 2;
     if ((configPath = malloc(configPathSize)) == NULL) {
         return -1;

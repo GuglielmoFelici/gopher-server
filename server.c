@@ -30,7 +30,7 @@ _socket prepareServer(_socket server, struct config* options, struct sockaddr_in
             _err("prepareServer() - " _CLOSE_SOCKET_ERR, true, -1);
         };
     }
-    if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((server = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
         _err("prepareServer() - "_SOCKET_ERR, true, server);
     }
     address->sin_family = AF_INET;
@@ -65,8 +65,9 @@ int main(int argc, _string* argv) {
             case 'm':
                 options.multiProcess = 1;
                 break;
-            case 'p':
-                port = atoi(optarg);
+            case 'p':;
+                char* strtolPtr = NULL;
+                port = strtol(optarg, &strtolPtr, 10);
                 if (port < 1 || port > 65535) {
                     fprintf(stderr, "Invalid port number: %s\n", optarg);
                     exit(1);
@@ -114,7 +115,7 @@ int main(int argc, _string* argv) {
         do {
             if (requestShutdown) {
                 exit(0);
-            } else if (ready < 0 && sockErr() != EINTR) {
+            } else if (ready == SOCKET_ERROR && sockErr() != EINTR) {
                 _err("Server - "_SELECT_ERR, true, -1);
             } else if (updateConfig) {
                 printf("Updating config...\n");
@@ -139,11 +140,9 @@ int main(int argc, _string* argv) {
         printf("Incoming connection on port %d\n", htons(serverAddr.sin_port));
         addrLen = sizeof(clientAddr);
         _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
-        if (client < 0) {
+        if (client == INVALID_SOCKET) {
             _logErr(WARN "Error serving client");
-            continue;
-        }
-        if (options.multiProcess) {
+        } else if (options.multiProcess) {
             serveProc(client);
             closeSocket(client);
         } else {

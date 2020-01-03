@@ -1,0 +1,7 @@
+WINDOWS 
+
+prepareServer
+startUp
+readConfig
+defaultConfig
+installDefaultSigHandlers & sons

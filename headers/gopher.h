@@ -88,6 +88,13 @@ void installDefaultSigHandlers();
 
 /* Sockets */
 
+#ifndef INVALID_SOCKET
+#define INVALID_SOCKET -1
+#endif
+#ifndef SOCKET_ERROR
+#define SOCKET_ERROR -1
+#endif
+
 int sockErr();
 
 int closeSocket(_socket s);

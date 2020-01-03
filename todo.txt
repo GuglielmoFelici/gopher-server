@@ -1,6 +1,10 @@
 Controllare il funzionamento di atexit
 InstallDefaultSigHandlers
+    evitabile socket per awake select?
 Windows Logger
+Spostare definizioni da datatypes
+
+
 Ballino:
     compara byte per byte
     non usare stringhe hardcoded
