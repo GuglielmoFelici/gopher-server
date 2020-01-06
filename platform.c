@@ -391,6 +391,7 @@ void loggerLoop(int inPipe) {
     char buff[PIPE_BUF];
     char logFilePath[MAX_NAME];
     prctl(PR_SET_NAME, "Gopher logger");
+    prctl(PR_SET_PDEATHSIG, SIGINT);
     snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);
     if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
         printf(WARN " - Can't start logger\n");
