@@ -6,6 +6,7 @@ Spostare definizioni da datatypes
 Processo daemon linux:
     loggare con syslog invece di file
 Mettere startup() subito prima del loop?
+LOGGING TUTTO SBAGLIATO
 
 Ballino:
     compara byte per byte

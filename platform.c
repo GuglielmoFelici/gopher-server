@@ -276,9 +276,9 @@ int startup() {
             serverStdOut = creat(fileName, S_IRWXU);
             snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
             serverStdErr = creat(fileName, S_IRWXU);
-            if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
-                _err(_DAEMON_ERR, true, -1);
-            }
+            // if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
+            //     _err(_DAEMON_ERR, true, -1);
+            // }
             return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
         }
     }
@@ -299,7 +299,6 @@ int closeSocket(int s) {
 
 /* Richiede la rilettura del file di configurazione */
 void hupHandler(int signum) {
-    printf("laido\n");
     updateConfig = true;
 }
 
@@ -334,9 +333,9 @@ void closeThread() {
 void runGopher(int sock, bool multiProcess) {
     pthread_cleanup_push(errorRoutine, &sock);
     _thread tid = gopher(sock);
-    if (tid != NULL) {
+    if (tid > 0) {
         if (multiProcess) {
-            pthread_join(tid, NULL);
+            printf("%d\n", pthread_join(tid, NULL));
         } else {
             pthread_detach(tid);
         }
@@ -383,6 +382,7 @@ void serveProc(int sock) {
 
 pthread_mutex_t *mutexShare;
 pthread_cond_t *condShare;
+bool loggerShutdown = false;
 
 /* Effettua una scrittura sulla pipe di logging */
 void logTransfer(char *log) {
@@ -394,8 +394,8 @@ void logTransfer(char *log) {
 
 /* Handler per SIGINT relativo al logger */
 void logIntHandler(int signum) {
-    requestShutdown = true;
-    pthread_cond_signal(condShare);
+    loggerShutdown = true;
+    logTransfer("");
 }
 
 /* Loop di logging */
@@ -412,17 +412,23 @@ void loggerLoop(int inPipe) {
     pthread_mutex_lock(mutexShare);
     while (1) {
         size_t bytesRead;
-        if (requestShutdown) {
+        if (loggerShutdown) {
+            printf("logger requested sd\n");
             pthread_mutex_unlock(mutexShare);
             break;
         }
+        printf("Logger mutex locked\n");
         pthread_cond_wait(condShare, mutexShare);
+        printf("Logger entered cond\n");
         if ((bytesRead = read(inPipe, buff, PIPE_BUF)) < 0) {
+            printf("Logger err\n");
             exitCode = 1;
+            pthread_mutex_unlock(mutexShare);
             break;
         } else {
             write(logFile, buff, bytesRead);
         }
+        printf("Logger end of loop\n");
     }
     munmap(mutexShare, sizeof(pthread_mutex_t));
     munmap(condShare, sizeof(pthread_cond_t));

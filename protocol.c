@@ -256,6 +256,7 @@ char gopherType(const _file* file) {
 void* sendFile(void* sendFileArgs) {
     struct sendFileArgs args;
     void* response;
+    int sent = 0;
     struct sockaddr_in clientAddr;
     socklen_t clientLen;
     args = *((struct sendFileArgs*)sendFileArgs);
@@ -265,7 +266,7 @@ void* sendFile(void* sendFileArgs) {
     }
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
-    if (send(args.dest, response, args.size + 2, 0) >= 0) {
+    if (send(args.dest, response, args.size + 2, O_NONBLOCK) >= 0) {
         char log[PIPE_BUF];
         char address[16];
         clientLen = sizeof(clientAddr);
@@ -301,7 +302,7 @@ pthread_t readFile(const char* path, int sock) {
             pthread_exit(NULL);
         }
         close(sock);
-        return NULL;
+        return -1;
     }
     if ((map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
         pthread_exit(NULL);
@@ -367,7 +368,7 @@ pthread_t gopher(int sock) {
         pthread_exit(NULL);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '/') {  // Directory
         readDir(selector, sock);
-        return NULL;
+        return -1;
     } else {  // File
         return readFile(selector, sock);
     }
