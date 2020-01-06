@@ -211,7 +211,7 @@ HANDLE gopher(SOCKET sock) {
 #else
 
 /*****************************************************************************************************************/
-/*                                             UNIX FUNCTIONS                                                    */
+/*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
 
@@ -301,7 +301,7 @@ pthread_t readFile(const char* path, int sock) {
             pthread_exit(NULL);
         }
         close(sock);
-        return -1;
+        return NULL;
     }
     if ((map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
         pthread_exit(NULL);
@@ -367,7 +367,7 @@ pthread_t gopher(int sock) {
         pthread_exit(NULL);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '/') {  // Directory
         readDir(selector, sock);
-        return pthread_self();
+        return NULL;
     } else {  // File
         return readFile(selector, sock);
     }

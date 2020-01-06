@@ -108,8 +108,12 @@ void installDefaultSigHandlers() {
     if (getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
         _err("installSigHandlers() - Can't detect socket address info", true, -1);
     }
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
+    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE)) {
+        _err("installSigHandlers() - Can't set console event handler", true, -1);
+    }
+    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE)) {
+        _err("installSigHandlers() - Can't set console event handler", true, -1);
+    }
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
@@ -207,7 +211,7 @@ void startTransferLog() {
 #else
 
 /*****************************************************************************************************************/
-/*                                             UNIX FUNCTIONS                                                    */
+/*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
 
@@ -234,9 +238,9 @@ void changeCwd(const char *path) {
 /* Rende il server un processo demone */
 int startup() {
     int pid;
-    serverPid = getpid();
-    getcwd(installationDir, sizeof(installationDir));
-
+    if (getcwd(installationDir, sizeof(installationDir)) == NULL) {
+        _err("Cannot get current working directory", true, -1);
+    }
     pid = fork();
     if (pid < 0) {
         _err(_DAEMON_ERR, true, errno);
@@ -247,9 +251,15 @@ int startup() {
         if (setsid() < 0) {
             _err(_DAEMON_ERR, true, errno);
         }
-        sigemptyset(&set);
-        sigaddset(&set, SIGHUP);
-        sigprocmask(SIG_BLOCK, &set, NULL);
+        if (sigemptyset(&set) < 0) {
+            _err(_DAEMON_ERR, true, errno);
+        }
+        if (sigaddset(&set, SIGHUP) < 0) {
+            _err(_DAEMON_ERR, true, errno);
+        }
+        if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+            _err(_DAEMON_ERR, true, errno);
+        }
         pid = fork();
         if (pid < 0) {
             _err(_DAEMON_ERR, true, errno);
@@ -258,7 +268,9 @@ int startup() {
         } else {
             int serverStdIn, serverStdErr, serverStdOut;
             char fileName[PATH_MAX];
-            sigprocmask(SIG_UNBLOCK, &set, NULL);
+            if (sigprocmask(SIG_UNBLOCK, &set, NULL) < 0) {
+                _err(_DAEMON_ERR, true, errno);
+            }
             serverStdIn = open("/dev/null", O_RDWR);
             snprintf(fileName, PATH_MAX, "%s/serverStdOut", installationDir);
             serverStdOut = creat(fileName, S_IRWXU);
@@ -322,10 +334,12 @@ void closeThread() {
 void runGopher(int sock, bool multiProcess) {
     pthread_cleanup_push(errorRoutine, &sock);
     _thread tid = gopher(sock);
-    if (multiProcess) {
-        pthread_join(tid, NULL);
-    } else {
-        pthread_detach(tid);
+    if (tid != NULL) {
+        if (multiProcess) {
+            pthread_join(tid, NULL);
+        } else {
+            pthread_detach(tid);
+        }
     }
     pthread_cleanup_pop(0);
 }
@@ -507,10 +521,10 @@ int readConfig(struct config *options, int which) {
         return -1;
     }
     free(configPath);
-    while (fgetc(configFile) != '=')
+    while (fgetc(configFile) != CONFIG_DELIMITER)
         ;
     fgets(port, sizeof(port), configFile);
-    while (fgetc(configFile) != '=')
+    while (fgetc(configFile) != CONFIG_DELIMITER)
         ;
     fgets(multiProcess, sizeof(multiProcess), configFile);
     if (fclose(configFile) != 0) {

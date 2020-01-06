@@ -42,7 +42,6 @@ _sig_atomic updateConfig;
 _sig_atomic requestShutdown;
 myPipe logPipe;
 _procId loggerPid;
-_procId serverPid;
 _event logEvent;
 char installationDir[MAX_NAME];
 
@@ -62,12 +61,13 @@ void changeCwd(_cstring path);
 
 /* Config */
 
-#define DEFAULT_PORT 7070
-#define DEFAULT_MULTI_PROCESS 0
+#define CONFIG_DELIMITER '='
 #define CONFIG_FILE "config"
-#define SERVER_INIT -1
+#define DEFAULT_MULTI_PROCESS 0
+#define DEFAULT_PORT 7070
 #define INVALID_PORT 0
 #define INVALID_MULTIPROCESS -1
+#define SERVER_INIT -1
 
 struct config {
     unsigned short port;
