@@ -22,10 +22,10 @@ void _shutdown() {
     CloseHandle(logEvent);
     CloseHandle(logPipe);
     printf("Shutting down...\n");
-    FreeConsole();
-    if (AttachConsole(loggerPid)) {
-        GenerateConsoleCtrlEvent(CTRL_C_EVENT, loggerPid);
-    }
+    // FreeConsole();
+    // if (AttachConsole(loggerPid)) {
+    //     GenerateConsoleCtrlEvent(CTRL_C_EVENT, loggerPid);
+    // }
 }
 
 void changeCwd(LPCSTR path) {
@@ -40,7 +40,6 @@ void changeCwd(LPCSTR path) {
 int startup() {
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
-    SetConsoleTitle("Gopher server");
     if (!GetCurrentDirectory(sizeof(installationDir), installationDir)) {
         _err("Cannot get current working directory", true, -1);
     }
@@ -72,7 +71,7 @@ BOOL ctrlC(DWORD signum) {
     if (signum == CTRL_C_EVENT) {
         requestShutdown = true;
         if (wakeUpServer() < 0) {
-            _logErr("Can't close gracefully, will force shutdown");
+            _logErr("Can't close gracefully");
             exit(-1);
         }
         return true;
@@ -92,22 +91,22 @@ BOOL sigHandler(DWORD signum) {
     return false;
 }
 
-/* Installa i gestori di eventi console */
+/* Installa i gestori di eventi */
 void installDefaultSigHandlers() {
     awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
     if (awakeSelect == INVALID_SOCKET) {
-        _err("installSigHandler() - Error creating awake socket", true, -1);
+        _err("installSigHandlers() - Error creating awake socket", true, -1);
     }
     memset(&awakeAddr, 0, sizeof(awakeAddr));
     awakeAddr.sin_family = AF_INET;
     awakeAddr.sin_port = 0;
-    awakeAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    awakeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     int awakeAddrSize = sizeof(awakeAddr);
     if (bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
-        _err("installSigHandler() - Error binding awake socket", true, -1);
+        _err("installSigHandlers() - Error binding awake socket", true, -1);
     }
     if (getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
-        _err("installSigHandler() - Can't detect socket address", true, -1);
+        _err("installSigHandlers() - Can't detect socket address info", true, -1);
     }
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
@@ -485,36 +484,46 @@ void _logErr(_cstring message) {
 }
 
 void defaultConfig(struct config *options, int which) {
-    if (which == READ_PORT || which == READ_BOTH) {
+    if (which & READ_PORT) {
         options->port = DEFAULT_PORT;
     }
-    if (which == READ_MULTIPROCESS || which == READ_BOTH) {
+    if (which & READ_MULTIPROCESS) {
         options->multiProcess = DEFAULT_MULTI_PROCESS;
     }
 }
 
 int readConfig(struct config *options, int which) {
-    char configPath[MAX_NAME];
+    char *configPath, *endptr;
     FILE *configFile;
-    char port[6];
-    char multiProcess[2];
-    snprintf(configPath, sizeof(configPath), "%s/%s", installationDir, CONFIG_FILE);
-    configFile = fopen(configPath, "r");
-    if (configFile == NULL) {
-        return errno;
+    char port[6], multiProcess[2];
+    size_t configPathSize = strlen(installationDir) + strlen(CONFIG_FILE) + 2;
+    if ((configPath = malloc(configPathSize)) == NULL) {
+        return -1;
     }
+    if (snprintf(configPath, configPathSize, "%s/%s", installationDir, CONFIG_FILE) < configPathSize - 1) {
+        return -1;
+    }
+    if ((configFile = fopen(configPath, "r")) == NULL) {
+        return -1;
+    }
+    free(configPath);
     while (fgetc(configFile) != '=')
         ;
-    fgets(port, 6, configFile);
+    fgets(port, sizeof(port), configFile);
     while (fgetc(configFile) != '=')
         ;
-    fgets(multiProcess, 2, configFile);
-    fclose(configFile);
-    if (which == READ_PORT || which == READ_BOTH) {
-        options->port = atoi(port);
+    fgets(multiProcess, sizeof(multiProcess), configFile);
+    if (fclose(configFile) != 0) {
+        return -1;
     }
-    if (which == READ_MULTIPROCESS || which == READ_BOTH) {
-        options->multiProcess = (bool)atoi(multiProcess);
+    if (which & READ_PORT) {
+        options->port = strtol(port, &endptr, 10);
+        if (options->port < 1 || options->port > 65535) {
+            return -1;
+        }
+    }
+    if (which & READ_MULTIPROCESS) {
+        options->multiProcess = strtol(multiProcess, &endptr, 10);
     }
     return 0;
 }
