@@ -112,6 +112,8 @@ void closeThread();
 /* Gopher */
 
 #define BUFF_SIZE 70
+#define GOPHER_SYSTEM_ERROR -1
+#define BAD_SELECTOR -2
 
 _thread gopher(_socket sock);
 

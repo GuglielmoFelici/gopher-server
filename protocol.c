@@ -183,49 +183,60 @@ void readDir(LPCSTR path, SOCKET sock) {
     closesocket(sock);
 }
 
-LPSTR altTrimEnding(_string str) {
-    char* saveptr;
-    return strtok_r(str, "\r\n", &saveptr);
+DWORD validateInput(_string str) {
+    LPSTR saveptr;
+    LPSTR ret = strtok_r(str, "\r\n", &saveptr);
+    if (ret != NULL) {
+        if (strstr(ret, "..\\") || ret[0] == '\\') {
+            return -1;
+        }
+        return 0;
+    }
+    return -1;
 }
 
-/* Valida la stringa ed esegue il protocollo. Se avvia un trasferimento, ritorna l'handle del thread */
-HANDLE gopher(SOCKET sock) {
+/* Valida la stringa ed esegue il protocollo. Se avvia un trasferimento, ritorna l'handle del thread.
+   In caso di errore ritorna INVALID_HANDLE_VALUE */
+DWORD gopher(SOCKET sock, bool waitForSend) {
     LPSTR selector;
     char buf[BUFF_SIZE];
     size_t bytesRec = 0, selectorSize = 1;
-    HANDLE sendTrhead = NULL;
+    HANDLE sendThread = NULL;
     selector = calloc(1, 1);
     if (selector == NULL) {
-        errorRoutine(&sock);
+        return GOPHER_SYSTEM_ERROR;
     }
     do {
         bytesRec = recv(sock, buf, MAX_GOPHER_MSG, 0);
+        if (bytesRec < 0) {
+            free(selector);
+            return GOPHER_SYSTEM_ERROR;
+        }
         selector = realloc(selector, selectorSize + bytesRec);
         if (selector == NULL) {
-            errorRoutine(&sock);
+            return GOPHER_SYSTEM_ERROR;
         }
         memcpy(selector + selectorSize - 1, buf, bytesRec);
         selectorSize += bytesRec;
     } while (bytesRec > 0 && !strstr(selector, "\r\n"));
-    if (bytesRec < 0) {
+    if (validateInput(selector) < 0) {
         free(selector);
-        errorRoutine(&sock);
-    }
-    if (altTrimEnding(selector) == NULL) {
-        free(selector);
-        errorRoutine(&sock);
+        return BAD_SELECTOR;
     }
     printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
-    if (strstr(selector, "..\\") || selector[0] == '\\') {
-        free(selector);
-        errorRoutine(&sock);
-    } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
+    if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
         readDir(selector, sock);
     } else {  // File
-        sendTrhead = readFile(selector, sock);
+        sendThread = readFile(selector, sock);
+        if (sendThread == NULL) {
+            free(selector);
+            return -1;  // TODO return cosa è giusto questo if?
+        } else if (waitForSend) {
+            WaitForSingleObject(sendThread, INFINITE);
+        }
     }
     free(selector);
-    return sendTrhead;
+    return 0;
 }
 
 #else
