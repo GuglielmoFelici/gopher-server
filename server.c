@@ -139,6 +139,7 @@ int main(int argc, _string* argv) {
         if (client == INVALID_SOCKET) {
             _logErr(WARN "Error serving client");
         } else if (options.multiProcess) {
+            // TODO controllare return value
             serveProc(client);
             closeSocket(client);
         } else {

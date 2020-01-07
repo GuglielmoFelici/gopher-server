@@ -101,9 +101,11 @@ int closeSocket(_socket s);
 
 /* Threads & processes */
 
+#define HELPER_PATH "helpers\\winGopherProcess.exe"
+
 void serveThread(_socket* socket);
 
-void serveProc(_socket socket);
+int serveProc(_socket socket);
 
 void closeThread();
 

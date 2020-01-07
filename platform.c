@@ -101,7 +101,7 @@ void installDefaultSigHandlers() {
     awakeAddr.sin_family = AF_INET;
     awakeAddr.sin_port = 0;
     awakeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    int awakeAddrSize = sizeof(awakeAddr);
+    size_t awakeAddrSize = sizeof(awakeAddr);
     if (bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
         _err("installSigHandlers() - Error binding awake socket", true, -1);
     }
@@ -136,30 +136,43 @@ void serveThread(SOCKET *sock) {
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-void serveProc(SOCKET client) {
-    char exec[MAX_NAME];
-    snprintf(exec, sizeof(exec), "%s/helpers/winGopherProcess.exe", installationDir);
+int serveProc(SOCKET client) {
+    LPSTR exec;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    int cmdLineSize = 1;
-    LPSTR cmdLine = calloc(1, 1);
+    char cmdLine[MAX_PATH];
+    size_t execSize = strlen(installationDir) + strlen(HELPER_PATH) + 4;
+    exec = malloc(execSize);
+    if (exec == NULL) {
+        return -1;
+    }
+    if (snprintf(exec, execSize, "%s/" HELPER_PATH, installationDir) < 0) {
+        return -1;
+    }
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
     startupInfo.dwFlags = STARTF_USESTDHANDLES;
     startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    if (startupInfo.hStdInput == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (startupInfo.hStdOutput == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    do {
-        cmdLineSize += 30;
-        cmdLine = realloc(cmdLine, cmdLineSize);
-        if (cmdLine == NULL) {
-            _logErr("Error serving the client with a new process");
-            return;
-        }
-    } while (snprintf(cmdLine, sizeof(cmdLine), "%s %d %p %p", exec, client, logPipe, logEvent));
-    CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
-    free(cmdLine);
+    if (startupInfo.hStdError == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
+    // TODO size dinamico?
+    if (snprintf(cmdLine, sizeof(cmdLine), "%s %d %p %p", exec, client, logPipe, logEvent) < 0) {
+        return -1;
+    }
+    if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+        return -1;
+    }
+    free(exec);
 }
 
 /*********************************************** LOGGER ***************************************************************/

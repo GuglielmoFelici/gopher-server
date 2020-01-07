@@ -183,18 +183,21 @@ void readDir(LPCSTR path, SOCKET sock) {
     closesocket(sock);
 }
 
-/* Valida la stringa ed esegue il protocollo. Ritorna l'HANDLE dell'ultimo thread generato */
+/* Valida la stringa ed esegue il protocollo. Se avvia un trasferimento, ritorna l'handle del thread */
 HANDLE gopher(SOCKET sock) {
     char selector[MAX_GOPHER_MSG] = "";
+    int bytesRec = 0;
     /* Bug di curl (?) che divide la richiesta in due chiamate */
     time_t currentTime = time(NULL);
     do {
-        if (time(NULL) - currentTime > MAX_SECONDS_WAIT) {
-            errorRoutine(&sock);
-        }
-        recv(sock, selector, MAX_GOPHER_MSG, MSG_PEEK);
-    } while (strlen(selector) > 0 && selector[strlen(selector) - 1] != '\n');
+        bytesRec = recv(sock, selector, MAX_GOPHER_MSG, MSG_PEEK);
+    } while (bytesRec > 0);
+    if (bytesRec < 0) {
+        errorRoutine(&sock);
+    }
     recv(sock, selector, MAX_GOPHER_MSG, 0);
+    printf("SELECTOR: %s_\n", selector);
+    printf("%d\n", strcmp(selector, "\r\n"));
     shutdown(sock, SD_RECEIVE);
     trimEnding(selector);
     printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
@@ -202,7 +205,7 @@ HANDLE gopher(SOCKET sock) {
         errorRoutine(&sock);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
         readDir(selector, sock);
-        return GetCurrentThread();
+        return NULL;
     } else {  // File
         return readFile(selector, sock);
     }

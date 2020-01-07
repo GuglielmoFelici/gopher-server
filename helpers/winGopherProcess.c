@@ -6,14 +6,16 @@ DWORD main(DWORD argc, LPSTR* argv) {
     HANDLE thread;
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
-    WSAStartup(versionWanted, &wsaData);
+    if (WSAStartup(versionWanted, &wsaData) != 0) {
+        return -1;
+    }
     sscanf(argv[1], "%d", &sock);
     sscanf(argv[2], "%p", &logPipe);
     sscanf(argv[3], "%p", &logEvent);
     thread = gopher(sock);
     if (thread != NULL) {
-        WaitForSingleObject(thread, 10000);
+        WaitForSingleObject(thread, INFINITE);
     }
     closeSocket(sock);
-    return 0;
+    return WSACleanup();
 }
