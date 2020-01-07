@@ -2,12 +2,11 @@
 #define GOPHER_H
 
 #if defined(_WIN32)
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0501
-#endif
+
 #include <fcntl.h>
 #include <io.h>
 #include <windows.h>
+
 #else
 #define _GNU_SOURCE
 #include <arpa/inet.h>
@@ -30,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include "constants.h"
 
 #include "datatypes.h"
 #include "log.h"
@@ -59,16 +58,6 @@ _string trimEnding(_string str);
 
 void changeCwd(_cstring path);
 
-/* Config */
-
-#define CONFIG_DELIMITER '='
-#define CONFIG_FILE "config"
-#define DEFAULT_MULTI_PROCESS 0
-#define DEFAULT_PORT 7070
-#define INVALID_PORT 0
-#define INVALID_MULTIPROCESS -1
-#define SERVER_INIT -1
-
 struct config {
     unsigned short port;
     int multiProcess;
@@ -76,8 +65,6 @@ struct config {
 
 void defaultConfig(struct config* options, int which);
 
-#define READ_PORT 1
-#define READ_MULTIPROCESS 2
 int readConfig(struct config* options, int which);
 
 int startup();
@@ -88,20 +75,11 @@ void installDefaultSigHandlers();
 
 /* Sockets */
 
-#ifndef INVALID_SOCKET
-#define INVALID_SOCKET -1
-#endif
-#ifndef SOCKET_ERROR
-#define SOCKET_ERROR -1
-#endif
-
 int sockErr();
 
 int closeSocket(_socket s);
 
 /* Threads & processes */
-
-#define HELPER_PATH "helpers\\winGopherProcess.exe"
 
 void serveThread(_socket* socket);
 
@@ -111,11 +89,7 @@ void closeThread();
 
 /* Gopher */
 
-#define BUFF_SIZE 70
-#define GOPHER_SYSTEM_ERROR -1
-#define BAD_SELECTOR -2
-
-_thread gopher(_socket sock);
+int gopher(_socket sock, bool waitForSend);
 
 void errorRoutine(void* sock);
 

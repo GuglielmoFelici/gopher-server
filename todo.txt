@@ -1,4 +1,7 @@
 Common:
+    Costanti in header a parte
+    windows gopher si occupa di inviare risposta di errore
+    gopher unificabile?
     USA strrchr (trova ultima occorrenza di carattere in str)!!!
     Controllare il funzionamento di atexit
     Spostare definizioni da datatypes

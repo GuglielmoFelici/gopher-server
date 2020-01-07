@@ -10,6 +10,7 @@
 /************************************************** UTILS ********************************************************/
 
 void errorString(char *error, size_t size) {
+    ;
     FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                   error, size, NULL);
@@ -127,7 +128,7 @@ void *serveThreadTask(void *args) {
     SOCKET sock;
     sock = *(SOCKET *)args;
     free(args);
-    gopher(sock);  // Il protocollo viene eseguito qui
+    gopher(sock, false);  // Il protocollo viene eseguito qui TODO waitForSend false è giusto??
 }
 
 /* Serve una richiesta in modalità multithreading. */

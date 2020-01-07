@@ -12,10 +12,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
     sscanf(argv[1], "%d", &sock);
     sscanf(argv[2], "%p", &logPipe);
     sscanf(argv[3], "%p", &logEvent);
-    thread = gopher(sock);
-    if (thread != NULL) {
-        WaitForSingleObject(thread, INFINITE);
-    }
+    gopher(sock, true);
     closeSocket(sock);
     return WSACleanup();
 }
