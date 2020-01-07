@@ -183,29 +183,49 @@ void readDir(LPCSTR path, SOCKET sock) {
     closesocket(sock);
 }
 
+LPSTR altTrimEnding(_string str) {
+    char* saveptr;
+    return strtok_r(str, "\r\n", &saveptr);
+}
+
 /* Valida la stringa ed esegue il protocollo. Se avvia un trasferimento, ritorna l'handle del thread */
 HANDLE gopher(SOCKET sock) {
-    char selector[MAX_GOPHER_MSG] = "";
-    int bytesRec = 0;
-    do {
-        bytesRec = recv(sock, selector, MAX_GOPHER_MSG, 0);
-    } while (bytesRec > 0);
-    if (bytesRec < 0) {
+    LPSTR selector;
+    char buf[BUFF_SIZE];
+    size_t bytesRec = 0, selectorSize = 1;
+    HANDLE sendTrhead = NULL;
+    selector = calloc(1, 1);
+    if (selector == NULL) {
         errorRoutine(&sock);
     }
-    printf("SELECTOR: %s_\n", selector);
-    printf("%d\n", strcmp(selector, "\r\n"));
-    shutdown(sock, SD_RECEIVE);
-    trimEnding(selector);
+    do {
+        bytesRec = recv(sock, buf, MAX_GOPHER_MSG, 0);
+        selector = realloc(selector, selectorSize + bytesRec);
+        if (selector == NULL) {
+            errorRoutine(&sock);
+        }
+        memcpy(selector + selectorSize - 1, buf, bytesRec);
+        selectorSize += bytesRec;
+    } while (bytesRec > 0 && !strstr(selector, "\r\n"));
+    if (bytesRec < 0) {
+        free(selector);
+        errorRoutine(&sock);
+    }
+    if (altTrimEnding(selector) == NULL) {
+        free(selector);
+        errorRoutine(&sock);
+    }
     printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
-    if (strstr(selector, ".\\") || strstr(selector, "..\\") || selector[0] == '\\' || strstr(selector, "\\\\")) {
+    if (strstr(selector, "..\\") || selector[0] == '\\') {
+        free(selector);
         errorRoutine(&sock);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
         readDir(selector, sock);
-        return NULL;
     } else {  // File
-        return readFile(selector, sock);
+        sendTrhead = readFile(selector, sock);
     }
+    free(selector);
+    return sendTrhead;
 }
 
 #else

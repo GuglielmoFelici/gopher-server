@@ -1,7 +1,10 @@
 Common:
+    USA strrchr (trova ultima occorrenza di carattere in str)!!!
     Controllare il funzionamento di atexit
     Spostare definizioni da datatypes
     Mettere startup() subito prima del main loop?
+    Rimuovere trimEnding? Sostituire con isolamento primo token usando clrf come separatore?
+    Migliorare report errori in errorRoutine?
 
 Linux:
     linux gopher deve ritornare null?

@@ -111,6 +111,8 @@ void closeThread();
 
 /* Gopher */
 
+#define BUFF_SIZE 70
+
 _thread gopher(_socket sock);
 
 void errorRoutine(void* sock);
