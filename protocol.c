@@ -187,15 +187,12 @@ void readDir(LPCSTR path, SOCKET sock) {
 HANDLE gopher(SOCKET sock) {
     char selector[MAX_GOPHER_MSG] = "";
     int bytesRec = 0;
-    /* Bug di curl (?) che divide la richiesta in due chiamate */
-    time_t currentTime = time(NULL);
     do {
-        bytesRec = recv(sock, selector, MAX_GOPHER_MSG, MSG_PEEK);
+        bytesRec = recv(sock, selector, MAX_GOPHER_MSG, 0);
     } while (bytesRec > 0);
     if (bytesRec < 0) {
         errorRoutine(&sock);
     }
-    recv(sock, selector, MAX_GOPHER_MSG, 0);
     printf("SELECTOR: %s_\n", selector);
     printf("%d\n", strcmp(selector, "\r\n"));
     shutdown(sock, SD_RECEIVE);
