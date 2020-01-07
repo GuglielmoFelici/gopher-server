@@ -101,15 +101,19 @@ void installDefaultSigHandlers() {
     awakeAddr.sin_family = AF_INET;
     awakeAddr.sin_port = 0;
     awakeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    int awakeAddrSize = sizeof(awakeAddr);
+    size_t awakeAddrSize = sizeof(awakeAddr);
     if (bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
         _err("installSigHandlers() - Error binding awake socket", true, -1);
     }
     if (getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
         _err("installSigHandlers() - Can't detect socket address info", true, -1);
     }
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE);
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
+    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE)) {
+        _err("installSigHandlers() - Can't set console event handler", true, -1);
+    }
+    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE)) {
+        _err("installSigHandlers() - Can't set console event handler", true, -1);
+    }
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
@@ -132,30 +136,43 @@ void serveThread(SOCKET *sock) {
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-void serveProc(SOCKET client) {
-    char exec[MAX_NAME];
-    snprintf(exec, sizeof(exec), "%s/helpers/winGopherProcess.exe", installationDir);
+int serveProc(SOCKET client) {
+    LPSTR exec;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    int cmdLineSize = 1;
-    LPSTR cmdLine = calloc(1, 1);
+    char cmdLine[MAX_PATH];
+    size_t execSize = strlen(installationDir) + strlen(HELPER_PATH) + 4;
+    exec = malloc(execSize);
+    if (exec == NULL) {
+        return -1;
+    }
+    if (snprintf(exec, execSize, "%s/" HELPER_PATH, installationDir) < 0) {
+        return -1;
+    }
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
     startupInfo.dwFlags = STARTF_USESTDHANDLES;
     startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    if (startupInfo.hStdInput == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (startupInfo.hStdOutput == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    do {
-        cmdLineSize += 30;
-        cmdLine = realloc(cmdLine, cmdLineSize);
-        if (cmdLine == NULL) {
-            _logErr("Error serving the client with a new process");
-            return;
-        }
-    } while (snprintf(cmdLine, sizeof(cmdLine), "%s %d %p %p", exec, client, logPipe, logEvent));
-    CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo);
-    free(cmdLine);
+    if (startupInfo.hStdError == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
+    // TODO size dinamico?
+    if (snprintf(cmdLine, sizeof(cmdLine), "%s %d %p %p", exec, client, logPipe, logEvent) < 0) {
+        return -1;
+    }
+    if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+        return -1;
+    }
+    free(exec);
 }
 
 /*********************************************** LOGGER ***************************************************************/
@@ -207,7 +224,7 @@ void startTransferLog() {
 #else
 
 /*****************************************************************************************************************/
-/*                                             UNIX FUNCTIONS                                                    */
+/*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
 
@@ -234,9 +251,9 @@ void changeCwd(const char *path) {
 /* Rende il server un processo demone */
 int startup() {
     int pid;
-    serverPid = getpid();
-    getcwd(installationDir, sizeof(installationDir));
-
+    if (getcwd(installationDir, sizeof(installationDir)) == NULL) {
+        _err("Cannot get current working directory", true, -1);
+    }
     pid = fork();
     if (pid < 0) {
         _err(_DAEMON_ERR, true, errno);
@@ -247,9 +264,15 @@ int startup() {
         if (setsid() < 0) {
             _err(_DAEMON_ERR, true, errno);
         }
-        sigemptyset(&set);
-        sigaddset(&set, SIGHUP);
-        sigprocmask(SIG_BLOCK, &set, NULL);
+        if (sigemptyset(&set) < 0) {
+            _err(_DAEMON_ERR, true, errno);
+        }
+        if (sigaddset(&set, SIGHUP) < 0) {
+            _err(_DAEMON_ERR, true, errno);
+        }
+        if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+            _err(_DAEMON_ERR, true, errno);
+        }
         pid = fork();
         if (pid < 0) {
             _err(_DAEMON_ERR, true, errno);
@@ -258,15 +281,17 @@ int startup() {
         } else {
             int serverStdIn, serverStdErr, serverStdOut;
             char fileName[PATH_MAX];
-            sigprocmask(SIG_UNBLOCK, &set, NULL);
+            if (sigprocmask(SIG_UNBLOCK, &set, NULL) < 0) {
+                _err(_DAEMON_ERR, true, errno);
+            }
             serverStdIn = open("/dev/null", O_RDWR);
             snprintf(fileName, PATH_MAX, "%s/serverStdOut", installationDir);
             serverStdOut = creat(fileName, S_IRWXU);
             snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
             serverStdErr = creat(fileName, S_IRWXU);
-            if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
-                _err(_DAEMON_ERR, true, -1);
-            }
+            // if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
+            //     _err(_DAEMON_ERR, true, -1);
+            // }
             return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
         }
     }
@@ -287,7 +312,6 @@ int closeSocket(int s) {
 
 /* Richiede la rilettura del file di configurazione */
 void hupHandler(int signum) {
-    printf("laido\n");
     updateConfig = true;
 }
 
@@ -322,10 +346,12 @@ void closeThread() {
 void runGopher(int sock, bool multiProcess) {
     pthread_cleanup_push(errorRoutine, &sock);
     _thread tid = gopher(sock);
-    if (multiProcess) {
-        pthread_join(tid, NULL);
-    } else {
-        pthread_detach(tid);
+    if (tid > 0) {
+        if (multiProcess) {
+            printf("%d\n", pthread_join(tid, NULL));
+        } else {
+            pthread_detach(tid);
+        }
     }
     pthread_cleanup_pop(0);
 }
@@ -369,6 +395,7 @@ void serveProc(int sock) {
 
 pthread_mutex_t *mutexShare;
 pthread_cond_t *condShare;
+bool loggerShutdown = false;
 
 /* Effettua una scrittura sulla pipe di logging */
 void logTransfer(char *log) {
@@ -380,8 +407,8 @@ void logTransfer(char *log) {
 
 /* Handler per SIGINT relativo al logger */
 void logIntHandler(int signum) {
-    requestShutdown = true;
-    pthread_cond_signal(condShare);
+    loggerShutdown = true;
+    logTransfer("");
 }
 
 /* Loop di logging */
@@ -390,6 +417,7 @@ void loggerLoop(int inPipe) {
     char buff[PIPE_BUF];
     char logFilePath[MAX_NAME];
     prctl(PR_SET_NAME, "Gopher logger");
+    prctl(PR_SET_PDEATHSIG, SIGINT);
     snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);
     if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
         printf(WARN " - Can't start logger\n");
@@ -397,17 +425,23 @@ void loggerLoop(int inPipe) {
     pthread_mutex_lock(mutexShare);
     while (1) {
         size_t bytesRead;
-        if (requestShutdown) {
+        if (loggerShutdown) {
+            printf("logger requested sd\n");
             pthread_mutex_unlock(mutexShare);
             break;
         }
+        printf("Logger mutex locked\n");
         pthread_cond_wait(condShare, mutexShare);
+        printf("Logger entered cond\n");
         if ((bytesRead = read(inPipe, buff, PIPE_BUF)) < 0) {
+            printf("Logger err\n");
             exitCode = 1;
+            pthread_mutex_unlock(mutexShare);
             break;
         } else {
             write(logFile, buff, bytesRead);
         }
+        printf("Logger end of loop\n");
     }
     munmap(mutexShare, sizeof(pthread_mutex_t));
     munmap(condShare, sizeof(pthread_cond_t));
@@ -506,10 +540,10 @@ int readConfig(struct config *options, int which) {
         return -1;
     }
     free(configPath);
-    while (fgetc(configFile) != '=')
+    while (fgetc(configFile) != CONFIG_DELIMITER)
         ;
     fgets(port, sizeof(port), configFile);
-    while (fgetc(configFile) != '=')
+    while (fgetc(configFile) != CONFIG_DELIMITER)
         ;
     fgets(multiProcess, sizeof(multiProcess), configFile);
     if (fclose(configFile) != 0) {

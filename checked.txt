@@ -5,3 +5,12 @@ startUp
 readConfig
 defaultConfig
 installDefaultSigHandlers & sons
+serveProc
+
+LINUX
+prepareServer
+startup
+readConfig
+defaultConfig
+select
+serveproc

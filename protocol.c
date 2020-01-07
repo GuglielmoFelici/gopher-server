@@ -183,35 +183,66 @@ void readDir(LPCSTR path, SOCKET sock) {
     closesocket(sock);
 }
 
-/* Valida la stringa ed esegue il protocollo. Ritorna l'HANDLE dell'ultimo thread generato */
-HANDLE gopher(SOCKET sock) {
-    char selector[MAX_GOPHER_MSG] = "";
-    /* Bug di curl (?) che divide la richiesta in due chiamate */
-    time_t currentTime = time(NULL);
-    do {
-        if (time(NULL) - currentTime > MAX_SECONDS_WAIT) {
-            errorRoutine(&sock);
+DWORD validateInput(_string str) {
+    LPSTR saveptr;
+    LPSTR ret = strtok_r(str, "\r\n", &saveptr);
+    if (ret != NULL) {
+        if (strstr(ret, "..\\") || ret[0] == '\\') {
+            return -1;
         }
-        recv(sock, selector, MAX_GOPHER_MSG, MSG_PEEK);
-    } while (strlen(selector) > 0 && selector[strlen(selector) - 1] != '\n');
-    recv(sock, selector, MAX_GOPHER_MSG, 0);
-    shutdown(sock, SD_RECEIVE);
-    trimEnding(selector);
-    printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
-    if (strstr(selector, ".\\") || strstr(selector, "..\\") || selector[0] == '\\' || strstr(selector, "\\\\")) {
-        errorRoutine(&sock);
-    } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
-        readDir(selector, sock);
-        return GetCurrentThread();
-    } else {  // File
-        return readFile(selector, sock);
+        return 0;
     }
+    return -1;
+}
+
+/* Valida la stringa ed esegue il protocollo. Se avvia un trasferimento, ritorna l'handle del thread.
+   In caso di errore ritorna INVALID_HANDLE_VALUE */
+DWORD gopher(SOCKET sock, bool waitForSend) {
+    LPSTR selector;
+    char buf[BUFF_SIZE];
+    size_t bytesRec = 0, selectorSize = 1;
+    HANDLE sendThread = NULL;
+    selector = calloc(1, 1);
+    if (selector == NULL) {
+        return GOPHER_SYSTEM_ERROR;
+    }
+    do {
+        bytesRec = recv(sock, buf, MAX_GOPHER_MSG, 0);
+        if (bytesRec < 0) {
+            free(selector);
+            return GOPHER_SYSTEM_ERROR;
+        }
+        selector = realloc(selector, selectorSize + bytesRec);
+        if (selector == NULL) {
+            return GOPHER_SYSTEM_ERROR;
+        }
+        memcpy(selector + selectorSize - 1, buf, bytesRec);
+        selectorSize += bytesRec;
+    } while (bytesRec > 0 && !strstr(selector, "\r\n"));
+    if (validateInput(selector) < 0) {
+        free(selector);
+        return BAD_SELECTOR;
+    }
+    printf("Request: %s\n", strlen(selector) == 0 ? "_empty" : selector);
+    if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
+        readDir(selector, sock);
+    } else {  // File
+        sendThread = readFile(selector, sock);
+        if (sendThread == NULL) {
+            free(selector);
+            return -1;  // TODO return cosa è giusto questo if?
+        } else if (waitForSend) {
+            WaitForSingleObject(sendThread, INFINITE);
+        }
+    }
+    free(selector);
+    return 0;
 }
 
 #else
 
 /*****************************************************************************************************************/
-/*                                             UNIX FUNCTIONS                                                    */
+/*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
 
@@ -256,6 +287,7 @@ char gopherType(const _file* file) {
 void* sendFile(void* sendFileArgs) {
     struct sendFileArgs args;
     void* response;
+    int sent = 0;
     struct sockaddr_in clientAddr;
     socklen_t clientLen;
     args = *((struct sendFileArgs*)sendFileArgs);
@@ -265,7 +297,7 @@ void* sendFile(void* sendFileArgs) {
     }
     memcpy(response, args.src, args.size);
     strcat((char*)response, "\n.");
-    if (send(args.dest, response, args.size + 2, 0) >= 0) {
+    if (send(args.dest, response, args.size + 2, O_NONBLOCK) >= 0) {
         char log[PIPE_BUF];
         char address[16];
         clientLen = sizeof(clientAddr);
@@ -367,7 +399,7 @@ pthread_t gopher(int sock) {
         pthread_exit(NULL);
     } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '/') {  // Directory
         readDir(selector, sock);
-        return pthread_self();
+        return -1;
     } else {  // File
         return readFile(selector, sock);
     }

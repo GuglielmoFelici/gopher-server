@@ -12,8 +12,6 @@ struct sockaddr_in awakeAddr;
 _event logEvent;
 // Pid del processo di log
 _procId loggerPid;
-// Pid del server
-_procId serverPid;
 // Controllo della modifica del file di configurazione
 _sig_atomic updateConfig = false;
 // Chiusura dell'applicazione
@@ -47,10 +45,9 @@ _socket prepareServer(_socket server, struct config* options, struct sockaddr_in
 
 int main(int argc, _string* argv) {
     struct config options = {.port = INVALID_PORT, .multiProcess = INVALID_MULTIPROCESS};
-    struct sockaddr_in serverAddr, clientAddr;
+    struct sockaddr_in serverAddr;
     fd_set incomingConnections;
     int addrLen, errorCode, ready, port;
-    char* endptr;
     if ((errorCode = startup()) != 0) {
         _err(_STARTUP_ERR, true, errorCode);
     }
@@ -116,7 +113,7 @@ int main(int argc, _string* argv) {
             if (requestShutdown) {
                 exit(0);
             } else if (ready == SOCKET_ERROR && sockErr() != EINTR) {
-                _err("Server - "_SELECT_ERR, true, -1);
+                _err(_SELECT_ERR, true, -1);
             } else if (updateConfig) {
                 printf("Updating config...\n");
                 int prevMultiprocess = options.multiProcess;
@@ -138,11 +135,11 @@ int main(int argc, _string* argv) {
             FD_SET(awakeSelect, &incomingConnections);
         } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
         printf("Incoming connection on port %d\n", htons(serverAddr.sin_port));
-        addrLen = sizeof(clientAddr);
-        _socket client = accept(server, (struct sockaddr*)&clientAddr, &addrLen);
+        _socket client = accept(server, NULL, NULL);
         if (client == INVALID_SOCKET) {
             _logErr(WARN "Error serving client");
         } else if (options.multiProcess) {
+            // TODO controllare return value
             serveProc(client);
             closeSocket(client);
         } else {

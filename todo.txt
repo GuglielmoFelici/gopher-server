@@ -1,9 +1,26 @@
-Controllare il funzionamento di atexit
-InstallDefaultSigHandlers
-    evitabile socket per awake select?
-Windows Logger
-Spostare definizioni da datatypes
+Common:
+    USA strrchr (trova ultima occorrenza di carattere in str)!!!
+    Controllare il funzionamento di atexit
+    Spostare definizioni da datatypes
+    Mettere startup() subito prima del main loop?
+    Rimuovere trimEnding? Sostituire con isolamento primo token usando clrf come separatore?
+    Migliorare report errori in errorRoutine?
 
+Linux:
+    linux gopher deve ritornare null?
+    SPOSTARE LINUX LOGGING IN HELPER FILE?
+    Processo daemon linux:
+        loggare con syslog invece di file
+    LOGGING TUTTO SBAGLIATO
+
+Windows:
+    Windows Logger
+    errorroutine?
+    InstallDefaultSigHandlers
+        evitabile socket per awake select?
+    Gopher:
+        cercare modo migliore di stabilire se path è directory
+        Cosa deve ritornare SendFile?
 
 Ballino:
     compara byte per byte
