@@ -148,18 +148,16 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
 }
 
 /* Costruisce la lista dei file e la invia al client */
-void readDir(LPCSTR path, SOCKET sock) {
+DWORD sendDir(LPCSTR path, SOCKET sock) {
     _file file;
     char wildcardPath[MAX_NAME + 2];
     char line[sizeof(file.name) + sizeof(file.path) + sizeof(DOMAIN) + 4];
-    LPSTR response;
-    size_t responseSize;
     CHAR type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
 
-    response = calloc(2, 1);
-    responseSize = 2;  // Per il punto finale
+    // response = calloc(2, 1);
+    // responseSize = 2;  // Per il punto finale
     snprintf(wildcardPath, sizeof(wildcardPath), "%s*", (path[0] == '\0' ? ".\\" : path));
     if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
         errorRoutine(&sock);
@@ -170,16 +168,20 @@ void readDir(LPCSTR path, SOCKET sock) {
             strcat(strcpy(file.path, path), file.name);
             type = isDirectory(&data) ? '1' : gopherType(&file);
             snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, file.name, file.path, (type == '1' ? "\\" : ""), DOMAIN);
-            if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
-                errorRoutine(&sock);
+            if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
+                return SOCKET_ERROR;
             }
-            responseSize += strlen(line);
-            response = strcat(response, line);
+            // if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
+            //     errorRoutine(&sock);
+            // }
+            // responseSize += strlen(line);
+            // response = strcat(response, line);
         }
     } while (FindNextFile(hFind, &data));
-    send(sock, strcat(response, "."), responseSize, 0);
+    if (sendAll(sock, ".", 1) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
+    }
     FindClose(hFind);
-    free(response);
     closesocket(sock);
 }
 
@@ -188,75 +190,84 @@ bool validateInput(LPSTR str) {
     LPSTR ret;
     if (str == NULL) {
         return false;
-    }
-    ret = strtok_r(str, "\r\n", &saveptr);
-    if (ret == NULL) {
+    } else if (strcmp(str, "\r\n") == 0) {
         str[0] = '\0';
         return true;
     } else {
-        return (!strstr(ret, "..\\") && !ret[0] == '\\');
+        ret = strtok_r(str, "\r\n", &saveptr);
+        return (!strstr(ret, "..\\") && ret[0] != '\\');
     }
 }
 
-DWORD sendErrorResponse(SOCKET sock, LPSTR msg) {
-    if (send(sock, GOPHER_ERROR_MSG " - ", sizeof(GOPHER_ERROR_MSG) + 3, 0) < 0) {
-        return -1;
+DWORD sendResponse(SOCKET sock, LPSTR msg, DWORD status) {
+    if (status == GOPHER_FAILURE) {
+        if (sendAll(sock, GOPHER_ERROR_MSG " - ", sizeof(GOPHER_ERROR_MSG) + 3) == SOCKET_ERROR) {
+            return SOCKET_ERROR;
+        }
     }
-    if (send(sock, msg, strlen(msg), 0) < 0) {
-        return -1;
+    if (sendAll(sock, msg, strlen(msg)) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
     }
-    if (send(sock, "\r\n.", 3, 0) < 0) {
-        return -1;
+    if (sendAll(sock, CRLF ".", 3) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
     }
-    if (closeSocket(sock == SOCKET_ERROR)) {
-        return -1;
+    if (closeSocket(sock) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
     }
-    ExitThread(-1);
 }
 
 /* Valida la stringa ed esegue il protocollo. Se avvia un trasferimento, ritorna l'handle del thread.
    In caso di errore ritorna INVALID_HANDLE_VALUE */
 int gopher(SOCKET sock, bool waitForSend) {
-    LPSTR selector;
+    LPSTR selector, response;
     char buf[BUFF_SIZE];
+    DWORD exitCode = 0, responseSize = 0;
     size_t bytesRec = 0, selectorSize = 1;
     HANDLE sendThread = NULL;
-    selector = calloc(1, 1);
+    selector = malloc(1);
     if (selector == NULL) {
-        return -1;
+        goto ON_ERROR;
     }
     do {
-        bytesRec = recv(sock, buf, MAX_GOPHER_MSG, 0);
+        bytesRec = recv(sock, buf, BUFF_SIZE, 0);
         if (bytesRec < 0) {
-            free(selector);
-            return -1;
+            goto ON_ERROR;
         }
         selector = realloc(selector, selectorSize + bytesRec);
         if (selector == NULL) {
-            return -1;
+            goto ON_ERROR;
         }
         memcpy(selector + selectorSize - 1, buf, bytesRec);
         selectorSize += bytesRec;
-    } while (bytesRec > 0 && !strstr(selector, "\r\n"));
+        selector[selectorSize - 1] = '\0';
+    } while (bytesRec > 0 && !strstr(selector, CRLF));
+    printf("Selector: %s_\n", selector);
     if (!validateInput(selector)) {
-        free(selector);
-        sendErrorResponse(sock, GOHPER_BAD_SELECTOR);
-        return -1;
+        sendResponse(sock, GOHPER_BAD_SELECTOR, GOPHER_FAILURE);
+        goto ON_ERROR;
     }
     printf("Request: _%s_\n", strlen(selector) == 0 ? "_empty" : selector);
     if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
-        readDir(selector, sock);
+        sendDir(selector, sock);
     } else {  // File
         sendThread = readFile(selector, sock);
         if (sendThread == NULL) {
-            free(selector);
-            return -1;  // TODO return cosa? è giusto questo if?
+            goto ON_ERROR;
         } else if (waitForSend) {
             WaitForSingleObject(sendThread, INFINITE);
         }
     }
     free(selector);
+    if (!sendThread) {
+        closesocket(sock);
+    }
     return 0;
+ON_ERROR:
+    if (selector) {
+        free(selector);
+    }
+    closesocket(sock);
+    return -1;
 }
 
 #else

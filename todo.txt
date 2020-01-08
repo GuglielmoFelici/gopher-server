@@ -1,6 +1,7 @@
 Common:
-    Costanti in header a parte
-    windows gopher si occupa di inviare risposta di errore
+    usare ovunque sendall
+    Purgare costanti
+    Gopher si occupa di inviare?
     gopher unificabile?
     USA strrchr (trova ultima occorrenza di carattere in str)!!!
     Controllare il funzionamento di atexit
@@ -8,6 +9,8 @@ Common:
     Mettere startup() subito prima del main loop?
     Rimuovere trimEnding? Sostituire con isolamento primo token usando clrf come separatore?
     Migliorare report errori in errorRoutine?
+    controllare tutti i sizeof e gli strlen
+    
 
 Linux:
     linux gopher deve ritornare null?
@@ -15,8 +18,10 @@ Linux:
     Processo daemon linux:
         loggare con syslog invece di file
     LOGGING TUTTO SBAGLIATO
+    com'è fatto crlf? (su windows due caratteri, \r\n)
 
 Windows:
+    Sendfile non ritorna puntatore ma usa pointer argument
     Windows Logger
     errorroutine?
     InstallDefaultSigHandlers

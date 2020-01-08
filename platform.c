@@ -73,7 +73,7 @@ BOOL ctrlC(DWORD signum) {
         requestShutdown = true;
         if (wakeUpServer() < 0) {
             _logErr("Can't close gracefully");
-            exit(-1);
+            exit(1);
         }
         return true;
     }
@@ -499,6 +499,19 @@ void startTransferLog() {
 /*                                             COMMON FUNCTIONS                                                 */
 
 /*****************************************************************************************************************/
+
+int sendAll(_socket s, char *data, int length) {
+    int count = 0, sent = 0;
+    while (count < length) {
+        int sent = send(s, data + count, length, 0);
+        if (sent == SOCKET_ERROR) {
+            return SOCKET_ERROR;
+        }
+        count += sent;
+        length -= sent;
+    }
+    return 0;
+}
 
 /* Stampa l'errore su stderr ed esce */
 void _err(_cstring message, bool stderror, int code) {
