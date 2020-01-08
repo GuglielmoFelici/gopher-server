@@ -150,14 +150,14 @@ HANDLE readFile(LPCSTR path, SOCKET sock) {
 /* Costruisce la lista dei file e la invia al client */
 DWORD sendDir(LPCSTR path, SOCKET sock) {
     _file file;
-    char wildcardPath[MAX_NAME + 2];
+    char wildcardPath[MAX_NAME];
     char line[sizeof(file.name) + sizeof(file.path) + sizeof(DOMAIN) + 4];
     CHAR type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
 
     snprintf(wildcardPath, sizeof(wildcardPath), "%s*", (path[0] == '\0' ? ".\\" : path));
-    if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
+    if (INVALID_HANDLE_VALUE == (hFind = FindFirstFile(wildcardPath, &data))) {
         errorRoutine(&sock);
     }
     do {
