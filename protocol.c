@@ -156,8 +156,6 @@ DWORD sendDir(LPCSTR path, SOCKET sock) {
     WIN32_FIND_DATA data;
     HANDLE hFind;
 
-    // response = calloc(2, 1);
-    // responseSize = 2;  // Per il punto finale
     snprintf(wildcardPath, sizeof(wildcardPath), "%s*", (path[0] == '\0' ? ".\\" : path));
     if ((hFind = FindFirstFile(wildcardPath, &data)) == INVALID_HANDLE_VALUE) {
         errorRoutine(&sock);
@@ -199,11 +197,9 @@ bool validateInput(LPSTR str) {
     }
 }
 
-DWORD sendResponse(SOCKET sock, LPSTR msg, DWORD status) {
-    if (status == GOPHER_FAILURE) {
-        if (sendAll(sock, GOPHER_ERROR_MSG " - ", sizeof(GOPHER_ERROR_MSG) + 3) == SOCKET_ERROR) {
-            return SOCKET_ERROR;
-        }
+DWORD sendErrorResponse(SOCKET sock, LPSTR msg) {
+    if (sendAll(sock, GOPHER_ERROR_MSG " - ", sizeof(GOPHER_ERROR_MSG) + 3) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
     }
     if (sendAll(sock, msg, strlen(msg)) == SOCKET_ERROR) {
         return SOCKET_ERROR;
@@ -243,7 +239,7 @@ int gopher(SOCKET sock, bool waitForSend) {
     } while (bytesRec > 0 && !strstr(selector, CRLF));
     printf("Selector: %s_\n", selector);
     if (!validateInput(selector)) {
-        sendResponse(sock, GOHPER_BAD_SELECTOR, GOPHER_FAILURE);
+        sendErrorResponse(sock, GOHPER_BAD_SELECTOR);
         goto ON_ERROR;
     }
     printf("Request: _%s_\n", strlen(selector) == 0 ? "_empty" : selector);

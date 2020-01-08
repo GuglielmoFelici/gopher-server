@@ -34,7 +34,5 @@
 #define BUFF_SIZE 70
 #define GOPHER_ERROR_MSG "3Error retrieving the resource"
 #define GOHPER_BAD_SELECTOR "Bad selector"
-#define GOPHER_SUCCESS 0
-#define GOPHER_FAILURE -1
 
 #endif
