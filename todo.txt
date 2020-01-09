@@ -10,6 +10,7 @@ Common:
     Migliorare report errori in errorRoutine?
 
 Linux:
+    verificare crlf
     linux gopher deve ritornare null?
     SPOSTARE LINUX LOGGING IN HELPER FILE?
     Processo daemon linux:

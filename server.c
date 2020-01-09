@@ -23,6 +23,7 @@ char installationDir[MAX_NAME] = "";
 
 /* Inizializza il socket del server e lo mette in ascolto */
 _socket prepareServer(_socket server, struct config* options, struct sockaddr_in* address) {
+    ;
     if (server != SERVER_INIT) {
         if (closeSocket(server) < 0) {
             _err("prepareServer() - " _CLOSE_SOCKET_ERR, true, -1);
