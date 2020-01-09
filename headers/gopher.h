@@ -79,6 +79,8 @@ int sockErr();
 
 int closeSocket(_socket s);
 
+int sendAll(_socket s, char* data, int length);
+
 /* Threads & processes */
 
 void serveThread(_socket* socket);
@@ -89,7 +91,7 @@ void closeThread();
 
 /* Gopher */
 
-int gopher(_socket sock, bool waitForSend);
+int gopher(_socket sock, bool asyncSend);
 
 void errorRoutine(void* sock);
 
