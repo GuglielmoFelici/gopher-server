@@ -17,22 +17,8 @@ void errorRoutine(void* sock) {
     ExitThread(-1);
 }
 
-bool isDirectory(WIN32_FIND_DATA* file) {
-    /* Windows directory constants */
-    return file->dwFileAttributes == 16 || file->dwFileAttributes == 17 || file->dwFileAttributes == 18 || file->dwFileAttributes == 22 || file->dwFileAttributes == 9238;
-}
-
-bool checkExtension(LPSTR ext, DWORD toCheck) {
-    // TODO
-    bool ret;
-    for (int flag = 1, k = 1; flag < EXT_MAX; flag << 1, k++) {
-        if (flag & toCheck) {
-            if (strcmp(extensions[k], ext)) {
-                return true;
-            }
-        }
-    }
-    return false;
+bool isDirectory(LPCSTR path) {
+    return GetFileAttributes(path) & FILE_ATTRIBUTE_DIRECTORY;
 }
 
 DWORD sendErrorResponse(SOCKET sock, LPSTR msg) {
@@ -56,23 +42,23 @@ char gopherType(LPSTR name) {
     if (!strstr(name, ".")) {
         return GOPHER_UNKNOWN;
     }
-    // Isola l'estensione del file
-    ext = strrchr(name, '.') + 1;
-    if (checkExtension(ext, EXT_TXT)) {
-        return GOPHER_TEXT;
-    }
-    if (strcmp(ext, "txt") == 0 || strcmp(ext, "doc") == 0 || strcmp(ext, "odt") == 0 || strcmp(ext, "rtf") == 0 || strcmp(ext, "c") == 0 || strcmp(ext, "cpp") == 0 || strcmp(ext, "java") == 0 || strcmp(ext, "bat") == 0) {
-        return GOPHER_TEXT;
-    } else if (strcmp(ext, "hqx") == 0) {
-        return GOPHER_BINHEX;
-    } else if (strcmp(ext, "dos") == 0) {
-        return GOPHER_DOS;
-    } else if (strcmp(ext, "exe") == 0 || strcmp(ext, "jar") == 0 || strcmp(ext, "bin") == 0) {
-        return GOPHER_BINARY;
-    } else if (strcmp(ext, "gif") == 0) {
-        return GOPHER_GIF;
-    } else if (strcmp(ext, "jpg") == 0 || strcmp(ext, "jpeg") == 0 || strcmp(ext, "png") == 0) {
-        return GOPHER_IMAGE;
+    ext = strrchr(name, '.') + 1;  // Isola l'estensione del file
+    for (int i = 0; i < EXT_NO; i++) {
+        if (strcmp(ext, extensions[i]) == 0) {
+            if (CHECK_GRP(i, EXT_TXT)) {
+                return GOPHER_TEXT;
+            } else if (CHECK_GRP(i, EXT_HQX)) {
+                return GOPHER_BINHEX;
+            } else if (CHECK_GRP(i, EXT_DOS)) {
+                return GOPHER_DOS;
+            } else if (CHECK_GRP(i, EXT_BIN)) {
+                return GOPHER_BINARY;
+            } else if (CHECK_GRP(i, EXT_GIF)) {
+                return GOPHER_GIF;
+            } else if (CHECK_GRP(i, EXT_IMG)) {
+                return GOPHER_IMAGE;
+            }
+        }
     }
     return GOPHER_UNKNOWN;
 }
@@ -174,15 +160,14 @@ HANDLE readFile(LPCSTR path, SOCKET sock, bool asyncSend) {
 
 /* Costruisce la lista dei file e la invia al client */
 DWORD sendDir(LPCSTR path, SOCKET sock) {
-    char wildcardPath[MAX_NAME];
-    // char line[sizeof(file.name) + sizeof(file.path) + sizeof(DOMAIN) + 4];
+    char filePath[MAX_NAME];
     LPSTR line;
     size_t lineSize;
     CHAR type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
-    snprintf(wildcardPath, sizeof(wildcardPath), "%s*", (path[0] == '\0' ? ".\\" : path));
-    if (INVALID_HANDLE_VALUE == (hFind = FindFirstFile(wildcardPath, &data))) {
+    snprintf(filePath, sizeof(filePath), "%s*", (path[0] == '\0' ? ".\\" : path));
+    if (INVALID_HANDLE_VALUE == (hFind = FindFirstFile(filePath, &data))) {
         if (GetLastError() == ERROR_FILE_NOT_FOUND) {
             sendErrorResponse(sock, FILE_NOT_FOUND_MSG);
         }
@@ -193,25 +178,26 @@ DWORD sendDir(LPCSTR path, SOCKET sock) {
     }
     do {
         if (strcmp(data.cFileName, ".") && strcmp(data.cFileName, "..")) {  // Ignora le entry ./ e ../
-            type = isDirectory(&data) ? '1' : gopherType(data.cFileName);
+            snprintf(filePath, sizeof(filePath), "%s\\%s", (path[0] == '\0' ? "." : path), data.cFileName);
+            type = isDirectory(filePath) ? '1' : gopherType(data.cFileName);
             // Compongo la riga di risposta
-            printf("name: %s_%s\n", data.cFileName, path);
-            lineSize = strlen(data.cFileName) + strlen(path) + strlen(data.cFileName) + strlen(DOMAIN) + 7;
+            lineSize = strlen(data.cFileName) + strlen(path) + strlen(data.cFileName) + strlen(GOPHER_DOMAIN) + 7;
             if (line = realloc(line, lineSize)) {
-                snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\r\n", type, data.cFileName, path, data.cFileName, (type == '1' ? "\\" : ""), DOMAIN);
+                snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\r\n", type, data.cFileName, path, data.cFileName, (type == '1' ? "\\" : ""), GOPHER_DOMAIN);
             } else {
                 return GOPHER_FAILURE;
             }
             if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
+                free(line);
                 return GOPHER_FAILURE;
             }
-            printf("sent %s\n", line);
         }
     } while (FindNextFile(hFind, &data));
+    free(line);
+    FindClose(hFind);
     if (send(sock, ".", 1, 0) < 1) {
         return GOPHER_FAILURE;
     }
-    FindClose(hFind);
     closesocket(sock);
     return GOPHER_SUCCESS;
 }
@@ -402,7 +388,7 @@ void readDir(const char* path, int sock) {
     DIR* dir;
     struct dirent* entry;
     _file file;
-    char line[sizeof(entry->d_name) + sizeof(file.path) + sizeof(DOMAIN) + 4];
+    char line[sizeof(entry->d_name) + sizeof(file.path) + sizeof(GOPHER_DOMAIN) + 4];
     char* response;
     char type;
     size_t responseSize;
@@ -415,7 +401,7 @@ void readDir(const char* path, int sock) {
         if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
             strcat(strcpy(file.path, path), entry->d_name);
             type = gopherType(&file);
-            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.path, (type == '1' ? "/" : ""), DOMAIN);
+            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.path, (type == '1' ? "/" : ""), GOPHER_DOMAIN);
             if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
                 closedir(dir);
                 pthread_exit(NULL);

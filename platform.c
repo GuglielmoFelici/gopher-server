@@ -10,7 +10,6 @@
 /************************************************** UTILS ********************************************************/
 
 void errorString(char *error, size_t size) {
-    ;
     FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                   error, size, NULL);
