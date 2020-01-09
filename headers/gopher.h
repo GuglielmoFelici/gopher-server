@@ -91,7 +91,7 @@ void closeThread();
 
 /* Gopher */
 
-int gopher(_socket sock, bool waitForSend);
+int gopher(_socket sock, bool asyncSend);
 
 void errorRoutine(void* sock);
 

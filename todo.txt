@@ -21,6 +21,7 @@ Linux:
     com'è fatto crlf? (su windows due caratteri, \r\n)
 
 Windows:
+    cancellare _file ?
     Eliminare validateInput()?
     Sendfile non ritorna puntatore ma usa pointer argument
     Windows Logger
