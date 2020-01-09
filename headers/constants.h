@@ -31,7 +31,11 @@
 
 /* Gopher */
 
-const char* extensions[] = {"txt", "doc", "odt", "rtf", "c", "cpp", "java", "bat", "hqx", "dos", "exe", "jar", "bin", "gif", "jpg", "jpeg", "png"};
+const char* extensions[] = {"txt", "doc", "odt", "rtf",
+                            "c", "cpp", "java", "bat",
+                            "hqx", "dos", "exe", "jar",
+                            "bin", "gif", "jpg", "jpeg",
+                            "png"};
 
 #define BUFF_SIZE 70
 #define GOPHER_SUCCESS 0
@@ -48,22 +52,15 @@ const char* extensions[] = {"txt", "doc", "odt", "rtf", "c", "cpp", "java", "bat
 #define GOPHER_GIF 'g'
 #define GOPHER_IMAGE 'I'
 
-#define EXT_TXT 0x0000
-#define EXT_DOC 0x0001
-#define EXT_ODT 0x0002
-#define EXT_RTF 0x0004
-#define EXT_C 0x0008
-#define EXT_CPP 0x0010
-#define EXT_JAVA 0x0020
-#define EXT_BAT 0x0040
-#define EXT_HQX 0x0080
-#define EXT_DOS 0x0100
-#define EXT_EXE 0x0200
-#define EXT_JAR 0x0400
-#define EXT_BIN 0x0800
-#define EXT_GIF 0x1000
+// TODO
+#define EXT_TEXT 0X00FF
+#define EXT_HQX 0x0100
+#define EXT_DOS 0x0200
+#define EXT_BIN 0x1C00
+#define EXT_GIF 0x2000
 #define EXT_JPG 0x2000
 #define EXT_JPEG 0x4000
 #define EXT_JPG 0x8000
+#define EXT_MAX 0x10000
 
 #endif

@@ -1,3 +1,5 @@
+IMPORTANTE: COSTANTI GOPHER TYPE
+
 Common:
     usare ovunque sendall
     Purgare costanti

@@ -24,7 +24,15 @@ bool isDirectory(WIN32_FIND_DATA* file) {
 
 bool checkExtension(LPSTR ext, DWORD toCheck) {
     // TODO
-    if (extensions[0x1111 && toCheck])
+    bool ret;
+    for (int flag = 1, k = 1; flag < EXT_MAX; flag << 1, k++) {
+        if (flag & toCheck) {
+            if (strcmp(extensions[k], ext)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 DWORD sendErrorResponse(SOCKET sock, LPSTR msg) {
@@ -50,10 +58,8 @@ char gopherType(LPSTR name) {
     }
     // Isola l'estensione del file
     ext = strrchr(name, '.') + 1;
-    for (int i = 0; i < sizeof(textExtensions) / sizeof(textExtensions[0]); i++) {
-        if (strcmp(textExtensions[i], ext) == 0) {
-            return GOPHER_TEXT;
-        }
+    if (checkExtension(ext, EXT_TXT)) {
+        return GOPHER_TEXT;
     }
     if (strcmp(ext, "txt") == 0 || strcmp(ext, "doc") == 0 || strcmp(ext, "odt") == 0 || strcmp(ext, "rtf") == 0 || strcmp(ext, "c") == 0 || strcmp(ext, "cpp") == 0 || strcmp(ext, "java") == 0 || strcmp(ext, "bat") == 0) {
         return GOPHER_TEXT;
