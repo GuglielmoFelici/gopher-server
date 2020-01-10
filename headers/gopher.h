@@ -83,15 +83,20 @@ int sendAll(_socket s, char* data, int length);
 
 /* Threads & processes */
 
-void serveThread(_socket* socket);
+struct threadArgs {
+    SOCKET sock;
+    unsigned short port;
+};
 
-int serveProc(_socket socket);
+int serveThread(_socket socket, unsigned short port);
+
+int serveProc(_socket socket, unsigned short port);
 
 void closeThread();
 
 /* Gopher */
 
-int gopher(_socket sock, bool asyncSend);
+int gopher(_socket sock, bool asyncSend, unsigned short port);
 
 void errorRoutine(void* sock);
 

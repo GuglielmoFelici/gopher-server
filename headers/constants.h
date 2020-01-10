@@ -38,29 +38,36 @@
 #define BUFF_SIZE 70
 #define GOPHER_SUCCESS 0
 #define GOPHER_FAILURE -1
-#define ERROR_MSG "3Error retrieving the resource"
+#define ERROR_MSG "3Error"
 #define BAD_SELECTOR_MSG "Bad selector"
 #define FILE_NOT_FOUND_MSG "Can't find the resource"
+#define SYS_ERR_MSG " Internal error"
 #define GOPHER_DOMAIN "localhost"
 // Gopher types
 #define GOPHER_UNKNOWN 'X'
 #define GOPHER_TEXT '0'
+#define GOPHER_DIR '1'
+#define GOPHER_CCSO '2'
+#define GOPHER_ERR '3'
 #define GOPHER_BINHEX '4'
 #define GOPHER_DOS '5'
+#define GOPHER_UUENC '6'
+#define GOPHER_FULLTXT '7'
+#define GOPHER_TELNET '8'
 #define GOPHER_BINARY '9'
 #define GOPHER_GIF 'g'
 #define GOPHER_IMAGE 'I'
 
 #define EXT_NO 16
-static char* extensions[EXT_NO] = {"txt", "doc", "odt", "rtf",
-                                   "c", "cpp", "h", "bat",
-                                   "hqx", "dos", "exe", "jar",
-                                   "gif", "jpg", "jpeg", "png"};
+static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
+                                   ".c", ".cpp", ".h", ".bat",
+                                   ".sh", ".hqx", ".dos", ".exe",
+                                   ".gif", ".jpg", ".jpeg", ".png"};
 // Extension groups (bits set to 1 are the indexes in the array of extensions that belong to the group)
-#define EXT_TXT 0X00FF
-#define EXT_HQX 0x0100
-#define EXT_DOS 0x0200
-#define EXT_BIN 0x0C00
+#define EXT_TXT 0X01FF
+#define EXT_HQX 0x0200
+#define EXT_DOS 0x0400
+#define EXT_BIN 0x0800
 #define EXT_GIF 0x1000
 #define EXT_IMG 0xE000
 #define CHECK_GRP(index, group) group&(int)pow(2., index)

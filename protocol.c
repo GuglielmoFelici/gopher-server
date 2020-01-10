@@ -17,10 +17,6 @@ void errorRoutine(void* sock) {
     ExitThread(-1);
 }
 
-bool isDirectory(LPCSTR path) {
-    return GetFileAttributes(path) & FILE_ATTRIBUTE_DIRECTORY;
-}
-
 DWORD sendErrorResponse(SOCKET sock, LPSTR msg) {
     if (sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3) == SOCKET_ERROR) {
         return SOCKET_ERROR;
@@ -37,12 +33,15 @@ DWORD sendErrorResponse(SOCKET sock, LPSTR msg) {
 }
 
 /* Ritorna il carattere di codifica del tipo di file */
-char gopherType(LPSTR name) {
+char gopherType(WIN32_FIND_DATA* fileData) {
     LPSTR ext;
-    if (!strstr(name, ".")) {
+    if (fileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        return GOPHER_DIR;
+    }
+    ext = strrchr(fileData->cFileName, '.');
+    if (!ext) {
         return GOPHER_UNKNOWN;
     }
-    ext = strrchr(name, '.') + 1;  // Isola l'estensione del file
     for (int i = 0; i < EXT_NO; i++) {
         if (strcmp(ext, extensions[i]) == 0) {
             if (CHECK_GRP(i, EXT_TXT)) {
@@ -159,32 +158,27 @@ HANDLE readFile(LPCSTR path, SOCKET sock, bool asyncSend) {
 }
 
 /* Costruisce la lista dei file e la invia al client */
-DWORD sendDir(LPCSTR path, SOCKET sock) {
+DWORD sendDir(LPCSTR path, SOCKET sock, unsigned short port) {
     char filePath[MAX_NAME];
-    LPSTR line;
+    LPSTR line = NULL;
     size_t lineSize;
     CHAR type;
     WIN32_FIND_DATA data;
     HANDLE hFind;
     snprintf(filePath, sizeof(filePath), "%s*", (path[0] == '\0' ? ".\\" : path));
     if (INVALID_HANDLE_VALUE == (hFind = FindFirstFile(filePath, &data))) {
-        if (GetLastError() == ERROR_FILE_NOT_FOUND) {
-            sendErrorResponse(sock, FILE_NOT_FOUND_MSG);
-        }
-        return GOPHER_FAILURE;
-    }
-    if ((line = malloc(1)) == NULL) {
+        sendErrorResponse(sock, GetLastError() & ERROR_FILE_NOT_FOUND ? FILE_NOT_FOUND_MSG : SYS_ERR_MSG);
         return GOPHER_FAILURE;
     }
     do {
         if (strcmp(data.cFileName, ".") && strcmp(data.cFileName, "..")) {  // Ignora le entry ./ e ../
-            snprintf(filePath, sizeof(filePath), "%s\\%s", (path[0] == '\0' ? "." : path), data.cFileName);
-            type = isDirectory(filePath) ? '1' : gopherType(data.cFileName);
+            type = gopherType(&data);
             // Compongo la riga di risposta
-            lineSize = strlen(data.cFileName) + strlen(path) + strlen(data.cFileName) + strlen(GOPHER_DOMAIN) + 7;
+            lineSize = strlen(data.cFileName) + strlen(path) + strlen(data.cFileName) + strlen(GOPHER_DOMAIN) + 13;
             if (line = realloc(line, lineSize)) {
-                snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\r\n", type, data.cFileName, path, data.cFileName, (type == '1' ? "\\" : ""), GOPHER_DOMAIN);
+                snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu\r\n", type, data.cFileName, path, data.cFileName, (type == GOPHER_DIR ? "\\" : ""), GOPHER_DOMAIN, port);
             } else {
+                sendErrorResponse(sock, SYS_ERR_MSG);
                 return GOPHER_FAILURE;
             }
             if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
@@ -217,16 +211,12 @@ bool validateInput(LPSTR str) {
 }
 
 /* Valida la stringa ed esegue il protocollo. */
-int gopher(SOCKET sock, bool asyncSend) {
-    LPSTR selector, response;
+int gopher(SOCKET sock, bool asyncSend, unsigned short port) {
+    LPSTR response, selector = NULL;
     char buf[BUFF_SIZE];
     DWORD exitCode = 0, responseSize = 0;
     size_t bytesRec = 0, selectorSize = 1;
     HANDLE sendThread = NULL;
-    selector = malloc(1);
-    if (selector == NULL) {
-        goto ON_ERROR;
-    }
     do {
         bytesRec = recv(sock, buf, BUFF_SIZE, 0);
         if (bytesRec < 0) {
@@ -246,7 +236,7 @@ int gopher(SOCKET sock, bool asyncSend) {
     }
     printf("Request: _%s_\n", strlen(selector) == 0 ? "_empty" : selector);
     if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
-        if (sendDir(selector, sock) != GOPHER_SUCCESS) {
+        if (sendDir(selector, sock, port) != GOPHER_SUCCESS) {
             goto ON_ERROR;
         }
     } else {  // File

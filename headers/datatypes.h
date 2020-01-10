@@ -33,9 +33,4 @@ typedef __sig_atomic_t _sig_atomic;
 
 #endif
 
-typedef struct _file {
-    char name[MAX_NAME];
-    char path[MAX_NAME];
-} _file;
-
 #endif

@@ -1,6 +1,7 @@
 IMPORTANTE: COSTANTI GOPHER TYPE
 
 Common:
+    controllare i return -1
     usare ovunque sendall
     Purgare costanti
     Gopher si occupa di inviare?
@@ -12,6 +13,7 @@ Common:
     Rimuovere trimEnding? Sostituire con isolamento primo token usando clrf come separatore?
     Migliorare report errori in errorRoutine?
     controllare tutti i sizeof e gli strlen
+    verificare tutte le *alloc e free
     
 
 Linux:

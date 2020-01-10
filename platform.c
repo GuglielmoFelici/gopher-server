@@ -124,19 +124,24 @@ void closeThread() {
 
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
 void *serveThreadTask(void *args) {
-    SOCKET sock;
-    sock = *(SOCKET *)args;
+    struct threadArgs gopherArgs = *(struct threadArgs *)args;
     free(args);
-    gopher(sock, false);  // Il protocollo viene eseguito qui TODO waitForSend false è giusto??
+    gopher(gopherArgs.sock, false, gopherArgs.port);  // Il protocollo viene eseguito qui TODO waitForSend false è giusto??
 }
 
 /* Serve una richiesta in modalità multithreading. */
-void serveThread(SOCKET *sock) {
-    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serveThreadTask, sock, 0, NULL);
+int serveThread(SOCKET sock, unsigned short port) {
+    struct threadArgs *args;
+    if ((args = malloc(sizeof(struct threadArgs))) == NULL) {
+        return -1;
+    }
+    args->sock = sock;
+    args->port = port;
+    return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serveThreadTask, args, 0, NULL) ? 0 : 1;
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-int serveProc(SOCKET client) {
+int serveProc(SOCKET client, unsigned short port) {
     LPSTR exec;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
@@ -166,7 +171,7 @@ int serveProc(SOCKET client) {
         return -1;
     }
     // TODO size dinamico?
-    if (snprintf(cmdLine, sizeof(cmdLine), "%s %d %p %p", exec, client, logPipe, logEvent) < 0) {
+    if (snprintf(cmdLine, sizeof(cmdLine), "%s %d %hu %p %p", exec, port, client, logPipe, logEvent) < 0) {
         return -1;
     }
     if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {

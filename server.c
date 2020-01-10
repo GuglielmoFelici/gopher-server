@@ -141,16 +141,10 @@ int main(int argc, _string* argv) {
             _logErr(WARN "Error serving client");
         } else if (options.multiProcess) {
             // TODO controllare return value
-            serveProc(client);
+            serveProc(client, options.port);
             closeSocket(client);
         } else {
-            _socket* sock;
-            if ((sock = malloc(sizeof(_socket))) == NULL) {
-                _logErr("Error serving client: " _ALLOC_ERR);
-                continue;
-            }
-            *sock = client;
-            serveThread(sock);
+            serveThread(client, options.port);
         }
     }
 }
