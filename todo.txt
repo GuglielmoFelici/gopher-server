@@ -17,6 +17,7 @@ Common:
         controllare i return -1
     usare ovunque sendall
     Purgare costanti
+    indenta le syscalls in ||
     
 
 Linux:

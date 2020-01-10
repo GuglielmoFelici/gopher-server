@@ -63,36 +63,38 @@ char gopherType(WIN32_FIND_DATA* fileData) {
 }
 
 /* Invia il file al client */
-void* sendFile(void* sendFileArgs) {
+void* sendFileTask(void* sendFileArgs) {
     struct sendFileArgs args;
-    char* response;
+    char log[PIPE_BUF];  // TODO -.-
+    char address[IP_ADDRESS_LENGTH];
+    struct sockaddr_in clientAddr;
+    int clientLen;
     args = *((struct sendFileArgs*)sendFileArgs);
     free(sendFileArgs);
-    if ((response = calloc(args.size + 3, 1)) == NULL) {
-        errorRoutine(&args.dest);
+    if (
+        sendAll(args.dest, (char*)args.src, args.size) == SOCKET_ERROR ||
+        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR ||
+        !UnmapViewOfFile(args.src)) {
+        ExitThread(GOPHER_FAILURE);
     }
-    memcpy((void*)response, args.src, args.size);
-    strcat(response, "\n.");
-    if (send(args.dest, response, strlen(response), 0) >= 0) {
-        // Logga il trasferimento
-        char log[PIPE_BUF];
-        char address[16];
-        struct sockaddr_in clientAddr;
-        int clientLen;
-        clientLen = sizeof(clientAddr);
-        getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen);
-        strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
-        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
-        logTransfer(log);
+    clientLen = sizeof(clientAddr);
+    if (getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen) == SOCKET_ERROR) {
+        ExitThread(GOPHER_FAILURE);
     }
-    UnmapViewOfFile(args.src);
-    free(response);
-    closeSocket(args.dest);
+    strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
+    snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
+    logTransfer(log);
+    // TODO closeSocket(args.dest); ????
 }
 
-DWORD sendFile(struct sendFileArgs* args) {
+int sendFile(LPSTR name, struct fileMappingData* map, SOCKET sock) {
     HANDLE thread;
-    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
+    struct sendFileArgs args;
+    args.src = map->view;
+    args.size = map->size;
+    args.dest = sock;
+    strncpy(args.name, name, sizeof(args.name));
+    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFileTask, &args, 0, NULL)) == NULL) {
         return GOPHER_FAILURE;
     }
     CloseHandle(thread);
@@ -100,7 +102,7 @@ DWORD sendFile(struct sendFileArgs* args) {
 }
 
 /* Mappa il file in memoria */
-HANDLE getFileMap(LPCSTR path, SOCKET sock, struct fileMapping* mapData) {
+DWORD getFileMap(LPCSTR path, struct fileMappingData* mapData) {
     HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
     LPVOID view;
     LARGE_INTEGER fileSize;
@@ -112,7 +114,7 @@ HANDLE getFileMap(LPCSTR path, SOCKET sock, struct fileMapping* mapData) {
         goto ON_ERROR;
     }
     if (fileSize.QuadPart == 0) {
-        mapData->map = NULL;
+        mapData->view = NULL;
         mapData->size = 0;
         return GOPHER_SUCCESS;
     }
@@ -126,8 +128,8 @@ HANDLE getFileMap(LPCSTR path, SOCKET sock, struct fileMapping* mapData) {
         !CloseHandle(map)) {
         goto ON_ERROR;
     }
-    mapData->map = map;
-    mapData->size = fileSize;
+    mapData->view = view;
+    mapData->size = fileSize.QuadPart;
     return GOPHER_SUCCESS;
 ON_ERROR:
     if (file == INVALID_HANDLE_VALUE) {
@@ -200,19 +202,16 @@ void normalizeInput(LPSTR str) {
     }
 }
 
-/* Valida la stringa ed esegue il protocollo. */
+/* Esegue il protocollo. */
 int gopher(SOCKET sock, unsigned short port) {
     LPSTR selector = NULL;
-    struct fileMapping* map;
-    struct sendFileArgs* sendArgs = NULL;
+    struct fileMappingData map;
     char buf[BUFF_SIZE];
     size_t bytesRec = 0, selectorSize = 1;
     do {
-        if ((bytesRec = recv(sock, buf, BUFF_SIZE, 0)) == SOCKET_ERROR) {
-            sendErrorResponse(sock, SYS_ERR_MSG);
-            goto ON_ERROR;
-        }
-        if ((selector = realloc(selector, selectorSize + bytesRec)) == NULL) {
+        if (
+            (bytesRec = recv(sock, buf, BUFF_SIZE, 0)) == SOCKET_ERROR ||
+            (selector = realloc(selector, selectorSize + bytesRec)) == NULL) {
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
@@ -232,10 +231,9 @@ int gopher(SOCKET sock, unsigned short port) {
             goto ON_ERROR;
         }
     } else {  // File
-        if (getFileMap(selector, sock, &map) != GOPHER_SUCCESS) {
-            goto ON_ERROR;
-        }
-        if ((sendArgs = malloc(sizeof(struct sendFileArgs))) == NULL) {
+        if (
+            getFileMap(selector, &map) != GOPHER_SUCCESS ||
+            sendFile(selector, &map, sock) != GOPHER_SUCCESS) {
             goto ON_ERROR;
         }
     }

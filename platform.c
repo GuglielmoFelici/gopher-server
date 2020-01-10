@@ -513,7 +513,7 @@ bool endsWith(char *str1, char *str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-int sendAll(_socket s, char *data, int length) {
+int sendAll(_socket s, char *data, unsigned long long length) {
     int count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);

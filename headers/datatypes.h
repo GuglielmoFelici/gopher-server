@@ -12,7 +12,6 @@ typedef LPCSTR _cstring;
 typedef WIN32_FIND_DATA _fileData;
 typedef BOOL _handlerRet;
 typedef HANDLE _thread, myPipe, _event, _map;
-typedef _LARGE_INTEGER _largeInt;
 typedef DWORD _procId, _sig_atomic;
 
 #else
@@ -31,7 +30,6 @@ typedef void _handlerRet;
 typedef pthread_t _thread;
 typedef pid_t _procId;
 typedef __sig_atomic_t _sig_atomic;
-typedef unsigned long long _largeInt;
 
 #endif
 

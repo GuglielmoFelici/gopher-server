@@ -20,6 +20,7 @@
 #endif
 
 #define MAX_ERROR_SIZE 60
+#define IP_ADDRESS_LENGTH 16
 
 /* Config */
 
