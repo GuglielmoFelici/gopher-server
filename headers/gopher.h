@@ -54,6 +54,8 @@ void _err(_cstring message, bool stderror, int code);
 
 void _logErr(_cstring message);
 
+bool endsWith(char* str1, char* str2);
+
 _string trimEnding(_string str);
 
 void changeCwd(_cstring path);
@@ -96,7 +98,7 @@ void closeThread();
 
 /* Gopher */
 
-int gopher(_socket sock, bool asyncSend, unsigned short port);
+int gopher(_socket sock, unsigned short port);
 
 void errorRoutine(void* sock);
 

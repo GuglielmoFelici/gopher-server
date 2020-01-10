@@ -8,14 +8,14 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
 #endif
-#define CRLF "\r\n"
 #define HELPER_PATH "helpers\\winGopherProcess.exe"
+#define DIR_SEP "\\"
 
 #else  // LINUX
 
-#define CRLF "\n"
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
+#define DIR_SEP "/"
 
 #endif
 
@@ -35,6 +35,7 @@
 
 /* Gopher */
 
+#define CRLF "\r\n"
 #define BUFF_SIZE 70
 #define GOPHER_SUCCESS 0
 #define GOPHER_FAILURE -1

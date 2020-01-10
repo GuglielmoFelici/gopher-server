@@ -1,9 +1,7 @@
 IMPORTANTE: COSTANTI GOPHER TYPE
 
 Common:
-    controllare i return -1
-    usare ovunque sendall
-    Purgare costanti
+
     Gopher si occupa di inviare?
     gopher unificabile?
     USA strrchr (trova ultima occorrenza di carattere in str)!!!
@@ -14,6 +12,10 @@ Common:
     Migliorare report errori in errorRoutine?
     controllare tutti i sizeof e gli strlen
     verificare tutte le *alloc e free
+    togliere tutti gli _ ???
+        controllare i return -1
+    usare ovunque sendall
+    Purgare costanti
     
 
 Linux:

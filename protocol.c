@@ -91,7 +91,7 @@ void* sendFile(void* sendFileArgs) {
 }
 
 /* Mappa il file in memoria e avvia il worker thread di trasmissione */
-HANDLE readFile(LPCSTR path, SOCKET sock, bool asyncSend) {
+HANDLE readFile(LPCSTR path, SOCKET sock) {
     HANDLE file;
     HANDLE map;
     HANDLE thread;
@@ -152,77 +152,85 @@ HANDLE readFile(LPCSTR path, SOCKET sock, bool asyncSend) {
     strncpy(args->name, path, sizeof(args->name));
     if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
         errorRoutine(&sock);
-    } else if (asyncSend) {
-        WaitForSingleObject(thread, INFINITE);
     }
+    // else if (asyncSend) {
+    //     WaitForSingleObject(thread, INFINITE);
+    // }
 }
 
 /* Costruisce la lista dei file e la invia al client */
 DWORD sendDir(LPCSTR path, SOCKET sock, unsigned short port) {
     char filePath[MAX_NAME];
+    WIN32_FIND_DATA data;
+    HANDLE hFind = NULL;
     LPSTR line = NULL;
     size_t lineSize;
     CHAR type;
-    WIN32_FIND_DATA data;
-    HANDLE hFind;
-    snprintf(filePath, sizeof(filePath), "%s*", (path[0] == '\0' ? ".\\" : path));
+    snprintf(filePath, sizeof(filePath), "%s*", path);
     if (INVALID_HANDLE_VALUE == (hFind = FindFirstFile(filePath, &data))) {
         sendErrorResponse(sock, GetLastError() & ERROR_FILE_NOT_FOUND ? FILE_NOT_FOUND_MSG : SYS_ERR_MSG);
-        return GOPHER_FAILURE;
+        goto ON_ERROR;
     }
     do {
-        if (strcmp(data.cFileName, ".") && strcmp(data.cFileName, "..")) {  // Ignora le entry ./ e ../
-            type = gopherType(&data);
-            // Compongo la riga di risposta
-            lineSize = strlen(data.cFileName) + strlen(path) + strlen(data.cFileName) + strlen(GOPHER_DOMAIN) + 13;
-            if (line = realloc(line, lineSize)) {
-                snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu\r\n", type, data.cFileName, path, data.cFileName, (type == GOPHER_DIR ? "\\" : ""), GOPHER_DOMAIN, port);
-            } else {
-                sendErrorResponse(sock, SYS_ERR_MSG);
-                return GOPHER_FAILURE;
-            }
-            if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
-                free(line);
-                return GOPHER_FAILURE;
-            }
+        if (strcmp(data.cFileName, ".") == 0 || strcmp(data.cFileName, "..") == 0) {
+            continue;  // Ignora le entry ./ e ../
         }
+        type = gopherType(&data);
+        // Compongo la riga di risposta
+        lineSize = strlen(data.cFileName) + strlen(path) + strlen(data.cFileName) + strlen(GOPHER_DOMAIN) + 13;
+        if ((line = realloc(line, lineSize)) == NULL) {
+            sendErrorResponse(sock, SYS_ERR_MSG);
+            goto ON_ERROR;
+        }
+        snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, data.cFileName, strcmp(path, ".\\") == 0 ? "" : path, data.cFileName, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port);
+        if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
+            goto ON_ERROR;
+        }
+
     } while (FindNextFile(hFind, &data));
-    free(line);
-    FindClose(hFind);
     if (send(sock, ".", 1, 0) < 1) {
-        return GOPHER_FAILURE;
+        goto ON_ERROR;
     }
-    closesocket(sock);
     return GOPHER_SUCCESS;
+ON_ERROR:
+    if (line) {
+        free(line);
+    }
+    if (hFind && hFind != INVALID_HANDLE_VALUE) {
+        FindClose(hFind);
+    }
+    return GOPHER_FAILURE;
 }
 
 bool validateInput(LPSTR str) {
-    LPSTR saveptr;
+    LPSTR strtokptr;
     LPSTR ret;
-    if (str == NULL) {
-        return false;
-    } else if (strcmp(str, "\r\n") == 0) {
-        str[0] = '\0';
-        return true;
+    ret = strtok_r(str, CRLF, &strtokptr);
+    return ret == NULL ||
+           !strstr(ret, ".\\") && !strstr(ret, "./");
+}
+
+void normalizeInput(LPSTR str) {
+    LPSTR strtokptr;
+    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
+        strcpy(str, "." DIR_SEP);
     } else {
-        ret = strtok_r(str, "\r\n", &saveptr);
-        return (!strstr(ret, "..\\") && ret[0] != '\\');
+        strtok_r(str, CRLF, &strtokptr);
     }
 }
 
 /* Valida la stringa ed esegue il protocollo. */
-int gopher(SOCKET sock, bool asyncSend, unsigned short port) {
+int gopher(SOCKET sock, unsigned short port) {
     LPSTR response, selector = NULL;
     char buf[BUFF_SIZE];
-    DWORD exitCode = 0, responseSize = 0;
     size_t bytesRec = 0, selectorSize = 1;
-    HANDLE sendThread = NULL;
     do {
-        bytesRec = recv(sock, buf, BUFF_SIZE, 0);
-        if (bytesRec < 0) {
+        if ((bytesRec = recv(sock, buf, BUFF_SIZE, 0)) == SOCKET_ERROR) {
+            sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
         if ((selector = realloc(selector, selectorSize + bytesRec)) == NULL) {
+            sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
         memcpy(selector + selectorSize - 1, buf, bytesRec);
@@ -234,20 +242,19 @@ int gopher(SOCKET sock, bool asyncSend, unsigned short port) {
         sendErrorResponse(sock, BAD_SELECTOR_MSG);
         goto ON_ERROR;
     }
+    normalizeInput(selector);
     printf("Request: _%s_\n", strlen(selector) == 0 ? "_empty" : selector);
-    if (selector[0] == '\0' || selector[strlen(selector) - 1] == '\\') {  // Directory
+    if (endsWith(selector, DIR_SEP)) {  // Directory
         if (sendDir(selector, sock, port) != GOPHER_SUCCESS) {
             goto ON_ERROR;
         }
     } else {  // File
-        if (readFile(selector, sock, asyncSend) != GOPHER_SUCCESS) {
+        if (readFile(selector, sock) != GOPHER_SUCCESS) {
             goto ON_ERROR;
         }
     }
     free(selector);
-    if (!asyncSend) {
-        closesocket(sock);
-    }
+    closesocket(sock);
     return GOPHER_SUCCESS;
 ON_ERROR:
     if (selector) {
@@ -391,7 +398,7 @@ void readDir(const char* path, int sock) {
         if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
             strcat(strcpy(file.path, path), entry->d_name);
             type = gopherType(&file);
-            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s\r\n", type, entry->d_name, file.path, (type == '1' ? "/" : ""), GOPHER_DOMAIN);
+            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s" CRLF, type, entry->d_name, file.path, (type == '1' ? "/" : ""), GOPHER_DOMAIN);
             if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
                 closedir(dir);
                 pthread_exit(NULL);

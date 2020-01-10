@@ -126,18 +126,23 @@ void closeThread() {
 void *serveThreadTask(void *args) {
     struct threadArgs gopherArgs = *(struct threadArgs *)args;
     free(args);
-    gopher(gopherArgs.sock, false, gopherArgs.port);  // Il protocollo viene eseguito qui TODO waitForSend false è giusto??
+    gopher(gopherArgs.sock, gopherArgs.port);  // Il protocollo viene eseguito qui TODO waitForSend false è giusto??
 }
 
 /* Serve una richiesta in modalità multithreading. */
 int serveThread(SOCKET sock, unsigned short port) {
+    HANDLE thread;
     struct threadArgs *args;
     if ((args = malloc(sizeof(struct threadArgs))) == NULL) {
         return -1;
     }
     args->sock = sock;
     args->port = port;
-    return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serveThreadTask, args, 0, NULL) ? 0 : 1;
+    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serveThreadTask, args, 0, NULL)) == NULL) {
+        return -1;
+    }
+    CloseHandle(thread);
+    return 0;
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
@@ -503,6 +508,10 @@ void startTransferLog() {
 /*                                             COMMON FUNCTIONS                                                 */
 
 /*****************************************************************************************************************/
+
+bool endsWith(char *str1, char *str2) {
+    return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
+}
 
 int sendAll(_socket s, char *data, int length) {
     int count = 0, sent = 0;

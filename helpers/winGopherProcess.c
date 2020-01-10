@@ -14,7 +14,9 @@ DWORD main(DWORD argc, LPSTR* argv) {
     sscanf(argv[2], "%hu", &port);
     sscanf(argv[3], "%p", &logPipe);
     sscanf(argv[4], "%p", &logEvent);
-    gopher(sock, true, port);
+    // TODO handling
+    gopher(sock, port);
     closeSocket(sock);
-    return WSACleanup();
+    WSACleanup();
+    ExitThread(0);
 }

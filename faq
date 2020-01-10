@@ -1,2 +1,6 @@
 Share handles in windows:
     https://docs.microsoft.com/en-us/windows/win32/sysinfo/handle-inheritance
+Detachare thread in windows:
+    Chiudere handle e basta
+    https://stackoverflow.com/questions/1981459/using-threads-in-c-on-windows-simple-example
+    https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitthread
