@@ -41,7 +41,7 @@
 #define GOPHER_FAILURE -1
 #define ERROR_MSG "3Error"
 #define BAD_SELECTOR_MSG "Bad selector"
-#define FILE_NOT_FOUND_MSG "Can't find the resource"
+#define FILE_NOT_FOUND_MSG "Resource not found"
 #define SYS_ERR_MSG " Internal error"
 #define GOPHER_DOMAIN "localhost"
 // Gopher types

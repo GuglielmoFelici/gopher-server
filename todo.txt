@@ -13,6 +13,7 @@ Common:
     controllare tutti i sizeof e gli strlen
     verificare tutte le *alloc e free
     togliere tutti gli _ ???
+    Rivedere datatypes
         controllare i return -1
     usare ovunque sendall
     Purgare costanti

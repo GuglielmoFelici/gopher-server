@@ -90,72 +90,53 @@ void* sendFile(void* sendFileArgs) {
     closeSocket(args.dest);
 }
 
-/* Mappa il file in memoria e avvia il worker thread di trasmissione */
-HANDLE readFile(LPCSTR path, SOCKET sock) {
-    HANDLE file;
-    HANDLE map;
+DWORD sendFile(struct sendFileArgs* args) {
     HANDLE thread;
-    DWORD sizeLow;
-    DWORD sizeHigh;
-    LPVOID view;
-    OVERLAPPED ovlp;
-    struct sendFileArgs* args;
-    if ((file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
-        errorRoutine(&sock);
+    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
+        return GOPHER_FAILURE;
     }
-    if ((sizeLow = GetFileSize(file, &sizeHigh)) == 0) {
-        send(sock, ".", 2, 0);
-        // Logga
-        char log[PIPE_BUF];
-        char address[16];
-        struct sockaddr_in clientAddr;
-        int clientLen;
-        clientLen = sizeof(clientAddr);
-        getpeername(sock, (struct sockaddr*)&clientAddr, &clientLen);
-        strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
-        snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", path, 0, address, clientAddr.sin_port);
-        logTransfer(log);
-        if (!CloseHandle(file)) {
-            errorRoutine(&sock);
-        }
-        closeSocket(sock);
-        return NULL;
+    CloseHandle(thread);
+    return GOPHER_SUCCESS;
+}
+
+/* Mappa il file in memoria */
+HANDLE getFileMap(LPCSTR path, SOCKET sock, struct fileMapping* mapData) {
+    HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
+    LPVOID view;
+    LARGE_INTEGER fileSize;
+    OVERLAPPED ovlp;
+    if ((file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+        goto ON_ERROR;
+    }
+    if (!GetFileSizeEx(file, &fileSize)) {
+        goto ON_ERROR;
+    }
+    if (fileSize.QuadPart == 0) {
+        mapData->map = NULL;
+        mapData->size = 0;
+        return GOPHER_SUCCESS;
     }
     memset(&ovlp, 0, sizeof(ovlp));
-    if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, sizeLow, sizeHigh, &ovlp)) {
+    if (
+        !LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
+        (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL ||
+        !UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
+        !CloseHandle(file) ||
+        (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) == NULL ||
+        !CloseHandle(map)) {
+        goto ON_ERROR;
+    }
+    mapData->map = map;
+    mapData->size = fileSize;
+    return GOPHER_SUCCESS;
+ON_ERROR:
+    if (file == INVALID_HANDLE_VALUE) {
         CloseHandle(file);
-        errorRoutine(&sock);
     }
-    if ((map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL) {
-        CloseHandle(file);
-        errorRoutine(&sock);
+    if (map == INVALID_HANDLE_VALUE) {
+        CloseHandle(map);
     }
-    if (!UnlockFileEx(file, 0, sizeLow, sizeHigh, &ovlp)) {
-        CloseHandle(file);
-        errorRoutine(&sock);
-    }
-    if (!CloseHandle(file)) {
-        errorRoutine(&sock);
-    }
-    if ((view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) == NULL) {
-        errorRoutine(&sock);
-    }
-    if (!CloseHandle(map)) {
-        errorRoutine(&sock);
-    }
-    if ((args = malloc(sizeof(struct sendFileArgs))) == NULL) {
-        errorRoutine(&sock);
-    }
-    args->src = view;
-    args->dest = sock;
-    args->size = sizeLow;
-    strncpy(args->name, path, sizeof(args->name));
-    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFile, args, 0, NULL)) == NULL) {
-        errorRoutine(&sock);
-    }
-    // else if (asyncSend) {
-    //     WaitForSingleObject(thread, INFINITE);
-    // }
+    return GOPHER_FAILURE;
 }
 
 /* Costruisce la lista dei file e la invia al client */
@@ -221,7 +202,9 @@ void normalizeInput(LPSTR str) {
 
 /* Valida la stringa ed esegue il protocollo. */
 int gopher(SOCKET sock, unsigned short port) {
-    LPSTR response, selector = NULL;
+    LPSTR selector = NULL;
+    struct fileMapping* map;
+    struct sendFileArgs* sendArgs = NULL;
     char buf[BUFF_SIZE];
     size_t bytesRec = 0, selectorSize = 1;
     do {
@@ -249,7 +232,10 @@ int gopher(SOCKET sock, unsigned short port) {
             goto ON_ERROR;
         }
     } else {  // File
-        if (readFile(selector, sock) != GOPHER_SUCCESS) {
+        if (getFileMap(selector, sock, &map) != GOPHER_SUCCESS) {
+            goto ON_ERROR;
+        }
+        if ((sendArgs = malloc(sizeof(struct sendFileArgs))) == NULL) {
             goto ON_ERROR;
         }
     }

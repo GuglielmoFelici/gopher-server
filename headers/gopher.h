@@ -104,9 +104,14 @@ void errorRoutine(void* sock);
 
 struct sendFileArgs {
     void* src;
-    size_t size;
+    _largeInt size;
     _socket dest;
     char name[MAX_NAME];
+};
+
+struct fileMapping {
+    _map map;
+    _largeInt size;
 };
 
 void* sendFile(void* sendFileArgs);
