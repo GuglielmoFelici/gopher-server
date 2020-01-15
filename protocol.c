@@ -165,12 +165,15 @@ DWORD sendDir(LPCSTR path, SOCKET sock, unsigned short port) {
         }
         type = gopherType(&data);
         // Compongo la riga di risposta
-        lineSize = strlen(data.cFileName) + strlen(path) + strlen(data.cFileName) + strlen(GOPHER_DOMAIN) + 13;
+        lineSize = snprintf(NULL, 0, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, data.cFileName, path, data.cFileName, DIR_SEP, GOPHER_DOMAIN, port) + 1;
         if ((line = realloc(line, lineSize)) == NULL) {
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
-        snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, data.cFileName, strcmp(path, ".\\") == 0 ? "" : path, data.cFileName, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port);
+        if (snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, data.cFileName, strcmp(path, ".\\") == 0 ? "" : path, data.cFileName, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port) < lineSize - 1) {
+            sendErrorResponse(sock, SYS_ERR_MSG);
+            goto ON_ERROR;
+        }
         if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
             goto ON_ERROR;
         }
@@ -205,10 +208,6 @@ void normalizeInput(LPSTR str) {
     } else {
         strtok_r(str, CRLF, &strtokptr);
     }
-}
-
-bool detachSendThread(HANDLE thread) {
-    return CloseHandle(thread);
 }
 
 /* Esegue il protocollo. */

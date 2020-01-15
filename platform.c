@@ -147,43 +147,36 @@ int serveThread(SOCKET sock, unsigned short port) {
 
 /* Serve una richiesta in modalità multiprocesso. */
 int serveProc(SOCKET client, unsigned short port) {
-    LPSTR exec;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    char cmdLine[MAX_PATH];
-    size_t execSize = strlen(installationDir) + strlen(HELPER_PATH) + 4;
-    exec = malloc(execSize);
-    if (exec == NULL) {
-        return -1;
-    }
-    // TODO FREEEEEEEEEEEEEEE
-    if (snprintf(exec, execSize, "%s/" HELPER_PATH, installationDir) < 0) {
-        return -1;
+    char exec[MAX_PATH];
+    LPSTR cmdLine;
+    size_t cmdLineSize;
+    // size_t execSize = strlen(installationDir) + strlen(HELPER_PATH) + 4;
+    if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, installationDir) < strlen(installationDir) + strlen(HELPER_PATH) + 1) {
+        return GOPHER_FAILURE;
     }
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
     startupInfo.dwFlags = STARTF_USESTDHANDLES;
-    startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-    if (startupInfo.hStdInput == INVALID_HANDLE_VALUE) {
-        return -1;
+    if (
+        (startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE ||
+        (startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE)) == INVALID_HANDLE_VALUE ||
+        (startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE)) == INVALID_HANDLE_VALUE) {
+        return GOPHER_FAILURE;
     }
-    startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (startupInfo.hStdOutput == INVALID_HANDLE_VALUE) {
-        return -1;
+    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p %p", exec, port, client, logPipe, logEvent) + 1;
+    if ((cmdLine = malloc(cmdLineSize)) == NULL) {
+        return GOPHER_FAILURE;
     }
-    startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    if (startupInfo.hStdError == INVALID_HANDLE_VALUE) {
-        return -1;
+    if (
+        snprintf(cmdLine, cmdLineSize, "%s %hu %p %p %p", exec, port, client, logPipe, logEvent) < cmdLineSize - 1 ||
+        !CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+        free(cmdLine);
+        return GOPHER_FAILURE;
     }
-    // TODO size dinamico?
-    if (snprintf(cmdLine, sizeof(cmdLine), "%s %hu %p %p %p", exec, port, client, logPipe, logEvent) < 0) {
-        return -1;
-    }
-    if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
-        return -1;
-    }
-    free(exec);
+    return GOPHER_SUCCESS;
 }
 
 /*********************************************** LOGGER ***************************************************************/
