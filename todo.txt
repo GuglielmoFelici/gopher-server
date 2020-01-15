@@ -30,9 +30,9 @@ Linux:
     com'è fatto crlf? (su windows due caratteri, \r\n)
 
 Windows:
+    verificare chiusura di tutti gli handle
     cancellare _file ?
     Eliminare validateInput()?
-    Sendfile non ritorna puntatore ma usa pointer argument
     Windows Logger
     errorroutine?
     InstallDefaultSigHandlers
@@ -47,3 +47,4 @@ Ballino:
     tcp
     controlla ogni singola system call
     makefile
+    testa file da più di 2 GB

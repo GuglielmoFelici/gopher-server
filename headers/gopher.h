@@ -81,7 +81,7 @@ int sockErr();
 
 int closeSocket(_socket s);
 
-int sendAll(_socket s, char* data, unsigned long long length);
+int sendAll(_socket s, char* data, int length);
 
 /* Threads & processes */
 
@@ -104,17 +104,15 @@ void errorRoutine(void* sock);
 
 struct sendFileArgs {
     void* src;
-    unsigned long long size;
+    int size;
     _socket dest;
     char name[MAX_NAME];
 };
 
 struct fileMappingData {
     void* view;
-    unsigned long long size;
+    int size;
 };
-
-int sendFile(_string name, struct fileMappingData* map, _socket sock);
 
 /* Transfer Log */
 

@@ -123,7 +123,7 @@ void closeThread() {
 }
 
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
-void *serveThreadTask(void *args) {
+DWORD WINAPI serveThreadTask(LPVOID args) {
     struct threadArgs gopherArgs = *(struct threadArgs *)args;
     free(args);
     gopher(gopherArgs.sock, gopherArgs.port);  // Il protocollo viene eseguito qui TODO waitForSend false è giusto??
@@ -138,7 +138,7 @@ int serveThread(SOCKET sock, unsigned short port) {
     }
     args->sock = sock;
     args->port = port;
-    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)serveThreadTask, args, 0, NULL)) == NULL) {
+    if ((thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL)) == NULL) {
         return -1;
     }
     CloseHandle(thread);
@@ -156,6 +156,7 @@ int serveProc(SOCKET client, unsigned short port) {
     if (exec == NULL) {
         return -1;
     }
+    // TODO FREEEEEEEEEEEEEEE
     if (snprintf(exec, execSize, "%s/" HELPER_PATH, installationDir) < 0) {
         return -1;
     }
@@ -176,7 +177,7 @@ int serveProc(SOCKET client, unsigned short port) {
         return -1;
     }
     // TODO size dinamico?
-    if (snprintf(cmdLine, sizeof(cmdLine), "%s %d %hu %p %p", exec, port, client, logPipe, logEvent) < 0) {
+    if (snprintf(cmdLine, sizeof(cmdLine), "%s %hu %p %p %p", exec, port, client, logPipe, logEvent) < 0) {
         return -1;
     }
     if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
@@ -513,11 +514,13 @@ bool endsWith(char *str1, char *str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-int sendAll(_socket s, char *data, unsigned long long length) {
+int sendAll(_socket s, char *data, int length) {
     int count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);
         if (sent == SOCKET_ERROR) {
+            printf("sockerror %d\n", WSAGetLastError());
+            fflush(stdout);
             return SOCKET_ERROR;
         }
         count += sent;

@@ -63,18 +63,19 @@ char gopherType(WIN32_FIND_DATA* fileData) {
 }
 
 /* Invia il file al client */
-void* sendFileTask(void* sendFileArgs) {
+DWORD WINAPI sendFileTask(LPVOID sendFileArgs) {
     struct sendFileArgs args;
     char log[PIPE_BUF];  // TODO -.-
     char address[IP_ADDRESS_LENGTH];
     struct sockaddr_in clientAddr;
     int clientLen;
-    args = *((struct sendFileArgs*)sendFileArgs);
+    args = *(struct sendFileArgs*)sendFileArgs;
     free(sendFileArgs);
     if (
         sendAll(args.dest, (char*)args.src, args.size) == SOCKET_ERROR ||
         sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR ||
-        !UnmapViewOfFile(args.src)) {
+        !UnmapViewOfFile(args.src) ||
+        closesocket(args.dest) == SOCKET_ERROR) {
         ExitThread(GOPHER_FAILURE);
     }
     clientLen = sizeof(clientAddr);
@@ -87,17 +88,20 @@ void* sendFileTask(void* sendFileArgs) {
     // TODO closeSocket(args.dest); ????
 }
 
-int sendFile(LPSTR name, struct fileMappingData* map, SOCKET sock) {
+DWORD sendFile(LPSTR name, struct fileMappingData* map, SOCKET sock) {
     HANDLE thread;
-    struct sendFileArgs args;
-    args.src = map->view;
-    args.size = map->size;
-    args.dest = sock;
-    strncpy(args.name, name, sizeof(args.name));
-    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFileTask, &args, 0, NULL)) == NULL) {
+    struct sendFileArgs* args;
+    if ((args = malloc(sizeof(struct sendFileArgs))) == NULL) {
         return GOPHER_FAILURE;
     }
-    CloseHandle(thread);
+    args->src = map->view;
+    args->size = map->size;
+    args->dest = sock;
+    strncpy(args->name, name, sizeof(args->name));
+    if ((thread = CreateThread(NULL, 0, sendFileTask, args, 0, NULL)) == NULL) {
+        free(args);
+        return GOPHER_FAILURE;
+    }
     return GOPHER_SUCCESS;
 }
 
@@ -120,6 +124,7 @@ DWORD getFileMap(LPCSTR path, struct fileMappingData* mapData) {
     }
     memset(&ovlp, 0, sizeof(ovlp));
     if (
+        // TODO testare perché possono fallire queste chiamate
         !LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
         (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL ||
         !UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
@@ -129,13 +134,13 @@ DWORD getFileMap(LPCSTR path, struct fileMappingData* mapData) {
         goto ON_ERROR;
     }
     mapData->view = view;
-    mapData->size = fileSize.QuadPart;
+    mapData->size = fileSize.LowPart;
     return GOPHER_SUCCESS;
 ON_ERROR:
-    if (file == INVALID_HANDLE_VALUE) {
+    if (file != INVALID_HANDLE_VALUE) {
         CloseHandle(file);
     }
-    if (map == INVALID_HANDLE_VALUE) {
+    if (map != INVALID_HANDLE_VALUE) {
         CloseHandle(map);
     }
     return GOPHER_FAILURE;
@@ -202,6 +207,10 @@ void normalizeInput(LPSTR str) {
     }
 }
 
+bool detachSendThread(HANDLE thread) {
+    return CloseHandle(thread);
+}
+
 /* Esegue il protocollo. */
 int gopher(SOCKET sock, unsigned short port) {
     LPSTR selector = NULL;
@@ -230,6 +239,7 @@ int gopher(SOCKET sock, unsigned short port) {
         if (sendDir(selector, sock, port) != GOPHER_SUCCESS) {
             goto ON_ERROR;
         }
+        closesocket(sock);
     } else {  // File
         if (
             getFileMap(selector, &map) != GOPHER_SUCCESS ||
@@ -238,13 +248,11 @@ int gopher(SOCKET sock, unsigned short port) {
         }
     }
     free(selector);
-    closesocket(sock);
     return GOPHER_SUCCESS;
 ON_ERROR:
     if (selector) {
         free(selector);
     }
-    closesocket(sock);
     return GOPHER_FAILURE;
 }
 
