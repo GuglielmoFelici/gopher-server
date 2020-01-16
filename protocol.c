@@ -74,9 +74,11 @@ DWORD WINAPI sendFileTask(LPVOID sendFileArgs) {
     if (
         sendAll(args.dest, (char*)args.src, args.size) == SOCKET_ERROR ||
         sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR ||
-        !UnmapViewOfFile(args.src) ||
         closesocket(args.dest) == SOCKET_ERROR) {
         ExitThread(GOPHER_FAILURE);
+    }
+    if (args.src) {
+        UnmapViewOfFile(args.src);
     }
     clientLen = sizeof(clientAddr);
     if (getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen) == SOCKET_ERROR) {
@@ -170,7 +172,7 @@ DWORD sendDir(LPCSTR path, SOCKET sock, unsigned short port) {
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
-        if (snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, data.cFileName, strcmp(path, ".\\") == 0 ? "" : path, data.cFileName, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port) < lineSize - 1) {
+        if (snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, data.cFileName, strcmp(path, ".\\") == 0 ? "" : path, data.cFileName, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port) < 0) {
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
@@ -210,6 +212,11 @@ void normalizeInput(LPSTR str) {
     }
 }
 
+bool isFile(LPSTR path) {
+    DWORD attr;
+    return (attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY);
+}
+
 /* Esegue il protocollo. */
 int gopher(SOCKET sock, unsigned short port) {
     LPSTR selector = NULL;
@@ -240,6 +247,10 @@ int gopher(SOCKET sock, unsigned short port) {
         }
         closesocket(sock);
     } else {  // File
+        if (!isFile(selector)) {
+            sendErrorResponse(sock, FILE_NOT_FOUND_MSG);
+            goto ON_ERROR;
+        }
         if (
             getFileMap(selector, &map) != GOPHER_SUCCESS ||
             sendFile(selector, &map, sock) != GOPHER_SUCCESS) {

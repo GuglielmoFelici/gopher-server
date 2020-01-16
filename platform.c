@@ -152,7 +152,6 @@ int serveProc(SOCKET client, unsigned short port) {
     char exec[MAX_PATH];
     LPSTR cmdLine;
     size_t cmdLineSize;
-    // size_t execSize = strlen(installationDir) + strlen(HELPER_PATH) + 4;
     if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, installationDir) < strlen(installationDir) + strlen(HELPER_PATH) + 1) {
         return GOPHER_FAILURE;
     }
