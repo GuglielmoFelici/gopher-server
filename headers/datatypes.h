@@ -4,7 +4,7 @@
 #if defined(_WIN32)
 #include <windows.h>
 #define EINTR WSAEINTR
-#define MAX_NAME MAX_PATH / 2
+#define MAX_NAME MAX_PATH
 #define PIPE_BUF 4096
 typedef SOCKET _socket;
 typedef LPSTR _string;
@@ -20,7 +20,7 @@ typedef DWORD _procId, _sig_atomic;
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#define MAX_NAME FILENAME_MAX / 2
+#define MAX_NAME FILENAME_MAX
 typedef int _socket, _event;
 typedef int myPipe;
 typedef char* _string;

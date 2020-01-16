@@ -74,4 +74,12 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
 #define EXT_IMG 0xE000
 #define CHECK_GRP(index, group) group&(int)pow(2., index)
 
+#define FILE_CMD_MAX 256
+#define FILE_CMD_EXEC1 "executable"
+#define FILE_CMD_EXEC2 "ELF"
+#define FILE_CMD_IMG "image"
+#define FILE_CMD_DIR "directory"
+#define FILE_CMD_GIF "GIF"
+#define FILE_CMD_TXT "text"
+
 #endif

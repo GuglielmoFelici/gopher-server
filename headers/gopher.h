@@ -86,7 +86,7 @@ int sendAll(_socket s, char* data, int length);
 /* Threads & processes */
 
 struct threadArgs {
-    SOCKET sock;
+    _socket sock;
     unsigned short port;
 };
 
@@ -97,6 +97,8 @@ int serveProc(_socket socket, unsigned short port);
 void closeThread();
 
 /* Gopher */
+
+int sendErrorResponse(_socket sock, _string msg);
 
 int gopher(_socket sock, unsigned short port);
 

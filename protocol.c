@@ -184,6 +184,7 @@ DWORD sendDir(LPCSTR path, SOCKET sock, unsigned short port) {
     if (send(sock, ".", 1, 0) < 1) {
         goto ON_ERROR;
     }
+    free(line);
     return GOPHER_SUCCESS;
 ON_ERROR:
     if (line) {
@@ -281,49 +282,70 @@ void errorRoutine(void* sock) {
 }
 
 /* Ritorna il carattere di codifica del tipo di file */
-char gopherType(const _file* file) {
-    char cmdOut[200] = "";
+char gopherType(char* file) {
+    char cmd[MAX_NAME];
+    char cmdOut[FILE_CMD_MAX];
     FILE* response;
-    char* command;
     int bytesRead;
-    size_t cmdSize = strlen(file->path) + strlen("file \"\"") + 1;
-    command = malloc(cmdSize);
-    snprintf(command, cmdSize, "file \"%s\"", file->path);
-    response = popen(command, "r");
-    bytesRead = fread(cmdOut, 1, 200, response);
-    free(command);
+    if (snprintf(cmd, sizeof(cmd), "file \"%s\"", file) < 0) {
+        return GOPHER_UNKNOWN;
+    }
+    response = popen(cmd, "r");
+    bytesRead = fread(cmdOut, 1, FILE_CMD_MAX, response);
     fclose(response);
-    if (bytesRead < 0) {
-        pthread_exit(NULL);
+    if (strstr(cmdOut, FILE_CMD_EXEC1) || strstr(cmdOut, FILE_CMD_EXEC2)) {
+        return GOPHER_BINARY;
+    } else if (strstr(cmdOut, FILE_CMD_IMG)) {
+        return GOPHER_IMAGE;
+    } else if (strstr(cmdOut, FILE_CMD_DIR)) {
+        return GOPHER_DIR;
+    } else if (strstr(cmdOut, FILE_CMD_GIF)) {
+        return GOPHER_GIF;
+    } else if (strstr(cmdOut, FILE_CMD_TXT)) {
+        return GOPHER_TEXT;
     }
-    if (strstr(cmdOut, "executable") || strstr(cmdOut, "ELF")) {
-        return '9';
-    } else if (strstr(cmdOut, "image")) {
-        return 'I';
-    } else if (strstr(cmdOut, "directory")) {
-        return '1';
-    } else if (strstr(cmdOut, "GIF")) {
-        return 'G';
-    } else if (strstr(cmdOut, "text")) {
-        return '0';
+    return GOPHER_UNKNOWN;
+}
+
+int getFileMap(char* path, struct fileMappingData* mapData) {
+    void* map;
+    int fd;
+    struct stat statBuf;
+    struct sendFileArgs* args;
+    pthread_t tid;
+    if (
+        // TODO VERIFICARE QUESTA CASCATA
+        (fd = open(path, O_RDONLY)) < 0 ||
+        flock(fd, LOCK_EX) < 0 ||
+        fstat(fd, &statBuf) < 0 ||
+        (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED ||
+        flock(fd, LOCK_UN) < 0 ||
+        close(fd) < 0) {
+        return GOPHER_FAILURE;
     }
-    return 'X';
+    mapData->view = map;
+    mapData->size = statBuf.st_size;
+    return GOPHER_SUCCESS;
 }
 
 /* Invia il file al client */
-void* sendFile(void* sendFileArgs) {
+void* sendFileTask(void* threadArgs) {
     struct sendFileArgs args;
     void* response;
     int sent = 0;
     struct sockaddr_in clientAddr;
     socklen_t clientLen;
-    args = *((struct sendFileArgs*)sendFileArgs);
-    free(sendFileArgs);
-    if ((response = calloc(args.size + 3, 1)) == NULL) {
-        pthread_exit(NULL);
+    args = *(struct sendFileArgs*)threadArgs;
+    free(threadArgs);
+    if (
+        sendAll(args.dest, (char*)args.src, args.size) == SOCKET_ERROR ||
+        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR ||
+        close(args.dest) == SOCKET_ERROR) {
+        pthread_exit(GOPHER_FAILURE);
     }
-    memcpy(response, args.src, args.size);
-    strcat((char*)response, "\n.");
+    if (args.src) {
+        munmap(args.src, args.size);
+    }
     if (send(args.dest, response, args.size + 2, O_NONBLOCK) >= 0) {
         char log[PIPE_BUF];
         char address[16];
@@ -333,103 +355,73 @@ void* sendFile(void* sendFileArgs) {
         snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
         logTransfer(log);
     }
-    munmap(args.src, args.size);
-    free(response);
     closeSocket(args.dest);
 }
 
-/* Mappa il file in memoria e avvia il worker thread di trasmissione */
-pthread_t readFile(const char* path, int sock) {
-    void* map;
-    int fd;
-    struct stat statBuf;
-    struct sendFileArgs* args;
+/* Avvia il worker thread di trasmissione */
+int sendFile(const char* path, struct fileMappingData* map, int sock) {
     pthread_t tid;
-    if ((fd = open(path, O_RDONLY)) < 0) {
-        pthread_exit(NULL);
+    struct sendFileArgs* args;
+    if ((args = malloc(sizeof(struct sendFileArgs))) == NULL) {
+        return GOPHER_FAILURE;
     }
-    if (flock(fd, LOCK_EX) < 0) {
-        pthread_exit(NULL);
-    }
-    if (fstat(fd, &statBuf) < 0) {
-        pthread_exit(NULL);
-    }
-    if (statBuf.st_size == 0) {
-        send(sock, ".", 2, 0);
-        if (close(fd) < 0) {
-            pthread_exit(NULL);
-        }
-        close(sock);
-        return -1;
-    }
-    if ((map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED) {
-        pthread_exit(NULL);
-    }
-    if (flock(fd, LOCK_UN) < 0) {
-        pthread_exit(NULL);
-    }
-    if (close(fd) < 0) {
-        pthread_exit(NULL);
-    }
-    args = malloc(sizeof(struct sendFileArgs));
-    args->src = map;
-    args->size = statBuf.st_size;
+    args->src = map->view;
+    args->size = map->size;
     args->dest = sock;
     strncpy(args->name, path, MAX_NAME);
-    if (pthread_create(&tid, NULL, sendFile, args)) {
-        pthread_exit(NULL);
+    if (pthread_create(&tid, NULL, sendFileTask, args) != 0) {
+        return GOPHER_FAILURE;
     }
-    return tid;
+    return GOPHER_SUCCESS;
 }
 
 /* Costruisce la lista dei file e la invia al client */
-void readDir(const char* path, int sock) {
-    DIR* dir;
+int sendDir(const char* path, int sock, unsigned short port) {
+    DIR* dir = NULL;
     struct dirent* entry;
-    _file file;
-    char line[sizeof(entry->d_name) + sizeof(file.path) + sizeof(GOPHER_DOMAIN) + 4];
-    char* response;
+    char filePath[MAX_NAME];
+    char* line = NULL;
+    size_t lineSize;
     char type;
-    size_t responseSize;
-    if ((dir = opendir(path[0] == '\0' ? "./" : path)) == NULL) {
-        pthread_exit(NULL);
+    if ((dir = opendir(path)) == NULL) {
+        return GOPHER_FAILURE;
     }
-    response = calloc(1, 1);
-    responseSize = 2;  // Per il punto finale
     while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
-            strcat(strcpy(file.path, path), entry->d_name);
-            type = gopherType(&file);
-            snprintf(line, sizeof(line), "%c%s\t%s%s\t%s" CRLF, type, entry->d_name, file.path, (type == '1' ? "/" : ""), GOPHER_DOMAIN);
-            if ((response = realloc(response, responseSize + strlen(line))) == NULL) {
-                closedir(dir);
-                pthread_exit(NULL);
-            }
-            responseSize += strlen(line);
-            strcat(response, line);
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;  // Ignora le entry ./ e ../
+        }
+        lineSize = snprintf(NULL, 0, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, entry->d_name, path, entry->d_name, DIR_SEP, GOPHER_DOMAIN, port) + 1;
+        if ((line = realloc(line, lineSize)) == NULL) {
+            sendErrorResponse(sock, SYS_ERR_MSG);
+            goto ON_ERROR;
+        }
+        if (snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, entry->d_name, strcmp(path, "./") == 0 ? "" : path, entry->d_name, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port) < 0) {
+            sendErrorResponse(sock, SYS_ERR_MSG);
+            goto ON_ERROR;
+        }
+        if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
+            goto ON_ERROR;
         }
     }
-    strcat(response, ".");
-    send(sock, response, responseSize, 0);
+    if (send(sock, ".", 1, 0) < 1) {
+        goto ON_ERROR;
+    }
+    free(line);
     closedir(dir);
-    free(response);
     close(sock);
+    return GOPHER_SUCCESS;
+ON_ERROR:
+    if (line) {
+        free(line);
+    }
+    if (dir) {
+        closedir(dir);
+    }
+    return GOPHER_FAILURE;
 }
 
-/* Valida il selettore ed esegue il protocollo. Ritorna l'identificativo dell'ultimo thread generato */
-pthread_t gopher(int sock) {
-    char selector[MAX_GOPHER_MSG];
-    recv(sock, selector, MAX_GOPHER_MSG, 0);
-    trimEnding(selector);
-    printf("Request: %s\n", selector);
-    if (strstr(selector, "./") || strstr(selector, "../") || selector[0] == '/' || strstr(selector, "//")) {
-        pthread_exit(NULL);
-    } else if (selector[0] == '\0' || selector[strlen(selector) - 1] == '/') {  // Directory
-        readDir(selector, sock);
-        return -1;
-    } else {  // File
-        return readFile(selector, sock);
-    }
+bool isFile(char* path) {
+    return true;  //TODO
 }
 
 #endif
@@ -446,4 +438,85 @@ _string trimEnding(_string str) {
         }
     }
     return str;
+}
+
+bool validateInput(_string str) {
+    _string strtokptr;
+    _string ret;
+    ret = strtok_r(str, CRLF, &strtokptr);
+    return ret == NULL ||
+           !strstr(ret, ".\\") && !strstr(ret, "./");
+}
+
+void normalizeInput(_string str) {
+    _string strtokptr;
+    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
+        strcpy(str, "." DIR_SEP);
+    } else {
+        strtok_r(str, CRLF, &strtokptr);
+    }
+}
+
+int sendErrorResponse(int sock, _string msg) {
+    if (sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
+    }
+    if (sendAll(sock, msg, strlen(msg)) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
+    }
+    if (sendAll(sock, CRLF ".", 3) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
+    }
+    if (closeSocket(sock) == SOCKET_ERROR) {
+        return SOCKET_ERROR;
+    }
+}
+
+/* Esegue il protocollo. */
+int gopher(_socket sock, unsigned short port) {
+    _string selector = NULL;
+    struct fileMappingData map;
+    char buf[BUFF_SIZE];
+    size_t bytesRec = 0, selectorSize = 1;
+    do {
+        if (
+            (bytesRec = recv(sock, buf, BUFF_SIZE, 0)) == SOCKET_ERROR ||
+            (selector = realloc(selector, selectorSize + bytesRec)) == NULL) {
+            sendErrorResponse(sock, SYS_ERR_MSG);
+            goto ON_ERROR;
+        }
+        memcpy(selector + selectorSize - 1, buf, bytesRec);
+        selectorSize += bytesRec;
+        selector[selectorSize - 1] = '\0';
+    } while (bytesRec > 0 && !strstr(selector, CRLF));
+    printf("Selector: %s_\n", selector);
+    if (!validateInput(selector)) {
+        sendErrorResponse(sock, BAD_SELECTOR_MSG);
+        goto ON_ERROR;
+    }
+    normalizeInput(selector);
+    printf("Request: _%s_\n", strlen(selector) == 0 ? "_empty" : selector);
+    if (endsWith(selector, DIR_SEP)) {  // Directory
+        if (sendDir(selector, sock, port) != GOPHER_SUCCESS) {
+            goto ON_ERROR;
+        }
+        closeSocket(sock);
+    } else {  // File
+        if (!isFile(selector)) {
+            sendErrorResponse(sock, FILE_NOT_FOUND_MSG);
+            goto ON_ERROR;
+        }
+        if (
+            getFileMap(selector, &map) != GOPHER_SUCCESS ||
+            sendFile(selector, &map, sock) != GOPHER_SUCCESS) {
+            goto ON_ERROR;
+        }
+    }
+    free(selector);
+    return GOPHER_SUCCESS;
+ON_ERROR:
+    if (selector) {
+        free(selector);
+    }
+    return GOPHER_FAILURE;
 }

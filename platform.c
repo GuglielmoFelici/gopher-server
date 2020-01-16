@@ -345,52 +345,58 @@ void closeThread() {
     pthread_exit(NULL);
 }
 
-/* Avvia il processo gopher, predisponendo la routine di cleanup errorRoutine */
-void runGopher(int sock, bool multiProcess) {
-    pthread_cleanup_push(errorRoutine, &sock);
-    _thread tid = gopher(sock);
-    if (tid > 0) {
-        if (multiProcess) {
-            printf("%d\n", pthread_join(tid, NULL));
-        } else {
-            pthread_detach(tid);
-        }
-    }
-    pthread_cleanup_pop(0);
-}
+// /* Avvia il processo gopher, predisponendo la routine di cleanup errorRoutine */
+// void runGopher(int sock, bool multiProcess) {
+//     pthread_cleanup_push(errorRoutine, &sock);
+//     _thread tid = gopher(sock);
+//     if (tid > 0) {
+//         if (multiProcess) {
+//             printf("%d\n", pthread_join(tid, NULL));
+//         } else {
+//             pthread_detach(tid);
+//         }
+//     }
+//     pthread_cleanup_pop(0);
+// }
 
-/* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
-void *serveThreadTask(void *args) {
-    sigset_t set;
-    char message[MAX_GOPHER_MSG];
-    int sock;
-    sigemptyset(&set);
-    sigaddset(&set, SIGHUP);
-    pthread_sigmask(SIG_BLOCK, &set, NULL);
-    sock = *(int *)args;
-    free(args);
-    runGopher(sock, false);
-}
+// /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
+// void *serveThreadTask(void *args) {
+//     sigset_t set;
+//     int sock;
+//     sigemptyset(&set);
+//     sigaddset(&set, SIGHUP);
+//     pthread_sigmask(SIG_BLOCK, &set, NULL);
+//     sock = *(int *)args;
+//     free(args);
+//     gopher(sock, 333); // TODO
+// }
 
 /* Serve una richiesta in modalità multithreading. */
-void serveThread(int *sock) {
-    pthread_t tid;
-    if (pthread_create(&tid, NULL, serveThreadTask, sock)) {
-        printf(_THREAD_ERR "\n");
-        return;
-    }
-    pthread_detach(tid);
+int serveThread(int sock, unsigned short port) {
+    // pthread_t tid;
+    // int* sockArg;
+    // if ((sockArg = malloc(sizeof(int))) == NULL) {
+    //     return GOPHER_FAILURE;
+    // }
+    // *sockArg = sock;
+    // if (pthread_create(&tid, NULL, serveThreadTask, sockArg)) {
+    //     printf(_THREAD_ERR "\n");
+    //     return;
+    // }
+    // pthread_detach(tid);
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-void serveProc(int sock) {
+int serveProc(int sock, unsigned short port) {
     pid_t pid;
     pid = fork();
     if (pid < 0) {
         _err(_FORK_ERR, true, errno);
     } else if (pid == 0) {
-        runGopher(sock, true);
-        exit(0);
+        gopher(sock, port);
+        pthread_exit(0);
+    } else {
+        return 0;
     }
 }
 
@@ -511,8 +517,6 @@ int sendAll(_socket s, char *data, int length) {
     while (count < length) {
         int sent = send(s, data + count, length, 0);
         if (sent == SOCKET_ERROR) {
-            printf("sockerror %d\n", WSAGetLastError());
-            fflush(stdout);
             return SOCKET_ERROR;
         }
         count += sent;
