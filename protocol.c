@@ -10,35 +10,13 @@
 
 /*****************************************************************************************************************/
 
-void errorRoutine(void* sock) {
-    LPSTR err = "3Error retrieving the resource\t\t\r\n.";
-    send(*(SOCKET*)sock, err, strlen(err), 0);
-    closeSocket(*(SOCKET*)sock);
-    ExitThread(-1);
-}
-
-DWORD sendErrorResponse(SOCKET sock, LPSTR msg) {
-    if (sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3) == SOCKET_ERROR) {
-        return SOCKET_ERROR;
-    }
-    if (sendAll(sock, msg, strlen(msg)) == SOCKET_ERROR) {
-        return SOCKET_ERROR;
-    }
-    if (sendAll(sock, CRLF ".", 3) == SOCKET_ERROR) {
-        return SOCKET_ERROR;
-    }
-    if (closeSocket(sock) == SOCKET_ERROR) {
-        return SOCKET_ERROR;
-    }
-}
-
 /* Ritorna il carattere di codifica del tipo di file */
-char gopherType(WIN32_FIND_DATA* fileData) {
+char gopherType(WIN32_FIND_DATA* data) {
     LPSTR ext;
-    if (fileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+    if (data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
         return GOPHER_DIR;
     }
-    ext = strrchr(fileData->cFileName, '.');
+    ext = strrchr(data->cFileName, '.');
     if (!ext) {
         return GOPHER_UNKNOWN;
     }
@@ -196,75 +174,9 @@ ON_ERROR:
     return GOPHER_FAILURE;
 }
 
-bool validateInput(LPSTR str) {
-    LPSTR strtokptr;
-    LPSTR ret;
-    ret = strtok_r(str, CRLF, &strtokptr);
-    return ret == NULL ||
-           !strstr(ret, ".\\") && !strstr(ret, "./");
-}
-
-void normalizeInput(LPSTR str) {
-    LPSTR strtokptr;
-    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
-        strcpy(str, "." DIR_SEP);
-    } else {
-        strtok_r(str, CRLF, &strtokptr);
-    }
-}
-
 bool isFile(LPSTR path) {
     DWORD attr;
     return (attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY);
-}
-
-/* Esegue il protocollo. */
-int gopher(SOCKET sock, unsigned short port) {
-    LPSTR selector = NULL;
-    struct fileMappingData map;
-    char buf[BUFF_SIZE];
-    size_t bytesRec = 0, selectorSize = 1;
-    do {
-        if (
-            (bytesRec = recv(sock, buf, BUFF_SIZE, 0)) == SOCKET_ERROR ||
-            (selector = realloc(selector, selectorSize + bytesRec)) == NULL) {
-            sendErrorResponse(sock, SYS_ERR_MSG);
-            goto ON_ERROR;
-        }
-        memcpy(selector + selectorSize - 1, buf, bytesRec);
-        selectorSize += bytesRec;
-        selector[selectorSize - 1] = '\0';
-    } while (bytesRec > 0 && !strstr(selector, CRLF));
-    printf("Selector: %s_\n", selector);
-    if (!validateInput(selector)) {
-        sendErrorResponse(sock, BAD_SELECTOR_MSG);
-        goto ON_ERROR;
-    }
-    normalizeInput(selector);
-    printf("Request: _%s_\n", strlen(selector) == 0 ? "_empty" : selector);
-    if (endsWith(selector, DIR_SEP)) {  // Directory
-        if (sendDir(selector, sock, port) != GOPHER_SUCCESS) {
-            goto ON_ERROR;
-        }
-        closesocket(sock);
-    } else {  // File
-        if (!isFile(selector)) {
-            sendErrorResponse(sock, FILE_NOT_FOUND_MSG);
-            goto ON_ERROR;
-        }
-        if (
-            getFileMap(selector, &map) != GOPHER_SUCCESS ||
-            sendFile(selector, &map, sock) != GOPHER_SUCCESS) {
-            goto ON_ERROR;
-        }
-    }
-    free(selector);
-    return GOPHER_SUCCESS;
-ON_ERROR:
-    if (selector) {
-        free(selector);
-    }
-    return GOPHER_FAILURE;
 }
 
 #else
@@ -457,7 +369,7 @@ void normalizeInput(_string str) {
     }
 }
 
-int sendErrorResponse(int sock, _string msg) {
+int sendErrorResponse(_socket sock, _string msg) {
     if (sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3) == SOCKET_ERROR) {
         return SOCKET_ERROR;
     }
