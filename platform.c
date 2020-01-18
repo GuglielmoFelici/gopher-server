@@ -134,15 +134,15 @@ int serveThread(SOCKET sock, unsigned short port) {
     HANDLE thread;
     struct threadArgs *args;
     if ((args = malloc(sizeof(struct threadArgs))) == NULL) {
-        return -1;
+        return GOPHER_FAILURE;
     }
     args->sock = sock;
     args->port = port;
     if ((thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL)) == NULL) {
-        return -1;
+        return GOPHER_FAILURE;
     }
     CloseHandle(thread);
-    return 0;
+    return GOPHER_SUCCESS;
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
@@ -325,18 +325,23 @@ void intHandler(int signum) {
 }
 
 /* Installa un gestore di segnale */
-void installSigHandler(int sig, void (*func)(int), int flags) {
+int installSigHandler(int sig, void (*func)(int), int flags) {
     struct sigaction sigact;
     sigact.sa_handler = func;
-    sigemptyset(&sigact.sa_mask);
     sigact.sa_flags = flags;
-    sigaction(sig, &sigact, NULL);
+    if (sigemptyset(&sigact.sa_mask) != 0 ||
+        sigaction(sig, &sigact, NULL != 0)) {
+        return GOPHER_FAILURE;
+    }
+    return GOPHER_SUCCESS;
 }
 
 /* Installa i gestori predefiniti di segnali */
 void installDefaultSigHandlers() {
-    installSigHandler(SIGINT, &intHandler, 0);
-    installSigHandler(SIGHUP, &hupHandler, SA_NODEFER);
+    if (installSigHandler(SIGINT, &intHandler, 0) == GOPHER_FAILURE ||
+        installSigHandler(SIGHUP, &hupHandler, SA_NODEFER) == GOPHER_FAILURE) {
+        _err(_SYS_ERR, true, errno);
+    }
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
@@ -345,28 +350,18 @@ void closeThread() {
     pthread_exit(NULL);
 }
 
-// /* Avvia il processo gopher, predisponendo la routine di cleanup errorRoutine */
-// void runGopher(int sock, bool multiProcess) {
-//     pthread_cleanup_push(errorRoutine, &sock);
-//     _thread tid = gopher(sock);
-//     if (tid > 0) {
-//         if (multiProcess) {
-//             printf("%d\n", pthread_join(tid, NULL));
-//         } else {
-//             pthread_detach(tid);
-//         }
-//     }
-//     pthread_cleanup_pop(0);
-// }
-
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
 void *serveThreadTask(void *args) {
     sigset_t set;
     int sock;
     struct threadArgs tArgs;
-    sigemptyset(&set);
-    sigaddset(&set, SIGHUP);
-    pthread_sigmask(SIG_BLOCK, &set, NULL);
+    if (
+        sigemptyset(&set) < 0 ||
+        sigaddset(&set, SIGHUP) < 0 ||
+        pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
+        free(args);
+        exit(1);
+    }
     tArgs = *(struct threadArgs *)args;
     free(args);
     gopher(tArgs.sock, tArgs.port);
@@ -387,6 +382,7 @@ int serveThread(int sock, unsigned short port) {
         return GOPHER_FAILURE;
     }
     pthread_detach(tid);
+    return GOPHER_SUCCESS;
 }
 
 /* Serve una richiesta in modalità multiprocesso. */

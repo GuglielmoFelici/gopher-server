@@ -240,17 +240,17 @@ int getFileMap(char* path, struct fileMappingData* mapData) {
 void* sendFileTask(void* threadArgs) {
     struct sendFileArgs args;
     void* response;
-    int sent = 0;
     struct sockaddr_in clientAddr;
     socklen_t clientLen;
     args = *(struct sendFileArgs*)threadArgs;
     free(threadArgs);
     if (
         sendAll(args.dest, args.src, args.size) == SOCKET_ERROR ||
-        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR ||
-        close(args.dest) == SOCKET_ERROR) {
+        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR) {
+        close(args.dest);
         pthread_exit(NULL);
     }
+    close(args.dest);
     if (args.src) {
         munmap(args.src, args.size);
     }
@@ -276,8 +276,9 @@ int sendFile(const char* path, struct fileMappingData* map, int sock) {
     args->src = map->view;
     args->size = map->size;
     args->dest = sock;
-    strncpy(args->name, path, MAX_NAME);
+    strncpy(args->name, path, sizeof(args->name));
     if (pthread_create(&tid, NULL, sendFileTask, args) != 0) {
+        free(args);
         return GOPHER_FAILURE;
     }
     pthread_detach(tid);
