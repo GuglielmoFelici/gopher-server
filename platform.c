@@ -515,7 +515,9 @@ bool endsWith(char *str1, char *str2) {
 
 int sendAll(_socket s, char *data, int length) {
     int count = 0, sent = 0;
+    printf("Requested send of length %d, data:\n%s\n", length, data);
     while (count < length) {
+        printf("sending %s\n", data + count);
         int sent = send(s, data + count, length, 0);
         if (sent == SOCKET_ERROR) {
             return SOCKET_ERROR;

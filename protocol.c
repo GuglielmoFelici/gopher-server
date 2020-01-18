@@ -146,9 +146,11 @@ DWORD sendDir(LPCSTR path, SOCKET sock, unsigned short port) {
         type = gopherType(&data);
         // Compongo la riga di risposta
         lineSize = snprintf(NULL, 0, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, data.cFileName, path, data.cFileName, DIR_SEP, GOPHER_DOMAIN, port) + 1;
-        if ((line = realloc(line, lineSize)) == NULL) {
-            sendErrorResponse(sock, SYS_ERR_MSG);
-            goto ON_ERROR;
+        if (lineSize > line ? strlen(line) : 0) {
+            if ((line = realloc(line, lineSize)) == NULL) {
+                sendErrorResponse(sock, SYS_ERR_MSG);
+                goto ON_ERROR;
+            }
         }
         if (snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, data.cFileName, strcmp(path, ".\\") == 0 ? "" : path, data.cFileName, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port) < 0) {
             sendErrorResponse(sock, SYS_ERR_MSG);
@@ -250,7 +252,7 @@ void* sendFileTask(void* threadArgs) {
     args = *(struct sendFileArgs*)threadArgs;
     free(threadArgs);
     if (
-        sendAll(args.dest, (char*)args.src, args.size) == SOCKET_ERROR ||
+        sendAll(args.dest, args.src, args.size) == SOCKET_ERROR ||
         sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR ||
         close(args.dest) == SOCKET_ERROR) {
         pthread_exit(GOPHER_FAILURE);
@@ -303,14 +305,20 @@ int sendDir(const char* path, int sock, unsigned short port) {
             continue;  // Ignora le entry ./ e ../
         }
         lineSize = snprintf(NULL, 0, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, entry->d_name, path, entry->d_name, DIR_SEP, GOPHER_DOMAIN, port) + 1;
-        if ((line = realloc(line, lineSize)) == NULL) {
+        if (lineSize > line ? strlen(line) : 0) {
+            if ((line = realloc(line, lineSize)) == NULL) {
+                sendErrorResponse(sock, SYS_ERR_MSG);
+                goto ON_ERROR;
+            }
+        }
+        printf("lineSize: %li\n", lineSize);
+        size_t x;
+        if ((x = snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, entry->d_name, strcmp(path, "./") == 0 ? "" : path, entry->d_name, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port)) <= 0) {
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
-        if (snprintf(line, lineSize, "%c%s\t%s%s%s\t%s\t%hu" CRLF, type, entry->d_name, strcmp(path, "./") == 0 ? "" : path, entry->d_name, (type == GOPHER_DIR ? DIR_SEP : ""), GOPHER_DOMAIN, port) < 0) {
-            sendErrorResponse(sock, SYS_ERR_MSG);
-            goto ON_ERROR;
-        }
+        printf("snprintf ha ritornato %d\n", x);
+        printf("line after snprintf: %s\n", line);
         if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
             goto ON_ERROR;
         }
