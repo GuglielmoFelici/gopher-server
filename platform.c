@@ -391,6 +391,7 @@ int serveProc(int sock, unsigned short port) {
     pid_t pid;
     pid = fork();
     if (pid < 0) {
+        // TODO return -1?
         _err(_FORK_ERR, true, errno);
     } else if (pid == 0) {
         gopher(sock, port);

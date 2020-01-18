@@ -482,7 +482,6 @@ int gopher(_socket sock, unsigned short port) {
         if (
             (bytesRec = recv(sock, buf, BUFF_SIZE, 0)) == SOCKET_ERROR ||
             (selector = realloc(selector, selectorSize + bytesRec)) == NULL) {
-            sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
         memcpy(selector + selectorSize - 1, buf, bytesRec);
