@@ -18,6 +18,7 @@ Common:
     usare ovunque sendall
     Purgare costanti
     indenta le syscalls in ||
+    startup() è troppo ampio?
     
 
 Linux:

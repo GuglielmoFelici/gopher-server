@@ -359,31 +359,34 @@ void closeThread() {
 //     pthread_cleanup_pop(0);
 // }
 
-// /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
-// void *serveThreadTask(void *args) {
-//     sigset_t set;
-//     int sock;
-//     sigemptyset(&set);
-//     sigaddset(&set, SIGHUP);
-//     pthread_sigmask(SIG_BLOCK, &set, NULL);
-//     sock = *(int *)args;
-//     free(args);
-//     gopher(sock, 333); // TODO
-// }
+/* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
+void *serveThreadTask(void *args) {
+    sigset_t set;
+    int sock;
+    struct threadArgs tArgs;
+    sigemptyset(&set);
+    sigaddset(&set, SIGHUP);
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
+    tArgs = *(struct threadArgs *)args;
+    free(args);
+    gopher(tArgs.sock, tArgs.port);
+}
 
 /* Serve una richiesta in modalità multithreading. */
 int serveThread(int sock, unsigned short port) {
-    // pthread_t tid;
-    // int* sockArg;
-    // if ((sockArg = malloc(sizeof(int))) == NULL) {
-    //     return GOPHER_FAILURE;
-    // }
-    // *sockArg = sock;
-    // if (pthread_create(&tid, NULL, serveThreadTask, sockArg)) {
-    //     printf(_THREAD_ERR "\n");
-    //     return;
-    // }
-    // pthread_detach(tid);
+    pthread_t tid;
+    struct threadArgs *tArgs;
+    if ((tArgs = malloc(sizeof(struct threadArgs))) == NULL) {
+        return GOPHER_FAILURE;
+    }
+    tArgs->sock = sock;
+    tArgs->port = port;
+    if (pthread_create(&tid, NULL, serveThreadTask, tArgs)) {
+        // TODO error
+        printf(_THREAD_ERR "\n");
+        return GOPHER_FAILURE;
+    }
+    pthread_detach(tid);
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
@@ -515,9 +518,7 @@ bool endsWith(char *str1, char *str2) {
 
 int sendAll(_socket s, char *data, int length) {
     int count = 0, sent = 0;
-    printf("Requested send of length %d, data:\n%s\n", length, data);
     while (count < length) {
-        printf("sending %s\n", data + count);
         int sent = send(s, data + count, length, 0);
         if (sent == SOCKET_ERROR) {
             return SOCKET_ERROR;

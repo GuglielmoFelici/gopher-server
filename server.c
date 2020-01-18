@@ -49,9 +49,9 @@ int main(int argc, _string* argv) {
     struct sockaddr_in serverAddr;
     fd_set incomingConnections;
     int addrLen, errorCode, ready, port;
-    if ((errorCode = startup()) != 0) {
-        _err(_STARTUP_ERR, true, errorCode);
-    }
+    // if ((errorCode = startup()) != 0) {
+    //     _err(_STARTUP_ERR, true, errorCode);
+    // }
     atexit(_shutdown);
     /* Parsing opzioni */
     int opt, opterr = 0;
