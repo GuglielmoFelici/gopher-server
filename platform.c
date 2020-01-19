@@ -34,6 +34,10 @@ void changeCwd(LPCSTR path) {
     }
 }
 
+void printHeading(struct config *options) {
+    printf("Listening on port %i (%s mode)\n", options->port, options->multiProcess ? "multiprocess" : "multithreaded");
+}
+
 /********************************************** SOCKETS *************************************************************/
 
 /* Inizializzazione di console e WSA */
@@ -119,7 +123,7 @@ void installDefaultSigHandlers() {
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
 bool detachThread(HANDLE tHandle) {
-    CloseHandle(thandle);
+    CloseHandle(tHandle);
 }
 
 int _createThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
@@ -201,7 +205,7 @@ int isFile(LPSTR path) {
 
 /* Ritorna GOPHER_SUCCESS se path punta a una directory. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
-int isDir(LPSTR path) {
+int isDir(LPCSTR path) {
     DWORD attr;
     if ((attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) {
         return GOPHER_SUCCESS;
@@ -211,7 +215,7 @@ int isDir(LPSTR path) {
 }
 
 /* Mappa il file in memoria */
-int getFileMap(LPCSTR path, struct fileMappingData *mapData) {
+int getFileMap(LPSTR path, struct fileMappingData *mapData) {
     HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
     LPVOID view;
     LARGE_INTEGER fileSize;
@@ -255,12 +259,12 @@ ON_ERROR:
     Legge la prossima entry nella directory. 
     Se *dir è NULL, apre la directory contenuta in path. Se *dir non è NULL, path può essere NULL 
 */
-int iterateDir(char *path, HANDLE *dir, LPSTR name, size_t nameSize) {
+int iterateDir(const char *path, HANDLE *dir, LPSTR name, size_t nameSize) {
     WIN32_FIND_DATA data;
     if (*dir == NULL) {
         char dirPath[MAX_NAME + 1];
         snprintf(dirPath, MAX_NAME, "%s*", path);
-        if ((*dir = FindFirstFile(filePath, &data)) == INVALID_HANDLE_VALUE) {
+        if ((*dir = FindFirstFile(dirPath, &data)) == INVALID_HANDLE_VALUE) {
             return GetLastError() == ERROR_FILE_NOT_FOUND ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
         }
     } else {
@@ -278,13 +282,14 @@ int closeDir(HANDLE dir) {
 
 /*********************************************** LOGGER ***************************************************************/
 
-void logTransfer(LPSTR log) {
-    // TODO mutex
+bool logTransfer(LPSTR log) {
+    // TODO
     DWORD written;
     if (!WriteFile(logPipe, log, strlen(log), &written, NULL)) {
-        return;
+        return false;
     }
     SetEvent(logEvent);
+    return true;
 }
 
 /* Avvia il processo di logging dei trasferimenti. */
