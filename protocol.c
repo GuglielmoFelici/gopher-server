@@ -192,8 +192,7 @@ ON_ERROR:
 void* sendFileTask(void* threadArgs) {
     struct sendFileArgs args;
     struct sockaddr_in clientAddr;
-    socklen_t clientLen;
-    size_t logSize;
+    size_t clientLen, logSize;
     char *log, address[16];
     args = *(struct sendFileArgs*)threadArgs;
     free(threadArgs);
@@ -233,7 +232,7 @@ int sendFile(const char* path, struct fileMappingData* map, int sock) {
     args->size = map->size;
     args->dest = sock;
     strncpy(args->name, path, sizeof(args->name));
-    if (_createThread(&tid, sendFileTask, args) != 0) {
+    if (_createThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args) != 0) {
         free(args);
         return GOPHER_FAILURE;
     }
