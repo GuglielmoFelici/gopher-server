@@ -85,6 +85,8 @@ int closeSocket(_socket s);
 
 int sendAll(_socket s, char* data, int length);
 
+const char* inetNtoa(struct in_addr* addr, void* dst, size_t size);
+
 /* Threads & processes */
 
 struct threadArgs {
@@ -116,6 +118,8 @@ struct fileMappingData {
 };
 
 int getFileMap(_string path, struct fileMappingData* mapData);
+
+int unmapMem(void* addr, size_t len);
 
 /* Gopher */
 

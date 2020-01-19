@@ -55,6 +55,10 @@ int closeSocket(SOCKET s) {
     return closesocket(s);
 }
 
+const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
+    return strncpy(dst, inet_ntoa(*addr), size);
+}
+
 /********************************************** SIGNALS *************************************************************/
 
 /* Invia un messaggio vuoto al socket awakeSelect per interrompere la select del server. */
@@ -276,6 +280,10 @@ int closeDir(HANDLE dir) {
     return FindClose(dir);
 }
 
+int unmapMem(void *addr, size_t len) {
+    return UnmapViewOfFile(addr);
+}
+
 /*********************************************** LOGGER ***************************************************************/
 
 int logTransfer(LPSTR log) {
@@ -415,6 +423,10 @@ int sockErr() {
 
 int closeSocket(int s) {
     return close(s);
+}
+
+const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
+    return inet_ntop(AF_INET, &addr->s_addr, dst, size);
 }
 
 /********************************************** SIGNALS *************************************************************/
@@ -574,6 +586,10 @@ int iterateDir(const char *path, DIR **dir, char *name, size_t nameSize) {
 
 int closeDir(DIR *dir) {
     return closedir(dir);
+}
+
+int unmapMem(void *addr, size_t len) {
+    return munmap(addr, len);
 }
 
 /*********************************************** LOGGER ***************************************************************/

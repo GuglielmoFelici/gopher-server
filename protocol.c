@@ -40,34 +40,6 @@ char gopherType(LPSTR filePath) {
     return GOPHER_UNKNOWN;
 }
 
-/* Invia il file al client */
-DWORD WINAPI sendFileTask(LPVOID sendFileArgs) {
-    struct sendFileArgs args;
-    char log[PIPE_BUF];  // TODO -.-
-    char address[IP_ADDRESS_LENGTH];
-    struct sockaddr_in clientAddr;
-    int clientLen;
-    args = *(struct sendFileArgs*)sendFileArgs;
-    free(sendFileArgs);
-    if (
-        sendAll(args.dest, (char*)args.src, args.size) == SOCKET_ERROR ||
-        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR ||
-        closesocket(args.dest) == SOCKET_ERROR) {
-        ExitThread(GOPHER_FAILURE);
-    }
-    if (args.src) {
-        UnmapViewOfFile(args.src);
-    }
-    clientLen = sizeof(clientAddr);
-    if (getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen) == SOCKET_ERROR) {
-        ExitThread(GOPHER_FAILURE);
-    }
-    strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
-    snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
-    logTransfer(log);
-    // TODO closeSocket(args.dest); ????
-}
-
 #else
 
 /*****************************************************************************************************************/
@@ -101,39 +73,6 @@ char gopherType(char* file) {
         return GOPHER_TEXT;
     }
     return GOPHER_UNKNOWN;
-}
-
-/* Invia il file al client */
-void* sendFileTask(void* threadArgs) {
-    struct sendFileArgs args;
-    struct sockaddr_in clientAddr;
-    socklen_t clientLen;
-    size_t logSize;
-    char *log, address[16];
-    int ret = GOPHER_FAILURE;
-    args = *(struct sendFileArgs*)threadArgs;
-    free(threadArgs);
-    if (
-        sendAll(args.dest, args.src, args.size) == SOCKET_ERROR ||
-        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR) {
-        close(args.dest);
-        pthread_exit(&ret);
-    }
-    if (args.src) {
-        munmap(args.src, args.size);
-    }
-    clientLen = sizeof(clientAddr);
-    getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen);
-    closeSocket(args.dest);
-    inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, address, sizeof(clientAddr));
-    logSize = snprintf(NULL, 0, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) + 1;
-    if ((log = malloc(logSize)) == NULL) {
-        pthread_exit(&ret);
-    }
-    if (snprintf(log, logSize, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) > 0) {
-        printf("%d\n", logTransfer(log));
-    }
-    free(log);
 }
 
 #endif
@@ -247,6 +186,40 @@ ON_ERROR:
         closeDir(dir);
     }
     return GOPHER_FAILURE;
+}
+
+/* Invia il file al client */
+void* sendFileTask(void* threadArgs) {
+    struct sendFileArgs args;
+    struct sockaddr_in clientAddr;
+    socklen_t clientLen;
+    size_t logSize;
+    char *log, address[16];
+    args = *(struct sendFileArgs*)threadArgs;
+    free(threadArgs);
+    if (
+        sendAll(args.dest, args.src, args.size) == SOCKET_ERROR ||
+        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR) {
+        closeSocket(args.dest);
+        return NULL;
+    }
+    if (args.src) {
+        unmapMem(args.src, args.size);
+    }
+    clientLen = sizeof(clientAddr);
+    if (getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen) == SOCKET_ERROR) {
+        memset(&clientAddr, 0, clientLen);
+    }
+    closeSocket(args.dest);
+    inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
+    logSize = snprintf(NULL, 0, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) + 1;
+    if ((log = malloc(logSize)) == NULL) {
+        return NULL;
+    }
+    if (snprintf(log, logSize, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) > 0) {
+        logTransfer(log);
+    }
+    free(log);
 }
 
 /* Avvia il worker thread di trasmissione */
