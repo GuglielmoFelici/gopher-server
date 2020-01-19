@@ -119,22 +119,21 @@ void* sendFileTask(void* threadArgs) {
         close(args.dest);
         pthread_exit(&ret);
     }
-    close(args.dest);
     if (args.src) {
         munmap(args.src, args.size);
     }
     clientLen = sizeof(clientAddr);
-    getpeername(args.dest, &clientAddr, &clientLen);
+    getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen);
+    closeSocket(args.dest);
     inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, address, sizeof(clientAddr));
     logSize = snprintf(NULL, 0, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) + 1;
     if ((log = malloc(logSize)) == NULL) {
         pthread_exit(&ret);
     }
     if (snprintf(log, logSize, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) > 0) {
-        logTransfer(log);
+        printf("%d\n", logTransfer(log));
     }
     free(log);
-    closeSocket(args.dest);
 }
 
 #endif

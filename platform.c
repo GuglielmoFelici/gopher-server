@@ -278,7 +278,7 @@ int closeDir(HANDLE dir) {
 
 /*********************************************** LOGGER ***************************************************************/
 
-void logTransfer(LPSTR log) {
+int logTransfer(LPSTR log) {
     // TODO mutex
     DWORD written;
     if (!WriteFile(logPipe, log, strlen(log), &written, NULL)) {
@@ -583,7 +583,16 @@ pthread_cond_t *condShare;
 bool loggerShutdown = false;
 
 /* Effettua una scrittura sulla pipe di logging */
-bool logTransfer(char *log) {
+int logTransfer(char *log) {
+    if (
+        pthread_mutex_lock(mutexShare) < 0 ||
+        write(logPipe, log, strlen(log)) < 0 ||
+        pthread_cond_signal(condShare) < 0 ||
+        pthread_mutex_unlock(mutexShare) < 0) {
+        return GOPHER_FAILURE;
+    }
+    return GOPHER_SUCCESS;
+
     return pthread_mutex_lock(mutexShare) > 0 &&
            write(logPipe, log, strlen(log)) > 0 &&
            pthread_cond_signal(condShare) > 0 &&

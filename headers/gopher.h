@@ -136,6 +136,6 @@ struct sendFileArgs {
 
 void startTransferLog();
 
-bool logTransfer(_string log);
+int logTransfer(_string log);
 
 #endif
