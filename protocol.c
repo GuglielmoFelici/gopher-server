@@ -13,7 +13,7 @@
 /* Ritorna il carattere di codifica del tipo di file */
 char gopherType(LPSTR filePath) {
     LPSTR ext;
-    if (isDir(filePath) != GOPHER_SUCCESS) {
+    if (isDir(filePath) == GOPHER_SUCCESS) {
         return GOPHER_DIR;
     }
     ext = strrchr(filePath, '.');
