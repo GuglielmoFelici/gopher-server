@@ -9,13 +9,13 @@
 typedef SOCKET _socket;
 typedef LPSTR _string;
 typedef LPCSTR _cstring;
-typedef WIN32_FIND_DATA _fileData;
 typedef BOOL _handlerRet;
-typedef HANDLE _thread, myPipe, _event, _map;
+typedef HANDLE _thread, myPipe, _event, _map, _dir;
 typedef DWORD _procId, _sig_atomic;
 
 #else
 
+#include <dirent.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -25,11 +25,12 @@ typedef int _socket, _event;
 typedef int myPipe;
 typedef char* _string;
 typedef const char* _cstring;
-typedef struct stat _fileData;
 typedef void _handlerRet;
 typedef pthread_t _thread;
+typedef void* (*LPTHREAD_START_ROUTINE)(void*);
 typedef pid_t _procId;
 typedef __sig_atomic_t _sig_atomic;
+typedef DIR* _dir;
 
 #endif
 

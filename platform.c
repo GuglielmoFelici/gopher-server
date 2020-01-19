@@ -118,8 +118,16 @@ void installDefaultSigHandlers() {
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
-void closeThread() {
-    ExitThread(0);
+bool detachThread(HANDLE tHandle) {
+    CloseHandle(thandle);
+}
+
+int _createThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
+    *tid = CreateThread(NULL, 0, routine, args, 0, NULL);
+    if (tid != NULL) {
+        return 0;
+    }
+    return -1;
 }
 
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
@@ -176,6 +184,96 @@ int serveProc(SOCKET client, unsigned short port) {
         return GOPHER_FAILURE;
     }
     return GOPHER_SUCCESS;
+}
+
+/*********************************************** FILES  ***************************************************************/
+
+/* Ritorna GOPHER_SUCCESS se path punta a un file regolare. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
+   settato se il path non è stato trovato. */
+int isFile(LPSTR path) {
+    DWORD attr;
+    if ((attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        return GOPHER_SUCCESS;
+    } else {
+        return GetLastError() == ERROR_FILE_NOT_FOUND ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+    }
+}
+
+/* Ritorna GOPHER_SUCCESS se path punta a una directory. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
+   settato se il path non è stato trovato. */
+int isDir(LPSTR path) {
+    DWORD attr;
+    if ((attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        return GOPHER_SUCCESS;
+    } else {
+        return GetLastError() == ERROR_FILE_NOT_FOUND ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+    }
+}
+
+/* Mappa il file in memoria */
+int getFileMap(LPCSTR path, struct fileMappingData *mapData) {
+    HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
+    LPVOID view;
+    LARGE_INTEGER fileSize;
+    OVERLAPPED ovlp;
+    if ((file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+        goto ON_ERROR;
+    }
+    if (!GetFileSizeEx(file, &fileSize)) {
+        goto ON_ERROR;
+    }
+    if (fileSize.QuadPart == 0) {
+        mapData->view = NULL;
+        mapData->size = 0;
+        return GOPHER_SUCCESS;
+    }
+    memset(&ovlp, 0, sizeof(ovlp));
+    if (
+        // TODO testare perché possono fallire queste chiamate
+        !LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
+        (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL ||
+        !UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
+        !CloseHandle(file) ||
+        (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) == NULL ||
+        !CloseHandle(map)) {
+        goto ON_ERROR;
+    }
+    mapData->view = view;
+    mapData->size = fileSize.LowPart;
+    return GOPHER_SUCCESS;
+ON_ERROR:
+    if (file != INVALID_HANDLE_VALUE) {
+        CloseHandle(file);
+    }
+    if (map != INVALID_HANDLE_VALUE) {
+        CloseHandle(map);
+    }
+    return GOPHER_FAILURE;
+}
+
+/* 
+    Legge la prossima entry nella directory. 
+    Se *dir è NULL, apre la directory contenuta in path. Se *dir non è NULL, path può essere NULL 
+*/
+int iterateDir(char *path, HANDLE *dir, LPSTR name, size_t nameSize) {
+    WIN32_FIND_DATA data;
+    if (*dir == NULL) {
+        char dirPath[MAX_NAME + 1];
+        snprintf(dirPath, MAX_NAME, "%s*", path);
+        if ((*dir = FindFirstFile(filePath, &data)) == INVALID_HANDLE_VALUE) {
+            return GetLastError() == ERROR_FILE_NOT_FOUND ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+        }
+    } else {
+        if (!FindNextFile(*dir, &data)) {
+            return GetLastError() == ERROR_NO_MORE_FILES ? GOPHER_FAILURE | GOPHER_END_OF_DIR : GOPHER_FAILURE;
+        }
+    }
+    strncpy(name, data.cFileName, nameSize);
+    return GOPHER_SUCCESS;
+}
+
+int closeDir(HANDLE dir) {
+    return FindClose(dir);
 }
 
 /*********************************************** LOGGER ***************************************************************/
@@ -257,16 +355,17 @@ int startup() {
     if (getcwd(installationDir, sizeof(installationDir)) == NULL) {
         _err("Cannot get current working directory", true, -1);
     }
-    pid = fork();
+    // pid = fork();
+    pid = 0;
     if (pid < 0) {
         _err(_DAEMON_ERR, true, errno);
     } else if (pid > 0) {
         exit(0);
     } else {
         sigset_t set;
-        if (setsid() < 0) {
-            _err(_DAEMON_ERR, true, errno);
-        }
+        // if (setsid() < 0) {
+        //     _err(_DAEMON_ERR, true, errno);
+        // }
         if (sigemptyset(&set) < 0) {
             _err(_DAEMON_ERR, true, errno);
         }
@@ -276,7 +375,8 @@ int startup() {
         if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
             _err(_DAEMON_ERR, true, errno);
         }
-        pid = fork();
+        // pid = fork();
+        pid = 0;
         if (pid < 0) {
             _err(_DAEMON_ERR, true, errno);
         } else if (pid > 0) {
@@ -292,13 +392,19 @@ int startup() {
             serverStdOut = creat(fileName, S_IRWXU);
             snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
             serverStdErr = creat(fileName, S_IRWXU);
-            // if (dup2(serverStdIn, STDIN_FILENO) < 0 || dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
+            if (dup2(serverStdIn, STDIN_FILENO) < 0)
+                ;  //|| dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
             //     _err(_DAEMON_ERR, true, -1);
             // }
             return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
         }
     }
     return 0;
+}
+
+void printHeading(struct config *options) {
+    printf("Started daemon with pid %d\n", getpid());
+    printf("Listening on port %i (%s mode)\n", options->port, options->multiProcess ? "multiprocess" : "multithreaded");
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -330,7 +436,7 @@ int installSigHandler(int sig, void (*func)(int), int flags) {
     sigact.sa_handler = func;
     sigact.sa_flags = flags;
     if (sigemptyset(&sigact.sa_mask) != 0 ||
-        sigaction(sig, &sigact, NULL != 0)) {
+        sigaction(sig, &sigact, NULL) != 0) {
         return GOPHER_FAILURE;
     }
     return GOPHER_SUCCESS;
@@ -338,16 +444,20 @@ int installSigHandler(int sig, void (*func)(int), int flags) {
 
 /* Installa i gestori predefiniti di segnali */
 void installDefaultSigHandlers() {
-    if (installSigHandler(SIGINT, &intHandler, 0) == GOPHER_FAILURE ||
-        installSigHandler(SIGHUP, &hupHandler, SA_NODEFER) == GOPHER_FAILURE) {
+    if (installSigHandler(SIGINT, &intHandler, 0) != GOPHER_SUCCESS ||
+        installSigHandler(SIGHUP, &hupHandler, SA_NODEFER) != GOPHER_SUCCESS) {
         _err(_SYS_ERR, true, errno);
     }
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
-void closeThread() {
-    pthread_exit(NULL);
+bool detachThread(pthread_t tid) {
+    return pthread_detach(tid) >= 0;
+}
+
+int _createThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
+    return pthread_create(tid, NULL, routine, args);
 }
 
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
@@ -400,6 +510,72 @@ int serveProc(int sock, unsigned short port) {
     }
 }
 
+/*********************************************** FILES ****************************************************************/
+
+/* Ritorna GOPHER_SUCCESS se path punta a un file regolare. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
+   settato se il path non è stato trovato. */
+int isFile(char *path) {
+    struct stat statbuf;
+    if (stat(path, &statbuf) != 0) {
+        return errno == ENOENT ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+    }
+    return S_ISREG(statbuf.st_mode) ? GOPHER_SUCCESS : GOPHER_FAILURE;
+}
+
+/* Ritorna GOPHER_SUCCESS se path punta a una directory. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
+   settato se il path non è stato trovato. */
+int isDir(const char *path) {
+    struct stat statbuf;
+    if (stat(path, &statbuf) != 0) {
+        return errno == ENOENT ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+    }
+    return S_ISDIR(statbuf.st_mode) ? GOPHER_SUCCESS : GOPHER_FAILURE;
+}
+
+int getFileMap(char *path, struct fileMappingData *mapData) {
+    void *map;
+    int fd;
+    struct stat statBuf;
+    struct sendFileArgs *args;
+    pthread_t tid;
+    if (
+        // TODO VERIFICARE QUESTA CASCATA
+        (fd = open(path, O_RDONLY)) < 0 ||
+        flock(fd, LOCK_EX) < 0 ||
+        fstat(fd, &statBuf) < 0 ||
+        (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED ||
+        flock(fd, LOCK_UN) < 0 ||
+        close(fd) < 0) {
+        return GOPHER_FAILURE;
+    }
+    mapData->view = map;
+    mapData->size = statBuf.st_size;
+    return GOPHER_SUCCESS;
+}
+
+/* 
+    Legge la prossima entry nella directory e ne mette il nome in name. 
+    Se *dir è NULL, apre la directory contenuta in path. Se *dir non è NULL, path può essere NULL
+*/
+int iterateDir(const char *path, DIR **dir, char *name, size_t nameSize) {
+    struct dirent *entry;
+    if (*dir == NULL) {
+        if ((*dir = opendir(path)) == NULL) {
+            return errno == ENOENT ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+        }
+    }
+    entry = readdir(*dir);
+    if (entry == NULL) {
+        return errno == EBADF ? GOPHER_FAILURE : GOPHER_FAILURE | GOPHER_END_OF_DIR;
+    }
+    strncpy(name, entry->d_name, nameSize);
+    return GOPHER_SUCCESS;
+}
+
+int closeDir(DIR *dir) {
+    return closedir(dir);
+}
+
 /*********************************************** LOGGER ***************************************************************/
 
 pthread_mutex_t *mutexShare;
@@ -407,51 +583,54 @@ pthread_cond_t *condShare;
 bool loggerShutdown = false;
 
 /* Effettua una scrittura sulla pipe di logging */
-void logTransfer(char *log) {
-    pthread_mutex_lock(mutexShare);
-    write(logPipe, log, strlen(log));
-    pthread_cond_signal(condShare);
-    pthread_mutex_unlock(mutexShare);
-}
-
-/* Handler per SIGINT relativo al logger */
-void logIntHandler(int signum) {
-    loggerShutdown = true;
-    logTransfer("");
+bool logTransfer(char *log) {
+    return pthread_mutex_lock(mutexShare) > 0 &&
+           write(logPipe, log, strlen(log)) > 0 &&
+           pthread_cond_signal(condShare) > 0 &&
+           pthread_mutex_unlock(mutexShare) > 0;
 }
 
 /* Loop di logging */
 void loggerLoop(int inPipe) {
-    int logFile, exitCode = 0;
+    int logFile, exitCode = GOPHER_SUCCESS;
     char buff[PIPE_BUF];
     char logFilePath[MAX_NAME];
+    if (pthread_mutex_lock(mutexShare) < 0) {
+        exitCode = GOPHER_FAILURE;
+        goto ON_EXIT;
+    }
+    printf("Logger mutex locked\n");
     prctl(PR_SET_NAME, "Gopher logger");
     prctl(PR_SET_PDEATHSIG, SIGINT);
     snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);
     if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
         printf(WARN " - Can't start logger\n");
+        goto ON_EXIT;
     }
-    pthread_mutex_lock(mutexShare);
     while (1) {
         size_t bytesRead;
         if (loggerShutdown) {
-            printf("logger requested sd\n");
-            pthread_mutex_unlock(mutexShare);
-            break;
+            printf("logger requested shutdown\n");
+            goto ON_EXIT;
         }
-        printf("Logger mutex locked\n");
         pthread_cond_wait(condShare, mutexShare);
         printf("Logger entered cond\n");
         if ((bytesRead = read(inPipe, buff, PIPE_BUF)) < 0) {
             printf("Logger err\n");
-            exitCode = 1;
-            pthread_mutex_unlock(mutexShare);
-            break;
+            exitCode = GOPHER_FAILURE;
+            goto ON_EXIT;
         } else {
-            write(logFile, buff, bytesRead);
+            if (strcmp(buff, "EXIT") == 0) {
+                goto ON_EXIT;
+            }
+            if (write(logFile, buff, bytesRead) < 0) {
+                printf(WARN " - Failed logging\n");
+            }
         }
         printf("Logger end of loop\n");
     }
+ON_EXIT:
+    pthread_mutex_unlock(mutexShare);
     munmap(mutexShare, sizeof(pthread_mutex_t));
     munmap(condShare, sizeof(pthread_cond_t));
     close(inPipe);
@@ -468,12 +647,14 @@ void startTransferLog() {
     pthread_cond_t cond;
     pthread_condattr_t condAttr;
     // Inizializza mutex e condition variable per notificare il logger che sono pronti nuovi dati sulla pipe.
-    pthread_mutexattr_init(&mutexAttr);
-    pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&mutex, &mutexAttr);
-    pthread_condattr_init(&condAttr);
-    pthread_condattr_setpshared(&condAttr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&cond, &condAttr);
+    if (pthread_mutexattr_init(&mutexAttr) < 0 ||
+        pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED) < 0 ||
+        pthread_mutex_init(&mutex, &mutexAttr) < 0 ||
+        pthread_condattr_init(&condAttr) < 0 ||
+        pthread_condattr_setpshared(&condAttr, PTHREAD_PROCESS_SHARED) < 0 ||
+        pthread_cond_init(&cond, &condAttr) < 0) {
+        _err("startTransferLog() - impossibile inizializzare i mutex\n", true, -1);
+    }
     mutexShare = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (mutexShare == MAP_FAILED) {
         _err("startTransferLog() - impossibile mappare il mutex in memoria\n", true, -1);
@@ -484,7 +665,7 @@ void startTransferLog() {
         _err("startTransferLog() - impossibile mappare la condition variable in memoria\n", true, -1);
     }
     *condShare = cond;
-    if (pipe2(pipeFd, O_DIRECT) < 0) {
+    if (pipe(pipeFd) < 0) {
         _err("startTransferLog() - impossibile aprire la pipe\n", true, -1);
     }
     if ((pid = fork()) < 0) {
@@ -492,7 +673,6 @@ void startTransferLog() {
     } else if (pid == 0) {  // Logger
         loggerPid = getpid();
         close(pipeFd[1]);
-        installSigHandler(SIGINT, logIntHandler, 0);
         loggerLoop(pipeFd[0]);
     } else {  // Server
         close(pipeFd[0]);
@@ -539,7 +719,7 @@ void _err(_cstring message, bool stderror, int code) {
 void _logErr(_cstring message) {
     char buf[MAX_ERROR_SIZE];
     errorString(buf, MAX_ERROR_SIZE);
-    fprintf(stderr, "%s\nSystem error message: %s", message, buf);
+    fprintf(stderr, "%s\nSystem error message: %s\n", message, buf);
 }
 
 void defaultConfig(struct config *options, int which) {

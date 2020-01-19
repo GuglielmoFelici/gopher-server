@@ -49,9 +49,6 @@ int main(int argc, _string* argv) {
     struct sockaddr_in serverAddr;
     fd_set incomingConnections;
     int addrLen, errorCode, ready, port;
-    // if ((errorCode = startup()) != 0) {
-    //     _err(_STARTUP_ERR, true, errorCode);
-    // }
     atexit(_shutdown);
     /* Parsing opzioni */
     int opt, opterr = 0;
@@ -86,6 +83,12 @@ int main(int argc, _string* argv) {
                 abort();
         }
     }
+    // TODO get current dir
+
+    if ((errorCode = startup()) != 0) {
+        _err(_STARTUP_ERR, true, errorCode);
+    }
+
     if (options.port == INVALID_PORT) {
         if (readConfig(&options, READ_PORT) != 0) {
             _logErr(WARN " - " _PORT_CONFIG_ERR);
@@ -103,8 +106,7 @@ int main(int argc, _string* argv) {
     installDefaultSigHandlers();
     startTransferLog();
     server = prepareServer(SERVER_INIT, &options, &serverAddr);
-    printf("*** GOPHER SERVER ***\n\n");
-    printf("Listening on port %i (%s mode)\n", options.port, options.multiProcess ? "multiprocess" : "multithreaded");
+    printHeading(&options);
 
     /* Main loop*/
 
