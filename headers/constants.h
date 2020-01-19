@@ -38,11 +38,13 @@
 
 #define CRLF "\r\n"
 #define BUFF_SIZE 70
-#define GOPHER_SUCCESS 0
-#define GOPHER_FAILURE -1
+#define GOPHER_SUCCESS 0x0000
+#define GOPHER_FAILURE 0x0001
+#define GOPHER_NOT_FOUND 0x0002
+#define GOPHER_END_OF_DIR 0x0004
 #define ERROR_MSG "3Error"
 #define BAD_SELECTOR_MSG "Bad selector"
-#define FILE_NOT_FOUND_MSG "Resource not found"
+#define RESOURCE_NOT_FOUND_MSG "Resource not found"
 #define SYS_ERR_MSG " Internal error"
 #define GOPHER_DOMAIN "localhost"
 // Gopher types
@@ -75,6 +77,7 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
 #define CHECK_GRP(index, group) group&(int)pow(2., index)
 
 #define FILE_CMD_MAX 256
+#define FILE_CMD_NOT_FOUND "No such file or directory"
 #define FILE_CMD_EXEC1 "executable"
 #define FILE_CMD_EXEC2 "ELF"
 #define FILE_CMD_IMG "image"

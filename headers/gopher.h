@@ -71,6 +71,8 @@ int readConfig(struct config* options, int which);
 
 int startup();
 
+void printHeading(struct config* options);
+
 /* Signals */
 
 void installDefaultSigHandlers();
@@ -90,11 +92,30 @@ struct threadArgs {
     unsigned short port;
 };
 
+int _createThread(_thread* tid, LPTHREAD_START_ROUTINE routine, void* args);
+
 int serveThread(_socket socket, unsigned short port);
 
 int serveProc(_socket socket, unsigned short port);
 
-void closeThread();
+bool detachThread(_thread tid);
+
+/* Files */
+
+int isFile(_string path);
+
+int isDir(const char* path);
+
+int iterateDir(_cstring path, _dir* dir, _string name, size_t nameSize);
+
+int closeDir(_dir dir);
+
+struct fileMappingData {
+    void* view;
+    int size;
+};
+
+int getFileMap(_string path, struct fileMappingData* mapData);
 
 /* Gopher */
 
@@ -111,15 +132,10 @@ struct sendFileArgs {
     char name[MAX_NAME];
 };
 
-struct fileMappingData {
-    void* view;
-    int size;
-};
-
 /* Transfer Log */
 
 void startTransferLog();
 
-void logTransfer();
+bool logTransfer(_string log);
 
 #endif
