@@ -767,13 +767,13 @@ int readConfig(struct config *options, int which) {
     char port[6], multiProcess[2];
     size_t configPathSize = strlen(installationDir) + strlen(CONFIG_FILE) + 2;
     if ((configPath = malloc(configPathSize)) == NULL) {
-        return -1;
+        return GOPHER_FAILURE;
     }
     if (snprintf(configPath, configPathSize, "%s/%s", installationDir, CONFIG_FILE) < configPathSize - 1) {
-        return -1;
+        return GOPHER_FAILURE;
     }
     if ((configFile = fopen(configPath, "r")) == NULL) {
-        return -1;
+        return GOPHER_FAILURE;
     }
     free(configPath);
     while (fgetc(configFile) != CONFIG_DELIMITER)
@@ -788,11 +788,11 @@ int readConfig(struct config *options, int which) {
     if (which & READ_PORT) {
         options->port = strtol(port, &endptr, 10);
         if (options->port < 1 || options->port > 65535) {
-            return -1;
+            return GOPHER_FAILURE;
         }
     }
     if (which & READ_MULTIPROCESS) {
         options->multiProcess = strtol(multiProcess, &endptr, 10);
     }
-    return 0;
+    return GOPHER_SUCCESS;
 }
