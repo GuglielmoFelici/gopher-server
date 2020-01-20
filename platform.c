@@ -22,16 +22,15 @@ void _shutdown() {
     CloseHandle(logEvent);
     CloseHandle(logPipe);
     printf("Shutting down...\n");
-    // FreeConsole();
-    // if (AttachConsole(loggerPid)) {
-    //     GenerateConsoleCtrlEvent(CTRL_C_EVENT, loggerPid);
-    // }
 }
 
 void changeCwd(LPCSTR path) {
     if (!SetCurrentDirectory(path)) {
         _logErr(WARN " - Can't change current working directory");
     }
+}
+int getCwd(LPSTR dst, size_t size) {
+    return GetCurrentDirectory(size, dst) ? GOPHER_SUCCESS : GOPHER_FAILURE;
 }
 
 void printHeading(struct config *options) {
@@ -44,9 +43,6 @@ void printHeading(struct config *options) {
 int startup() {
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
-    if (!GetCurrentDirectory(sizeof(installationDir), installationDir)) {
-        _err("Cannot get current working directory", true, -1);
-    }
     return WSAStartup(versionWanted, &wsaData);
 }
 
@@ -218,7 +214,7 @@ int isDir(LPCSTR path) {
     }
 }
 
-/* Mappa il file in memoria */
+/* Mappa un file in memoria */
 int getFileMap(LPSTR path, struct fileMappingData *mapData) {
     HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
     LPVOID view;
@@ -301,21 +297,20 @@ int logTransfer(LPSTR log) {
 }
 
 /* Avvia il processo di logging dei trasferimenti. */
-void startTransferLog() {
+int startTransferLog() {
     char exec[MAX_NAME];
     HANDLE readPipe;
     SECURITY_ATTRIBUTES attr;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
-    snprintf(exec, sizeof(exec), "%s/helpers/winLogger.exe", installationDir);
+    snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, installationDir);
     memset(&attr, 0, sizeof(attr));
     attr.bInheritHandle = TRUE;
     attr.nLength = sizeof(attr);
     attr.lpSecurityDescriptor = NULL;
     // logPipe è globale/condivisa, viene acceduta in scrittura quando avviene un trasferimento file
     if (!CreatePipe(&readPipe, &logPipe, &attr, 0)) {
-        _logErr("startTransferLog() - Can't create pipe");
-        return;
+        return GOPHER_FAILURE;
     }
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
@@ -325,13 +320,12 @@ void startTransferLog() {
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
     // Utilizzato per notificare al logger che ci sono dati da leggere sulla pipe
-    if ((logEvent = CreateEvent(&attr, FALSE, FALSE, "logEvent")) == NULL) {
-        _logErr("startTransferLog() - Can't create logEvent");
-    } else if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installationDir, &startupInfo, &processInfo)) {
-        _logErr("startTransferLog() - Starting logger failed");
-    } else {
-        loggerPid = processInfo.dwProcessId;
+    if (
+        (logEvent = CreateEvent(&attr, FALSE, FALSE, LOGGER_EVENT_NAME)) == NULL ||
+        !CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installationDir, &startupInfo, &processInfo)) {
+        return GOPHER_FAILURE;
     }
+    loggerPid = processInfo.dwProcessId;
     CloseHandle(readPipe);
 }
 
@@ -365,9 +359,6 @@ void changeCwd(const char *path) {
 /* Rende il server un processo demone */
 int startup() {
     int pid;
-    if (getcwd(installationDir, sizeof(installationDir)) == NULL) {
-        _err("Cannot get current working directory", true, -1);
-    }
     // pid = fork();
     pid = 0;
     if (pid < 0) {
@@ -517,13 +508,12 @@ int serveProc(int sock, unsigned short port) {
     pid_t pid;
     pid = fork();
     if (pid < 0) {
-        // TODO return -1?
-        _err(_FORK_ERR, true, errno);
+        return GOPHER_FAILURE;
     } else if (pid == 0) {
         gopher(sock, port);
         pthread_exit(0);
     } else {
-        return 0;
+        return GOPHER_SUCCESS;
     }
 }
 

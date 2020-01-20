@@ -9,6 +9,8 @@
 #define _WIN32_WINNT 0x0501
 #endif
 #define HELPER_PATH "helpers\\winGopherProcess.exe"
+#define LOGGER_PATH "helpers\\winLogger.exe"
+#define LOGGER_EVENT_NAME "logEvent"
 #define DIR_SEP "\\"
 
 #else  // LINUX
@@ -30,8 +32,8 @@
 #define DEFAULT_PORT 7070
 #define INVALID_PORT 0
 #define INVALID_MULTIPROCESS -1
-#define READ_PORT 1
-#define READ_MULTIPROCESS 2
+#define READ_PORT 0x0001
+#define READ_MULTIPROCESS 0x0002
 #define SERVER_INIT -1
 
 /* Gopher */

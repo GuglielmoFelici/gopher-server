@@ -58,6 +58,8 @@ bool endsWith(char* str1, char* str2);
 
 _string trimEnding(_string str);
 
+int getCwd(_string dst, size_t size);
+
 void changeCwd(_cstring path);
 
 struct config {
@@ -138,7 +140,7 @@ struct sendFileArgs {
 
 /* Transfer Log */
 
-void startTransferLog();
+int startTransferLog();
 
 int logTransfer(_string log);
 

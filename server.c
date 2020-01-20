@@ -49,7 +49,10 @@ int main(int argc, _string* argv) {
     struct sockaddr_in serverAddr;
     fd_set incomingConnections;
     int addrLen, errorCode, ready, port;
-    atexit(_shutdown);
+    atexit(_shutdown);  // TODO sicuro??
+    if (getCwd(installationDir, sizeof(installationDir)) != GOPHER_SUCCESS) {
+        _err("Cannot get current working directory", true, -1);
+    }
     /* Parsing opzioni */
     int opt, opterr = 0;
     while ((opt = getopt(argc, argv, "mhp:d:")) != -1) {
@@ -83,12 +86,6 @@ int main(int argc, _string* argv) {
                 abort();
         }
     }
-    // TODO get current dir
-
-    if ((errorCode = startup()) != 0) {
-        _err(_STARTUP_ERR, true, errorCode);
-    }
-
     if (options.port == INVALID_PORT) {
         if (readConfig(&options, READ_PORT) != 0) {
             _logErr(WARN " - " _PORT_CONFIG_ERR);
@@ -102,9 +99,15 @@ int main(int argc, _string* argv) {
         }
     }
 
+    if ((errorCode = startup()) != 0) {
+        _err(_STARTUP_ERR, true, errorCode);
+    }
+
     /* Configurazione */
     installDefaultSigHandlers();
-    startTransferLog();
+    if (startTransferLog() != GOPHER_SUCCESS) {
+        printf(WARN " - Error starting logger\n");
+    }
     server = prepareServer(SERVER_INIT, &options, &serverAddr);
     printHeading(&options);
 
@@ -114,7 +117,7 @@ int main(int argc, _string* argv) {
     while (true) {
         do {
             if (requestShutdown) {
-                exit(0);
+                exit(0);  // TODO
             } else if (ready == SOCKET_ERROR && sockErr() != EINTR) {
                 _err(_SELECT_ERR, true, -1);
             } else if (updateConfig) {
