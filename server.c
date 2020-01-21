@@ -13,13 +13,14 @@ _event logEvent;
 // Pid del processo di log
 _procId loggerPid;
 // Controllo della modifica del file di configurazione
-_sig_atomic updateConfig = false;
+_sig_atomic volatile updateConfig = false;
 // Chiusura dell'applicazione
-_sig_atomic requestShutdown = false;
-// Socket del server
-_socket server;
+_sig_atomic volatile requestShutdown = false;
 // Installation directory
 char installationDir[MAX_NAME] = "";
+// Mutex per proteggere la pipe di logging
+_mutex* logMutex = NULL;
+_cond* logCond = NULL;
 
 /* Inizializza il socket del server e lo mette in ascolto */
 _socket prepareServer(_socket server, struct config* options, struct sockaddr_in* address) {
@@ -49,7 +50,8 @@ int main(int argc, _string* argv) {
     struct sockaddr_in serverAddr;
     fd_set incomingConnections;
     int addrLen, errorCode, ready, port;
-    atexit(_shutdown);  // TODO sicuro??
+    _socket server;
+    // TODO atexit(_shutdown); sicuro??
     if (getCwd(installationDir, sizeof(installationDir)) != GOPHER_SUCCESS) {
         _err("Cannot get current working directory", true, -1);
     }
@@ -117,7 +119,7 @@ int main(int argc, _string* argv) {
     while (true) {
         do {
             if (requestShutdown) {
-                exit(0);  // TODO
+                _shutdown(server);
             } else if (ready == SOCKET_ERROR && sockErr() != EINTR) {
                 _err(_SELECT_ERR, true, -1);
             } else if (updateConfig) {

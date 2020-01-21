@@ -36,6 +36,9 @@
 #define READ_MULTIPROCESS 0x0002
 #define SERVER_INIT -1
 
+/* Logging */
+#define LOG_MUTEX_NAME "logMutex"
+
 /* Gopher */
 
 #define CRLF "\r\n"

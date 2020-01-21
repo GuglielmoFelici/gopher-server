@@ -34,11 +34,12 @@
 #include "datatypes.h"
 #include "log.h"
 
-_socket server;
 _socket awakeSelect;
 struct sockaddr_in awakeAddr;
-_sig_atomic updateConfig;
-_sig_atomic requestShutdown;
+_sig_atomic volatile updateConfig;
+_sig_atomic volatile requestShutdown;
+_mutex* logMutex;
+_cond* logCond;
 myPipe logPipe;
 _procId loggerPid;
 _event logEvent;

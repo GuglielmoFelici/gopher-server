@@ -54,6 +54,7 @@ dkms.conf
 # Ide
 *.json
 
+*.pdf
 test.c
 log/debug
 log/err

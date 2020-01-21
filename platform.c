@@ -16,12 +16,15 @@ void errorString(char *error, size_t size) {
 }
 
 /* Termina graziosamente il logger, poi termina il server. */
-void _shutdown() {
+void _shutdown(SOCKET server) {
+    free(logMutex);
     closesocket(server);
     closesocket(awakeSelect);
+    CloseHandle(*logMutex);
     CloseHandle(logEvent);
     CloseHandle(logPipe);
     printf("Shutting down...\n");
+    ExitThread(0);
 }
 
 void changeCwd(LPCSTR path) {
@@ -299,7 +302,7 @@ int logTransfer(LPSTR log) {
 /* Avvia il processo di logging dei trasferimenti. */
 int startTransferLog() {
     char exec[MAX_NAME];
-    HANDLE readPipe;
+    HANDLE readPipe = NULL;
     SECURITY_ATTRIBUTES attr;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
@@ -310,7 +313,18 @@ int startTransferLog() {
     attr.lpSecurityDescriptor = NULL;
     // logPipe è globale/condivisa, viene acceduta in scrittura quando avviene un trasferimento file
     if (!CreatePipe(&readPipe, &logPipe, &attr, 0)) {
-        return GOPHER_FAILURE;
+        goto ON_ERROR;
+    }
+    if ((logMutex = malloc(sizeof(HANDLE))) == NULL) {
+        goto ON_ERROR;
+    }
+    // Mutex per proteggere le scritture sulla pipe
+    if ((*logMutex = CreateMutex(&attr, FALSE, LOG_MUTEX_NAME)) == NULL) {
+        goto ON_ERROR;
+    }
+    // Evento per notificare al logger che ci sono dati da leggere sulla pipe
+    if ((logEvent = CreateEvent(&attr, FALSE, FALSE, LOGGER_EVENT_NAME)) == NULL) {
+        goto ON_ERROR;
     }
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
@@ -319,14 +333,24 @@ int startTransferLog() {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    // Utilizzato per notificare al logger che ci sono dati da leggere sulla pipe
-    if (
-        (logEvent = CreateEvent(&attr, FALSE, FALSE, LOGGER_EVENT_NAME)) == NULL ||
-        !CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installationDir, &startupInfo, &processInfo)) {
-        return GOPHER_FAILURE;
+    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installationDir, &startupInfo, &processInfo)) {
+        goto ON_ERROR;
     }
     loggerPid = processInfo.dwProcessId;
     CloseHandle(readPipe);
+ON_ERROR:
+    if (logPipe) {
+        CloseHandle(logPipe);
+    }
+    if (logEvent) {
+        CloseHandle(logEvent);
+    }
+    if (readPipe) {
+        CloseHandle(readPipe);
+    }
+    if (logMutex) {
+        free(logMutex);
+    }
 }
 
 #else
@@ -339,7 +363,7 @@ int startTransferLog() {
 /************************************************** UTILS ********************************************************/
 
 /* Termina il logger ed esce. */
-void _shutdown() {
+void _shutdown(int server) {
     kill(loggerPid, SIGINT);
     close(logPipe);
     close(server);
@@ -589,25 +613,23 @@ int unmapMem(void *addr, size_t len) {
 
 /*********************************************** LOGGER ***************************************************************/
 
-pthread_mutex_t *mutexShare;
-pthread_cond_t *condShare;
 bool loggerShutdown = false;
 
 /* Effettua una scrittura sulla pipe di logging */
 int logTransfer(char *log) {
     if (
-        pthread_mutex_lock(mutexShare) < 0 ||
+        pthread_mutex_lock(logMutex) < 0 ||
         write(logPipe, log, strlen(log)) < 0 ||
-        pthread_cond_signal(condShare) < 0 ||
-        pthread_mutex_unlock(mutexShare) < 0) {
+        pthread_cond_signal(logCond) < 0 ||
+        pthread_mutex_unlock(logMutex) < 0) {
         return GOPHER_FAILURE;
     }
     return GOPHER_SUCCESS;
 
-    return pthread_mutex_lock(mutexShare) > 0 &&
+    return pthread_mutex_lock(logMutex) > 0 &&
            write(logPipe, log, strlen(log)) > 0 &&
-           pthread_cond_signal(condShare) > 0 &&
-           pthread_mutex_unlock(mutexShare) > 0;
+           pthread_cond_signal(logCond) > 0 &&
+           pthread_mutex_unlock(logMutex) > 0;
 }
 
 /* Loop di logging */
@@ -615,7 +637,7 @@ void loggerLoop(int inPipe) {
     int logFile, exitCode = GOPHER_SUCCESS;
     char buff[PIPE_BUF];
     char logFilePath[MAX_NAME];
-    if (pthread_mutex_lock(mutexShare) < 0) {
+    if (pthread_mutex_lock(logMutex) < 0) {
         exitCode = GOPHER_FAILURE;
         goto ON_EXIT;
     }
@@ -633,7 +655,7 @@ void loggerLoop(int inPipe) {
             printf("logger requested shutdown\n");
             goto ON_EXIT;
         }
-        pthread_cond_wait(condShare, mutexShare);
+        pthread_cond_wait(logCond, logMutex);
         printf("Logger entered cond\n");
         if ((bytesRead = read(inPipe, buff, PIPE_BUF)) < 0) {
             printf("Logger err\n");
@@ -650,9 +672,9 @@ void loggerLoop(int inPipe) {
         printf("Logger end of loop\n");
     }
 ON_EXIT:
-    pthread_mutex_unlock(mutexShare);
-    munmap(mutexShare, sizeof(pthread_mutex_t));
-    munmap(condShare, sizeof(pthread_cond_t));
+    pthread_mutex_unlock(logMutex);
+    munmap(logMutex, sizeof(pthread_mutex_t));
+    munmap(logCond, sizeof(pthread_cond_t));
     close(inPipe);
     close(logFile);
     exit(exitCode);
@@ -675,16 +697,16 @@ void startTransferLog() {
         pthread_cond_init(&cond, &condAttr) < 0) {
         _err("startTransferLog() - impossibile inizializzare i mutex\n", true, -1);
     }
-    mutexShare = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (mutexShare == MAP_FAILED) {
+    logMutex = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (logMutex == MAP_FAILED) {
         _err("startTransferLog() - impossibile mappare il mutex in memoria\n", true, -1);
     }
-    *mutexShare = mutex;
-    condShare = mmap(NULL, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (condShare == MAP_FAILED) {
+    *logMutex = mutex;
+    logCond = mmap(NULL, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (logCond == MAP_FAILED) {
         _err("startTransferLog() - impossibile mappare la condition variable in memoria\n", true, -1);
     }
-    *condShare = cond;
+    *logCond = cond;
     if (pipe(pipeFd) < 0) {
         _err("startTransferLog() - impossibile aprire la pipe\n", true, -1);
     }
