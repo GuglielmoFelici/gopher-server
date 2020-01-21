@@ -292,11 +292,17 @@ int unmapMem(void *addr, size_t len) {
 int logTransfer(LPSTR log) {
     // TODO mutex
     DWORD written;
+    WaitForSingleObject(logMutex, INFINITE);
     if (!WriteFile(logPipe, log, strlen(log), &written, NULL)) {
-        return false;
+        return GOPHER_FAILURE;
     }
-    SetEvent(logEvent);
-    return true;
+    if (!SetEvent(logEvent)) {
+        return GOPHER_FAILURE;
+    }
+    if (!ReleaseMutex(logMutex)) {
+        return GOPHER_FAILURE;
+    };
+    return GOPHER_SUCCESS;
 }
 
 /* Avvia il processo di logging dei trasferimenti. */
