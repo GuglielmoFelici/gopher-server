@@ -4,12 +4,12 @@
 #include "headers/wingetopt.h"
 
 // Pipe per il log
-myPipe logPipe;
+myPipe logPipe = NULL;
 // Socket per interrompere la select su windows
 _socket awakeSelect;
 struct sockaddr_in awakeAddr;
 // Evento per lo shutdown del processo di log di windows
-_event logEvent;
+_event logEvent = NULL;
 // Pid del processo di log
 _procId loggerPid;
 // Controllo della modifica del file di configurazione
