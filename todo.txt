@@ -1,7 +1,7 @@
 IMPORTANTE: COSTANTI GOPHER TYPE
 
 Common:
-
+    usare const e volatile?
     Controllare il funzionamento di atexit
     Spostare definizioni da datatypes
     Mettere startup() subito prima del main loop?
