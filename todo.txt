@@ -2,44 +2,32 @@ IMPORTANTE: COSTANTI GOPHER TYPE
 
 Common:
 
-    Gopher si occupa di inviare?
-    gopher unificabile?
-    USA strrchr (trova ultima occorrenza di carattere in str)!!!
     Controllare il funzionamento di atexit
     Spostare definizioni da datatypes
     Mettere startup() subito prima del main loop?
-    Rimuovere trimEnding? Sostituire con isolamento primo token usando clrf come separatore?
-    Migliorare report errori in errorRoutine?
     controllare tutti i sizeof e gli strlen
     verificare tutte le *alloc e free
     togliere tutti gli _ ???
     Rivedere datatypes
-        controllare i return -1
-    usare ovunque sendall
+    controllare i return -1
     Purgare costanti
     indenta le syscalls in ||
+    startup() fa troppe cose?
+    lock in sendfile
     
 
 Linux:
-    verificare crlf
-    linux gopher deve ritornare null?
     SPOSTARE LINUX LOGGING IN HELPER FILE?
     Processo daemon linux:
         loggare con syslog invece di file
     LOGGING TUTTO SBAGLIATO
-    com'è fatto crlf? (su windows due caratteri, \r\n)
 
 Windows:
-    cancellare _file ?
+    verificare chiusura di tutti gli handle
     Eliminare validateInput()?
-    Sendfile non ritorna puntatore ma usa pointer argument
     Windows Logger
-    errorroutine?
     InstallDefaultSigHandlers
         evitabile socket per awake select?
-    Gopher:
-        cercare modo migliore di stabilire se path è directory
-        Cosa deve ritornare SendFile?
 
 Ballino:
     compara byte per byte
@@ -47,3 +35,4 @@ Ballino:
     tcp
     controlla ogni singola system call
     makefile
+    testa file da più di 2 GB

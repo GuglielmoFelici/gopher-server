@@ -49,10 +49,10 @@ int main(int argc, _string* argv) {
     struct sockaddr_in serverAddr;
     fd_set incomingConnections;
     int addrLen, errorCode, ready, port;
-    if ((errorCode = startup()) != 0) {
-        _err(_STARTUP_ERR, true, errorCode);
+    atexit(_shutdown);  // TODO sicuro??
+    if (getCwd(installationDir, sizeof(installationDir)) != GOPHER_SUCCESS) {
+        _err("Cannot get current working directory", true, -1);
     }
-    atexit(_shutdown);
     /* Parsing opzioni */
     int opt, opterr = 0;
     while ((opt = getopt(argc, argv, "mhp:d:")) != -1) {
@@ -99,12 +99,17 @@ int main(int argc, _string* argv) {
         }
     }
 
+    if ((errorCode = startup()) != 0) {
+        _err(_STARTUP_ERR, true, errorCode);
+    }
+
     /* Configurazione */
     installDefaultSigHandlers();
-    startTransferLog();
+    if (startTransferLog() != GOPHER_SUCCESS) {
+        printf(WARN " - Error starting logger\n");
+    }
     server = prepareServer(SERVER_INIT, &options, &serverAddr);
-    printf("*** GOPHER SERVER ***\n\n");
-    printf("Listening on port %i (%s mode)\n", options.port, options.multiProcess ? "multiprocess" : "multithreaded");
+    printHeading(&options);
 
     /* Main loop*/
 
@@ -112,7 +117,7 @@ int main(int argc, _string* argv) {
     while (true) {
         do {
             if (requestShutdown) {
-                exit(0);
+                exit(0);  // TODO
             } else if (ready == SOCKET_ERROR && sockErr() != EINTR) {
                 _err(_SELECT_ERR, true, -1);
             } else if (updateConfig) {

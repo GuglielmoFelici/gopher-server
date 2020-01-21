@@ -9,6 +9,8 @@
 #define _WIN32_WINNT 0x0501
 #endif
 #define HELPER_PATH "helpers\\winGopherProcess.exe"
+#define LOGGER_PATH "helpers\\winLogger.exe"
+#define LOGGER_EVENT_NAME "logEvent"
 #define DIR_SEP "\\"
 
 #else  // LINUX
@@ -30,19 +32,21 @@
 #define DEFAULT_PORT 7070
 #define INVALID_PORT 0
 #define INVALID_MULTIPROCESS -1
-#define READ_PORT 1
-#define READ_MULTIPROCESS 2
+#define READ_PORT 0x0001
+#define READ_MULTIPROCESS 0x0002
 #define SERVER_INIT -1
 
 /* Gopher */
 
 #define CRLF "\r\n"
 #define BUFF_SIZE 70
-#define GOPHER_SUCCESS 0
-#define GOPHER_FAILURE -1
+#define GOPHER_SUCCESS 0x0000
+#define GOPHER_FAILURE 0x0001
+#define GOPHER_NOT_FOUND 0x0002
+#define GOPHER_END_OF_DIR 0x0004
 #define ERROR_MSG "3Error"
 #define BAD_SELECTOR_MSG "Bad selector"
-#define FILE_NOT_FOUND_MSG "Resource not found"
+#define RESOURCE_NOT_FOUND_MSG "Resource not found"
 #define SYS_ERR_MSG " Internal error"
 #define GOPHER_DOMAIN "localhost"
 // Gopher types
@@ -73,5 +77,14 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
 #define EXT_GIF 0x1000
 #define EXT_IMG 0xE000
 #define CHECK_GRP(index, group) group&(int)pow(2., index)
+
+#define FILE_CMD_MAX 256
+#define FILE_CMD_NOT_FOUND "No such file or directory"
+#define FILE_CMD_EXEC1 "executable"
+#define FILE_CMD_EXEC2 "ELF"
+#define FILE_CMD_IMG "image"
+#define FILE_CMD_DIR "directory"
+#define FILE_CMD_GIF "GIF"
+#define FILE_CMD_TXT "text"
 
 #endif
