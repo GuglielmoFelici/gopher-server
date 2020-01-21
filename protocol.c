@@ -71,12 +71,26 @@ void* sendFileTask(void* sendFileArgs) {
     int clientLen;
     args = *((struct sendFileArgs*)sendFileArgs);
     free(sendFileArgs);
-    if (
-        sendAll(args.dest, (char*)args.src, args.size) == SOCKET_ERROR ||
-        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR ||
-        !UnmapViewOfFile(args.src)) {
+    printf("dio\n");
+    fflush(stdout);
+    if (sendAll(args.dest, args.src, 20) == SOCKET_ERROR) {
+        printf("laido\n");
         ExitThread(GOPHER_FAILURE);
     }
+    printf("1\n");
+    fflush(stdout);
+    if (sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR) {
+        ExitThread(GOPHER_FAILURE);
+    }
+    printf("2\n");
+    if (!UnmapViewOfFile(args.src)) {
+        ExitThread(GOPHER_FAILURE);
+    }
+    printf("3\n");
+    if (!UnmapViewOfFile(args.src)) {
+        ExitThread(GOPHER_FAILURE);
+    }
+    printf("4\n");
     clientLen = sizeof(clientAddr);
     if (getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen) == SOCKET_ERROR) {
         ExitThread(GOPHER_FAILURE);
@@ -84,20 +98,26 @@ void* sendFileTask(void* sendFileArgs) {
     strncpy(address, inet_ntoa(clientAddr.sin_addr), sizeof(address));
     snprintf(log, PIPE_BUF, "File: %s | Size: %lib | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port);
     logTransfer(log);
+    printf("fine di sendFileTask\n");
     // TODO closeSocket(args.dest); ????
 }
 
 int sendFile(LPSTR name, struct fileMappingData* map, SOCKET sock) {
     HANDLE thread;
-    struct sendFileArgs args;
-    args.src = map->view;
-    args.size = map->size;
-    args.dest = sock;
-    strncpy(args.name, name, sizeof(args.name));
-    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFileTask, &args, 0, NULL)) == NULL) {
+    struct sendFileArgs* args;
+    if ((args = malloc(sizeof(struct sendFileArgs))) == NULL) {
+        return GOPHER_FAILURE;
+    }
+    args->src = map->view;
+    args->size = map->size;
+    args->dest = sock;
+    strncpy(args->name, name, sizeof(args->name));
+    if ((thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendFileTask, args, 0, NULL)) == NULL) {
         return GOPHER_FAILURE;
     }
     CloseHandle(thread);
+    printf("fine di sendFile\n");
+    fflush(stdout);
     return GOPHER_SUCCESS;
 }
 
@@ -128,8 +148,10 @@ DWORD getFileMap(LPCSTR path, struct fileMappingData* mapData) {
         !CloseHandle(map)) {
         goto ON_ERROR;
     }
+    fflush(stdout);
     mapData->view = view;
     mapData->size = fileSize.QuadPart;
+    printf("fine di getFileMap\n");
     return GOPHER_SUCCESS;
 ON_ERROR:
     if (file == INVALID_HANDLE_VALUE) {

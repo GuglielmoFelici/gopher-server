@@ -518,6 +518,7 @@ int sendAll(_socket s, char *data, unsigned long long length) {
     while (count < length) {
         int sent = send(s, data + count, length, 0);
         if (sent == SOCKET_ERROR) {
+            printf("%d %d\n", s, WSAGetLastError());
             return SOCKET_ERROR;
         }
         count += sent;
