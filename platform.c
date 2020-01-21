@@ -292,7 +292,7 @@ int unmapMem(void *addr, size_t len) {
 int logTransfer(LPSTR log) {
     // TODO mutex
     DWORD written;
-    WaitForSingleObject(logMutex, INFINITE);
+    WaitForSingleObject(*logMutex, INFINITE);
     if (!WriteFile(logPipe, log, strlen(log), &written, NULL)) {
         return GOPHER_FAILURE;
     }
