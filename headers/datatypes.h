@@ -11,7 +11,7 @@ typedef LPSTR _string;
 typedef LPCSTR _cstring;
 typedef BOOL _handlerRet;
 typedef HANDLE _thread, pipe_t, event_t, _map, _dir, mutex_t, cond_t;
-typedef DWORD _procId, _sig_atomic;
+typedef DWORD pid_t, _sig_atomic;
 
 #else
 
@@ -28,7 +28,6 @@ typedef const char* _cstring;
 typedef void _handlerRet;
 typedef pthread_t _thread;
 typedef void* (*LPTHREAD_START_ROUTINE)(void*);
-typedef pid_t _procId;
 typedef __sig_atomic_t _sig_atomic;
 typedef DIR* _dir;
 typedef pthread_mutex_t mutex_t;

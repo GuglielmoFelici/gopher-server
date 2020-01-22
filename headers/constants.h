@@ -9,8 +9,6 @@
 #define _WIN32_WINNT 0x0501
 #endif
 #define HELPER_PATH "helpers\\winGopherProcess.exe"
-#define LOGGER_PATH "helpers\\winLogger.exe"
-#define LOGGER_EVENT_NAME "logEvent"
 #define DIR_SEP "\\"
 
 #else  // LINUX
@@ -25,9 +23,6 @@
 #define IP_ADDRESS_LENGTH 16
 
 /* Config */
-
-/* Logging */
-#define LOG_MUTEX_NAME "logMutex"
 
 /* Gopher */
 

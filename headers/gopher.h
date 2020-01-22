@@ -135,8 +135,4 @@ struct sendFileArgs {
 
 /* Transfer Log */
 
-int startTransferLog();
-
-int logTransfer(_string log);
-
 #endif

@@ -1,4 +1,5 @@
 #include "../headers/gopher.h"
+#include "../headers/logger.h"
 #include "../headers/server.h"
 #include "../headers/wingetopt.h"
 
@@ -65,12 +66,20 @@ int main(int argc, _string* argv) {
     }
 
     /* Configurazione */
-    installDefaultSigHandlers();
-    if (startTransferLog() != GOPHER_SUCCESS) {
+    if (SERVER_FAILURE == installDefaultSigHandlers()) {
+        _err(_SYS_ERR, true, -1);
+    }
+    logger_t logger;
+    if (LOGGER_SUCCESS != startTransferLog(&logger)) {
         printf(WARN " - Error starting logger\n");
     }
-    server = prepareServer(SERVER_INIT, &options, &serverAddr);
-    printHeading(&options);
+    if (SERVER_FAILURE != prepareSocket(&server, SERVER_INIT)) {
+        _err(_SOCKET_ERR, true, -1);
+    }
+    printHeading(&server);
+    if (startServer(&server) != SERVER_SUCCESS) {
+        _err(_STARTUP_ERR, true, -1);
+    }
 
     /* Main loop*/
 

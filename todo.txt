@@ -1,4 +1,4 @@
-IMPORTANTE: COSTANTI GOPHER TYPE
+IMPORTANTE: HEADER GUARDS
 
 Common:
     usare const e volatile?

@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include "../headers/datatypes.h"
 
-// Controllo della modifica del file di configurazione
-static _sig_atomic volatile updateConfig = false;
-// Chiusura dell'applicazione
-static _sig_atomic volatile requestShutdown = false;
+static _sig_atomic volatile updateConfig = false;     // Controllo della modifica del file di configurazione
+static _sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazione
+static socket_t awakeSelect;                          // Socket per interrompere la select su windows
+static struct sockaddr_in awakeAddr;
 
 #if defined(_WIN32)
 
@@ -65,25 +65,25 @@ static BOOL sigHandler(DWORD signum) {
 /* Installa i gestori di eventi */
 int installDefaultSigHandlers() {
     awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
-    if (awakeSelect == INVALID_SOCKET) {
-        _err("installSigHandlers() - Error creating awake socket", true, -1);
+    if (INVALID_SOCKET == awakeSelect) {
+        return SERVER_FAILURE;
     }
     memset(&awakeAddr, 0, sizeof(awakeAddr));
     awakeAddr.sin_family = AF_INET;
     awakeAddr.sin_port = 0;
     awakeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     size_t awakeAddrSize = sizeof(awakeAddr);
-    if (bind(awakeSelect, (struct sockaddr*)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
-        _err("installSigHandlers() - Error binding awake socket", true, -1);
+    if (SOCKET_ERROR == bind(awakeSelect, (struct sockaddr*)&awakeAddr, sizeof(awakeAddr))) {
+        return SERVER_FAILURE;
     }
-    if (getsockname(awakeSelect, (struct sockaddr*)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
-        _err("installSigHandlers() - Can't detect socket address info", true, -1);
+    if (SOCKET_ERROR == getsockname(awakeSelect, (struct sockaddr*)&awakeAddr, &awakeAddrSize)) {
+        return SERVER_FAILURE;
     }
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE)) {
-        _err("installSigHandlers() - Can't set console event handler", true, -1);
+        return SERVER_FAILURE;
     }
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE)) {
-        _err("installSigHandlers() - Can't set console event handler", true, -1);
+        return SERVER_FAILURE;
     }
 }
 
@@ -375,5 +375,47 @@ ON_ERROR:
     if (configPath) {
         free(configPath);
         return SERVER_FAILURE;
+    }
+}
+
+int startServer(server_t* pServer) {
+    int ready = 0;
+    while (true) {
+        do {
+            if (requestShutdown) {
+                _shutdown(server);
+            } else if (ready == SOCKET_ERROR && sockErr() != EINTR) {
+                _err(_SELECT_ERR, true, -1);
+            } else if (updateConfig) {
+                printf("Updating config...\n");
+                int prevMultiprocess = options.multiProcess;
+                if (readConfig(&options, READ_PORT | READ_MULTIPROCESS) != 0) {
+                    _logErr(WARN " - " _CONFIG_ERR);
+                    defaultConfig(&options, READ_PORT);
+                }
+                if (options.port != htons(serverAddr.sin_port)) {
+                    server = prepareServer(server, &options, &serverAddr);
+                    printf("Switched to port %i\n", options.port);
+                }
+                if (options.multiProcess != prevMultiprocess) {
+                    printf("Switched to %s mode\n", options.multiProcess ? "multiprocess" : "multithreaded");
+                }
+                updateConfig = false;
+            }
+            FD_ZERO(&incomingConnections);
+            FD_SET(server, &incomingConnections);
+            FD_SET(awakeSelect, &incomingConnections);
+        } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
+        printf("Incoming connection on port %d\n", htons(serverAddr.sin_port));
+        _socket client = accept(server, NULL, NULL);
+        if (client == INVALID_SOCKET) {
+            _logErr(WARN "Error serving client");
+        } else if (options.multiProcess) {
+            // TODO controllare return value
+            serveProc(client, options.port);
+            closeSocket(client);
+        } else {
+            serveThread(client, options.port);
+        }
     }
 }

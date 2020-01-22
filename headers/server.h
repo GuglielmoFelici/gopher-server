@@ -21,12 +21,6 @@ typedef struct {
     unsigned short port;
     bool multiProcess;
     char installationDir[MAX_NAME];
-    socket_t awakeSelect;  // Socket per interrompere la select su windows
-    struct sockaddr_in awakeAddr;
-    pipe_t logPipe;     // Pipe per il log
-    mutex_t* logMutex;  // Puntatore al mutex per proteggere la pipe di logging
-    cond_t* logCond;    // Puntatore alla condition variable per il risveglio del logger su Linux
-    event_t logEvent;   // Evento per lo il risveglio del logger su windows
 } server_t;
 
 int startup();
@@ -37,4 +31,6 @@ int prepareSocket(server_t* pServer, int flags);
 
 void defaultConfig(server_t* pServer, int which);
 
-int readConfig(server_t* pServer, int which)
+int readConfig(server_t* pServer, int which);
+
+int startServer(server_t* pServer);
