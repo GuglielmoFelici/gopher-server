@@ -1,6 +1,7 @@
 IMPORTANTE: HEADER GUARDS
 
 Common:
+    usare / sia in linux che in windows? "path/path\" funziona...
     usare const e volatile?
     Controllare il funzionamento di atexit
     Spostare definizioni da datatypes

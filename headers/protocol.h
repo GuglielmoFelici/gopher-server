@@ -5,7 +5,12 @@
 #include "datatypes.h"
 #include "logger.h"
 
+#if defined(_WIN32)
+#define DIR_SEP "\\"
+#else
 #define DIR_SEP "/"
+#endif
+
 #define CRLF "\r\n"
 #define BUFF_SIZE 70
 // Return codes
