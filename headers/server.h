@@ -27,10 +27,11 @@ typedef struct {
     char installationDir[MAX_NAME];
 } server_t;
 
-struct threadArgs {
+typedef struct {
     socket_t sock;
-    unsigned short port;
-};  // TODO typedef
+    int port;
+    logger_t* pLogger;
+} server_thread_args_t;
 
 int initServer(server_t* pServer);
 
@@ -44,10 +45,6 @@ int readConfig(server_t* pServer, int which);
 
 void printHeading(const server_t* pServer);
 
-int runServer(server_t* pServer);
-
-int serveThread(socket_t socket, int port);
-
-int serveProc(socket_t socket, logger_t* pLogger, server_t* pServer);
+int runServer(server_t* pServer, logger_t* pLogger);
 
 #endif

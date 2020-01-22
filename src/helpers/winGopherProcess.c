@@ -1,5 +1,7 @@
+#include <stdio.h>
 #include <windows.h>
 #include "../../headers/logger.h"
+#include "../../headers/protocol.h"
 
 /* Legge la richiesta ed esegue il protocollo Gopher */
 DWORD main(DWORD argc, LPSTR* argv) {

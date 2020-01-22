@@ -1,8 +1,11 @@
 Share handles in windows:
     https://docs.microsoft.com/en-us/windows/win32/sysinfo/handle-inheritance
+Share socket in windows:
+    https://stackoverflow.com/questions/21025120/pass-socket-to-child-process
+    https://stackoverflow.com/questions/12058911/can-tcp-socket-handles-be-set-not-inheritable
 Detachare thread in windows:
     Chiudere handle e basta, memoria thread liberata quando finiscono handle associati aperti
     https://stackoverflow.com/questions/1981459/using-threads-in-c-on-windows-simple-example
     https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitthread
-Daemonizzare:
+Daemon:
     https://stackoverflow.com/questions/17954432/creating-a-daemon-in-linux

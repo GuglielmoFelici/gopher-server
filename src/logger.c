@@ -26,37 +26,38 @@ int logTransfer(logger_t* pLogger, LPSTR log) {
 
 /* Avvia il processo di logging dei trasferimenti. */
 int startTransferLog(logger_t* pLogger) {
-    char exec[MAX_NAME];
-    HANDLE readPipe = NULL;
-    SECURITY_ATTRIBUTES attr;
-    STARTUPINFO startupInfo;
-    PROCESS_INFORMATION processInfo;
+    char exec[MAX_NAME] = "";
     snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, pLogger->installationDir);
+    SECURITY_ATTRIBUTES attr;
     memset(&attr, 0, sizeof(attr));
     attr.bInheritHandle = TRUE;
     attr.nLength = sizeof(attr);
     attr.lpSecurityDescriptor = NULL;
     // logPipe è globale/condivisa, viene acceduta in scrittura quando avviene un trasferimento file
+    HANDLE readPipe = NULL;
     HANDLE logPipe = NULL;
+    HANDLE* pLogMutex = NULL;
     if (!CreatePipe(&readPipe, &logPipe, &attr, 0)) {
         goto ON_ERROR;
     }
     pLogger->logPipe = logPipe;
-    if (NULL == (pLogger->pLogMutex = malloc(sizeof(HANDLE)))) {
+    if (NULL == (pLogMutex = malloc(sizeof(HANDLE)))) {
         goto ON_ERROR;
     }
     // Mutex per proteggere le scritture sulla pipe
-    HANDLE logMutex = CreateMutex(&attr, FALSE, LOG_MUTEX_NAME);
-    if (NULL == logMutex) {
+    *pLogMutex = CreateMutex(&attr, FALSE, LOG_MUTEX_NAME);
+    if (NULL == *pLogMutex) {
         goto ON_ERROR;
     }
-    *(pLogger->pLogMutex) = logMutex;
+    pLogger->pLogMutex = pLogMutex;
     // Evento per notificare al logger che ci sono dati da leggere sulla pipe
     HANDLE logEvent = CreateEvent(&attr, FALSE, FALSE, LOGGER_EVENT_NAME);
     if (NULL == logEvent) {
         goto ON_ERROR;
     }
     pLogger->logEvent = logEvent;
+    STARTUPINFO startupInfo;
+    PROCESS_INFORMATION processInfo;
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
@@ -77,11 +78,11 @@ ON_ERROR:
     if (logEvent) {
         CloseHandle(logEvent);
     }
+    if (pLogMutex) {
+        free(pLogMutex);
+    }
     if (readPipe) {
         CloseHandle(readPipe);
-    }
-    if (logMutex) {
-        free(logMutex);
     }
     return LOGGER_FAILURE;
 }
