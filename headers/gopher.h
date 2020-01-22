@@ -61,8 +61,6 @@ _string trimEnding(_string str);
 
 int getCwd(_string dst, size_t size);
 
-void changeCwd(_cstring path);
-
 struct config {
     unsigned short port;
     int multiProcess;
@@ -72,13 +70,9 @@ void defaultConfig(struct config* options, int which);
 
 int readConfig(struct config* options, int which);
 
-int startup();
-
 void printHeading(struct config* options);
 
 /* Signals */
-
-void installDefaultSigHandlers();
 
 /* Sockets */
 

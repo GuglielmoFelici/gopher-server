@@ -1,3 +1,5 @@
+#include "../headers/platform.h"
+#include "../headers/protocol.h"
 #include "headers/gopher.h"
 
 #if defined(_WIN32)
@@ -27,27 +29,15 @@ void _shutdown(SOCKET server) {
     ExitThread(0);
 }
 
-void changeCwd(LPCSTR path) {
-    if (!SetCurrentDirectory(path)) {
-        _logErr(WARN " - Can't change current working directory");
-    }
+int changeCwd(const char *path) {
+    return SetCurrentDirectory(path) ? GOPHER_SUCCESS : GOPHER_FAILURE;
 }
+
 int getCwd(LPSTR dst, size_t size) {
     return GetCurrentDirectory(size, dst) ? GOPHER_SUCCESS : GOPHER_FAILURE;
 }
 
-void printHeading(struct config *options) {
-    printf("Listening on port %i (%s mode)\n", options->port, options->multiProcess ? "multiprocess" : "multithreaded");
-}
-
 /********************************************** SOCKETS *************************************************************/
-
-/* Inizializzazione di console e WSA */
-int startup() {
-    WSADATA wsaData;
-    WORD versionWanted = MAKEWORD(1, 1);
-    return WSAStartup(versionWanted, &wsaData);
-}
 
 /* Ritorna l'ultimo codice di errore relativo alle chiamate WSA */
 int sockErr() {
@@ -62,67 +52,6 @@ const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
     return strncpy(dst, inet_ntoa(*addr), size);
 }
 
-/********************************************** SIGNALS *************************************************************/
-
-/* Invia un messaggio vuoto al socket awakeSelect per interrompere la select del server. */
-int wakeUpServer() {
-    SOCKET s;
-    if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
-        return -1;
-    }
-    return sendto(s, "Wake up!", 0, 0, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr));
-}
-
-/* Termina graziosamente il programma. */
-BOOL ctrlC(DWORD signum) {
-    if (signum == CTRL_C_EVENT) {
-        requestShutdown = true;
-        if (wakeUpServer() < 0) {
-            _logErr("Can't close gracefully");
-            exit(1);
-        }
-        return true;
-    }
-    return false;
-}
-
-/* Richiede la rilettura del file di configurazione */
-BOOL sigHandler(DWORD signum) {
-    if (signum != CTRL_C_EVENT) {
-        updateConfig = true;
-        if (wakeUpServer() < 0) {
-            _logErr("Error updating");
-        }
-        return true;
-    }
-    return false;
-}
-
-/* Installa i gestori di eventi */
-void installDefaultSigHandlers() {
-    awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
-    if (awakeSelect == INVALID_SOCKET) {
-        _err("installSigHandlers() - Error creating awake socket", true, -1);
-    }
-    memset(&awakeAddr, 0, sizeof(awakeAddr));
-    awakeAddr.sin_family = AF_INET;
-    awakeAddr.sin_port = 0;
-    awakeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    size_t awakeAddrSize = sizeof(awakeAddr);
-    if (bind(awakeSelect, (struct sockaddr *)&awakeAddr, sizeof(awakeAddr)) == SOCKET_ERROR) {
-        _err("installSigHandlers() - Error binding awake socket", true, -1);
-    }
-    if (getsockname(awakeSelect, (struct sockaddr *)&awakeAddr, &awakeAddrSize) == SOCKET_ERROR) {
-        _err("installSigHandlers() - Can't detect socket address info", true, -1);
-    }
-    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE)) {
-        _err("installSigHandlers() - Can't set console event handler", true, -1);
-    }
-    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE)) {
-        _err("installSigHandlers() - Can't set console event handler", true, -1);
-    }
-}
-
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
 bool detachThread(HANDLE tHandle) {
@@ -135,62 +64,6 @@ int _createThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
         return 0;
     }
     return -1;
-}
-
-/* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
-DWORD WINAPI serveThreadTask(LPVOID args) {
-    struct threadArgs gopherArgs = *(struct threadArgs *)args;
-    free(args);
-    gopher(gopherArgs.sock, gopherArgs.port);  // Il protocollo viene eseguito qui TODO waitForSend false è giusto??
-}
-
-/* Serve una richiesta in modalità multithreading. */
-int serveThread(SOCKET sock, unsigned short port) {
-    HANDLE thread;
-    struct threadArgs *args;
-    if ((args = malloc(sizeof(struct threadArgs))) == NULL) {
-        return GOPHER_FAILURE;
-    }
-    args->sock = sock;
-    args->port = port;
-    if ((thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL)) == NULL) {
-        return GOPHER_FAILURE;
-    }
-    CloseHandle(thread);
-    return GOPHER_SUCCESS;
-}
-
-/* Serve una richiesta in modalità multiprocesso. */
-int serveProc(SOCKET client, unsigned short port) {
-    STARTUPINFO startupInfo;
-    PROCESS_INFORMATION processInfo;
-    char exec[MAX_PATH];
-    LPSTR cmdLine;
-    size_t cmdLineSize;
-    if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, installationDir) < strlen(installationDir) + strlen(HELPER_PATH) + 1) {
-        return GOPHER_FAILURE;
-    }
-    memset(&startupInfo, 0, sizeof(startupInfo));
-    memset(&processInfo, 0, sizeof(processInfo));
-    startupInfo.cb = sizeof(startupInfo);
-    startupInfo.dwFlags = STARTF_USESTDHANDLES;
-    if (
-        (startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE ||
-        (startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE)) == INVALID_HANDLE_VALUE ||
-        (startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE)) == INVALID_HANDLE_VALUE) {
-        return GOPHER_FAILURE;
-    }
-    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p %p", exec, port, client, logPipe, logEvent) + 1;
-    if ((cmdLine = malloc(cmdLineSize)) == NULL) {
-        return GOPHER_FAILURE;
-    }
-    if (
-        snprintf(cmdLine, cmdLineSize, "%s %hu %p %p %p", exec, port, client, logPipe, logEvent) < cmdLineSize - 1 ||
-        !CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
-        free(cmdLine);
-        return GOPHER_FAILURE;
-    }
-    return GOPHER_SUCCESS;
 }
 
 /*********************************************** FILES  ***************************************************************/
@@ -380,65 +253,8 @@ void errorString(char *error, size_t size) {
     snprintf(error, size, "%s", strerror(errno));
 }
 
-void changeCwd(const char *path) {
-    if (chdir(path) < 0) {
-        _logErr(WARN " - Can't change current working directory");
-    }
-}
-
-/* Rende il server un processo demone */
-int startup() {
-    int pid;
-    // pid = fork();
-    pid = 0;
-    if (pid < 0) {
-        _err(_DAEMON_ERR, true, errno);
-    } else if (pid > 0) {
-        exit(0);
-    } else {
-        sigset_t set;
-        // if (setsid() < 0) {
-        //     _err(_DAEMON_ERR, true, errno);
-        // }
-        if (sigemptyset(&set) < 0) {
-            _err(_DAEMON_ERR, true, errno);
-        }
-        if (sigaddset(&set, SIGHUP) < 0) {
-            _err(_DAEMON_ERR, true, errno);
-        }
-        if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
-            _err(_DAEMON_ERR, true, errno);
-        }
-        // pid = fork();
-        pid = 0;
-        if (pid < 0) {
-            _err(_DAEMON_ERR, true, errno);
-        } else if (pid > 0) {
-            exit(0);
-        } else {
-            int serverStdIn, serverStdErr, serverStdOut;
-            char fileName[PATH_MAX];
-            if (sigprocmask(SIG_UNBLOCK, &set, NULL) < 0) {
-                _err(_DAEMON_ERR, true, errno);
-            }
-            serverStdIn = open("/dev/null", O_RDWR);
-            snprintf(fileName, PATH_MAX, "%s/serverStdOut", installationDir);
-            serverStdOut = creat(fileName, S_IRWXU);
-            snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
-            serverStdErr = creat(fileName, S_IRWXU);
-            if (dup2(serverStdIn, STDIN_FILENO) < 0)
-                ;  //|| dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
-            //     _err(_DAEMON_ERR, true, -1);
-            // }
-            return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
-        }
-    }
-    return 0;
-}
-
-void printHeading(struct config *options) {
-    printf("Started daemon with pid %d\n", getpid());
-    printf("Listening on port %i (%s mode)\n", options->port, options->multiProcess ? "multiprocess" : "multithreaded");
+int changeCwd(const char *path) {
+    return chdir(path) < 0 ? GOPHER_SUCCESS : GOPHER_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -455,39 +271,6 @@ const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
     return inet_ntop(AF_INET, &addr->s_addr, dst, size);
 }
 
-/********************************************** SIGNALS *************************************************************/
-
-/* Richiede la rilettura del file di configurazione */
-void hupHandler(int signum) {
-    updateConfig = true;
-}
-
-/* Richiede la terminazione */
-void intHandler(int signum) {
-    printf("Shutting down...\n");
-    requestShutdown = true;
-}
-
-/* Installa un gestore di segnale */
-int installSigHandler(int sig, void (*func)(int), int flags) {
-    struct sigaction sigact;
-    sigact.sa_handler = func;
-    sigact.sa_flags = flags;
-    if (sigemptyset(&sigact.sa_mask) != 0 ||
-        sigaction(sig, &sigact, NULL) != 0) {
-        return GOPHER_FAILURE;
-    }
-    return GOPHER_SUCCESS;
-}
-
-/* Installa i gestori predefiniti di segnali */
-void installDefaultSigHandlers() {
-    if (installSigHandler(SIGINT, &intHandler, 0) != GOPHER_SUCCESS ||
-        installSigHandler(SIGHUP, &hupHandler, SA_NODEFER) != GOPHER_SUCCESS) {
-        _err(_SYS_ERR, true, errno);
-    }
-}
-
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
 bool detachThread(pthread_t tid) {
@@ -496,55 +279,6 @@ bool detachThread(pthread_t tid) {
 
 int _createThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return pthread_create(tid, NULL, routine, args);
-}
-
-/* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
-void *serveThreadTask(void *args) {
-    sigset_t set;
-    int sock;
-    struct threadArgs tArgs;
-    if (
-        sigemptyset(&set) < 0 ||
-        sigaddset(&set, SIGHUP) < 0 ||
-        pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-        free(args);
-        exit(1);
-    }
-    tArgs = *(struct threadArgs *)args;
-    free(args);
-    gopher(tArgs.sock, tArgs.port);
-}
-
-/* Serve una richiesta in modalità multithreading. */
-int serveThread(int sock, unsigned short port) {
-    pthread_t tid;
-    struct threadArgs *tArgs;
-    if ((tArgs = malloc(sizeof(struct threadArgs))) == NULL) {
-        return GOPHER_FAILURE;
-    }
-    tArgs->sock = sock;
-    tArgs->port = port;
-    if (pthread_create(&tid, NULL, serveThreadTask, tArgs)) {
-        // TODO error
-        printf(_THREAD_ERR "\n");
-        return GOPHER_FAILURE;
-    }
-    pthread_detach(tid);
-    return GOPHER_SUCCESS;
-}
-
-/* Serve una richiesta in modalità multiprocesso. */
-int serveProc(int sock, unsigned short port) {
-    pid_t pid;
-    pid = fork();
-    if (pid < 0) {
-        return GOPHER_FAILURE;
-    } else if (pid == 0) {
-        gopher(sock, port);
-        pthread_exit(0);
-    } else {
-        return GOPHER_SUCCESS;
-    }
 }
 
 /*********************************************** FILES ****************************************************************/
@@ -768,49 +502,4 @@ void _logErr(_cstring message) {
     char buf[MAX_ERROR_SIZE];
     errorString(buf, MAX_ERROR_SIZE);
     fprintf(stderr, "%s\nSystem error message: %s\n", message, buf);
-}
-
-void defaultConfig(struct config *options, int which) {
-    if (which & READ_PORT) {
-        options->port = DEFAULT_PORT;
-    }
-    if (which & READ_MULTIPROCESS) {
-        options->multiProcess = DEFAULT_MULTI_PROCESS;
-    }
-}
-
-int readConfig(struct config *options, int which) {
-    char *configPath, *endptr;
-    FILE *configFile;
-    char port[6], multiProcess[2];
-    size_t configPathSize = strlen(installationDir) + strlen(CONFIG_FILE) + 2;
-    if ((configPath = malloc(configPathSize)) == NULL) {
-        return GOPHER_FAILURE;
-    }
-    if (snprintf(configPath, configPathSize, "%s/%s", installationDir, CONFIG_FILE) < configPathSize - 1) {
-        return GOPHER_FAILURE;
-    }
-    if ((configFile = fopen(configPath, "r")) == NULL) {
-        return GOPHER_FAILURE;
-    }
-    free(configPath);
-    while (fgetc(configFile) != CONFIG_DELIMITER)
-        ;
-    fgets(port, sizeof(port), configFile);
-    while (fgetc(configFile) != CONFIG_DELIMITER)
-        ;
-    fgets(multiProcess, sizeof(multiProcess), configFile);
-    if (fclose(configFile) != 0) {
-        return -1;
-    }
-    if (which & READ_PORT) {
-        options->port = strtol(port, &endptr, 10);
-        if (options->port < 1 || options->port > 65535) {
-            return GOPHER_FAILURE;
-        }
-    }
-    if (which & READ_MULTIPROCESS) {
-        options->multiProcess = strtol(multiProcess, &endptr, 10);
-    }
-    return GOPHER_SUCCESS;
 }

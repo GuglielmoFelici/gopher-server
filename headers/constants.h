@@ -26,16 +26,6 @@
 
 /* Config */
 
-#define CONFIG_DELIMITER '='
-#define CONFIG_FILE "config"
-#define DEFAULT_MULTI_PROCESS 0
-#define DEFAULT_PORT 7070
-#define INVALID_PORT 0
-#define INVALID_MULTIPROCESS -1
-#define READ_PORT 0x0001
-#define READ_MULTIPROCESS 0x0002
-#define SERVER_INIT -1
-
 /* Logging */
 #define LOG_MUTEX_NAME "logMutex"
 

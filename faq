@@ -4,3 +4,5 @@ Detachare thread in windows:
     Chiudere handle e basta, memoria thread liberata quando finiscono handle associati aperti
     https://stackoverflow.com/questions/1981459/using-threads-in-c-on-windows-simple-example
     https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitthread
+Daemonizzare:
+    https://stackoverflow.com/questions/17954432/creating-a-daemon-in-linux
