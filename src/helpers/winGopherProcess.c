@@ -28,7 +28,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
     sscanf(argv[2], "%p", &sock);
     sscanf(argv[3], "%p", &(pLogger->logPipe));
     sscanf(argv[4], "%p", &(pLogger->logEvent));
-    gopher(sock, port);
+    gopher(sock, port, pLogger);
     ExitThread(0);
 ON_ERROR:
     WSACleanup();

@@ -9,7 +9,6 @@
 #define _WIN32_WINNT 0x0501
 #endif
 #define HELPER_PATH "src\\helpers\\winGopherProcess.exe"
-#define DIR_SEP "\\"
 
 #else  // LINUX
 

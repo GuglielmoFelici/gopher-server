@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include "../headers/datatypes.h"
+#include "../headers/logger.h"
 #include "../headers/platform.h"
 
 #define MAX_LINE 70

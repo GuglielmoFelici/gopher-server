@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include "datatypes.h"
+#include "logger.h"
 
 #define CONFIG_DELIMITER '='
 #define CONFIG_FILE "config"

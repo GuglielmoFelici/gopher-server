@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_H
-#define PROTOCOL_H
+#ifndef LOGGER_H
+#define LOGGER_H
 
 #include "datatypes.h"
 
@@ -18,6 +18,8 @@ typedef struct {
     proc_id_t pid;
     char installationDir[MAX_PATH];
 } logger_t;
+
+typedef int xanax_t;
 
 int startTransferLog(logger_t* logger);
 
