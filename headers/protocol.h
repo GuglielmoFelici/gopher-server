@@ -1,3 +1,11 @@
+#ifndef PROTOCOL_H
+#define PROTOCOL_H
+
+#include <math.h>
+#include "datatypes.h"
+#include "logger.h"
+
+#define DIR_SEP "/"
 #define CRLF "\r\n"
 #define BUFF_SIZE 70
 // Return codes
@@ -48,3 +56,15 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
 #define FILE_CMD_DIR "directory"
 #define FILE_CMD_GIF "GIF"
 #define FILE_CMD_TXT "text"
+
+int gopher(socket_t sock, int port, logger_t* pLogger);
+
+typedef struct {
+    void* src;
+    int size;
+    socket_t dest;
+    char name[MAX_NAME];
+    logger_t* pLogger;
+} sendFileArgs;
+
+#endif

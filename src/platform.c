@@ -1,6 +1,6 @@
 #include "../headers/platform.h"
+#include <stdio.h>
 #include "../headers/protocol.h"
-#include "headers/gopher.h"
 
 #if defined(_WIN32)
 
@@ -19,22 +19,23 @@ void errorString(char *error, size_t size) {
 
 /* Termina graziosamente il logger, poi termina il server. */
 void _shutdown(SOCKET server) {
-    free(logMutex);
-    closesocket(server);
-    closesocket(awakeSelect);
-    CloseHandle(*logMutex);
-    CloseHandle(logEvent);
-    CloseHandle(logPipe);
-    printf("Shutting down...\n");
-    ExitThread(0);
+    // TODO
+    // free(logMutex);
+    // closesocket(server);
+    // closesocket(awakeSelect);
+    // CloseHandle(*logMutex);
+    // CloseHandle(logEvent);
+    // CloseHandle(logPipe);
+    // printf("Shutting down...\n");
+    // ExitThread(0);
 }
 
 int changeCwd(const char *path) {
-    return SetCurrentDirectory(path) ? GOPHER_SUCCESS : GOPHER_FAILURE;
+    return SetCurrentDirectory(path) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int getCwd(LPSTR dst, size_t size) {
-    return GetCurrentDirectory(size, dst) ? GOPHER_SUCCESS : GOPHER_FAILURE;
+    return GetCurrentDirectory(size, dst) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -68,30 +69,30 @@ int _createThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
 
 /*********************************************** FILES  ***************************************************************/
 
-/* Ritorna GOPHER_SUCCESS se path punta a un file regolare. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
+/* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
 int isFile(LPSTR path) {
     DWORD attr;
     if ((attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-        return GOPHER_SUCCESS;
+        return PLATFORM_SUCCESS;
     } else {
-        return GetLastError() == ERROR_FILE_NOT_FOUND ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+        return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
     }
 }
 
-/* Ritorna GOPHER_SUCCESS se path punta a una directory. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
+/* Ritorna PLATFORM_SUCCESS se path punta a una directory. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
 int isDir(LPCSTR path) {
     DWORD attr;
     if ((attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) {
-        return GOPHER_SUCCESS;
+        return PLATFORM_SUCCESS;
     } else {
-        return GetLastError() == ERROR_FILE_NOT_FOUND ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+        return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
     }
 }
 
 /* Mappa un file in memoria */
-int getFileMap(LPSTR path, struct fileMappingData *mapData) {
+int getFileMap(LPSTR path, file_mapping_t *mapData) {
     HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
     LPVOID view;
     LARGE_INTEGER fileSize;
@@ -105,7 +106,7 @@ int getFileMap(LPSTR path, struct fileMappingData *mapData) {
     if (fileSize.QuadPart == 0) {
         mapData->view = NULL;
         mapData->size = 0;
-        return GOPHER_SUCCESS;
+        return PLATFORM_SUCCESS;
     }
     memset(&ovlp, 0, sizeof(ovlp));
     if (
@@ -120,7 +121,7 @@ int getFileMap(LPSTR path, struct fileMappingData *mapData) {
     }
     mapData->view = view;
     mapData->size = fileSize.LowPart;
-    return GOPHER_SUCCESS;
+    return PLATFORM_SUCCESS;
 ON_ERROR:
     if (file != INVALID_HANDLE_VALUE) {
         CloseHandle(file);
@@ -128,7 +129,7 @@ ON_ERROR:
     if (map != INVALID_HANDLE_VALUE) {
         CloseHandle(map);
     }
-    return GOPHER_FAILURE;
+    return PLATFORM_FAILURE;
 }
 
 /* 
@@ -141,15 +142,15 @@ int iterateDir(const char *path, HANDLE *dir, LPSTR name, size_t nameSize) {
         char dirPath[MAX_NAME + 1];
         snprintf(dirPath, MAX_NAME, "%s*", path);
         if ((*dir = FindFirstFile(dirPath, &data)) == INVALID_HANDLE_VALUE) {
-            return GetLastError() == ERROR_FILE_NOT_FOUND ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+            return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
         }
     } else {
         if (!FindNextFile(*dir, &data)) {
-            return GetLastError() == ERROR_NO_MORE_FILES ? GOPHER_FAILURE | GOPHER_END_OF_DIR : GOPHER_FAILURE;
+            return GetLastError() == ERROR_NO_MORE_FILES ? PLATFORM_FAILURE | GOPHER_END_OF_DIR : PLATFORM_FAILURE;
         }
     }
     strncpy(name, data.cFileName, nameSize);
-    return GOPHER_SUCCESS;
+    return PLATFORM_SUCCESS;
 }
 
 int closeDir(HANDLE dir) {
@@ -182,7 +183,7 @@ void errorString(char *error, size_t size) {
 }
 
 int changeCwd(const char *path) {
-    return chdir(path) < 0 ? GOPHER_SUCCESS : GOPHER_FAILURE;
+    return chdir(path) < 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -211,24 +212,24 @@ int _createThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
 
 /*********************************************** FILES ****************************************************************/
 
-/* Ritorna GOPHER_SUCCESS se path punta a un file regolare. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
+/* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
 int isFile(char *path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0) {
-        return errno == ENOENT ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+        return errno == ENOENT ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
     }
-    return S_ISREG(statbuf.st_mode) ? GOPHER_SUCCESS : GOPHER_FAILURE;
+    return S_ISREG(statbuf.st_mode) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-/* Ritorna GOPHER_SUCCESS se path punta a una directory. Altrimenti ritorna GOPHER_FAILURE con GOPHER_NOT FOUND
+/* Ritorna PLATFORM_SUCCESS se path punta a una directory. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
 int isDir(const char *path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0) {
-        return errno == ENOENT ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+        return errno == ENOENT ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
     }
-    return S_ISDIR(statbuf.st_mode) ? GOPHER_SUCCESS : GOPHER_FAILURE;
+    return S_ISDIR(statbuf.st_mode) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int getFileMap(char *path, struct fileMappingData *mapData) {
@@ -245,11 +246,11 @@ int getFileMap(char *path, struct fileMappingData *mapData) {
         (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED ||
         flock(fd, LOCK_UN) < 0 ||
         close(fd) < 0) {
-        return GOPHER_FAILURE;
+        return PLATFORM_FAILURE;
     }
     mapData->view = map;
     mapData->size = statBuf.st_size;
-    return GOPHER_SUCCESS;
+    return PLATFORM_SUCCESS;
 }
 
 /* 
@@ -260,15 +261,15 @@ int iterateDir(const char *path, DIR **dir, char *name, size_t nameSize) {
     struct dirent *entry;
     if (*dir == NULL) {
         if ((*dir = opendir(path)) == NULL) {
-            return errno == ENOENT ? GOPHER_FAILURE | GOPHER_NOT_FOUND : GOPHER_FAILURE;
+            return errno == ENOENT ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
         }
     }
     entry = readdir(*dir);
     if (entry == NULL) {
-        return errno == EBADF ? GOPHER_FAILURE : GOPHER_FAILURE | GOPHER_END_OF_DIR;
+        return errno == EBADF ? PLATFORM_FAILURE : PLATFORM_FAILURE | GOPHER_END_OF_DIR;
     }
     strncpy(name, entry->d_name, nameSize);
-    return GOPHER_SUCCESS;
+    return PLATFORM_SUCCESS;
 }
 
 int closeDir(DIR *dir) {
@@ -292,7 +293,7 @@ bool endsWith(char *str1, char *str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-int sendAll(_socket s, char *data, int length) {
+int sendAll(socket_t s, char *data, int length) {
     int count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);

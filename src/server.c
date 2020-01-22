@@ -1,7 +1,11 @@
 #include "../headers/server.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <windows.h>
 #include "../headers/datatypes.h"
+#include "../headers/log.h"
+#include "../headers/logger.h"
+#include "../headers/protocol.h"
 
 static _sig_atomic volatile updateConfig = false;     // Controllo della modifica del file di configurazione
 static _sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazione
@@ -15,12 +19,17 @@ static struct sockaddr_in awakeAddr;
 
 /*****************************************************************************************************************/
 
-static void printHeading(const server_t* pServer) {
+void printHeading(const server_t* pServer) {
     printf("Listening on port %d (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
 }
 
-/* Inizializzazione di console e WSA */
-int startup() {
+/* Azzera la struttura puntata da pServer */
+int initServer(server_t* pServer) {
+    strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
+    pServer->multiProcess = INVALID_MULTIPROCESS;
+    pServer->port = INVALID_PORT;
+    pServer->sock = INVALID_SOCKET;
+    memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
     return WSAStartup(versionWanted, &wsaData) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
@@ -93,11 +102,11 @@ int installDefaultSigHandlers() {
 static DWORD WINAPI serveThreadTask(LPVOID args) {
     struct threadArgs gopherArgs = *(struct threadArgs*)args;
     free(args);
-    gopher(gopherArgs.sock, gopherArgs.port);  // Il protocollo viene eseguito qui TODO waitForSend false è giusto??
+    gopher(gopherArgs.sock, gopherArgs.port);
 }
 
 /* Serve una richiesta in modalità multithreading. */
-static int serveThread(SOCKET sock, unsigned short port) {
+static int serveThread(SOCKET sock, int port) {
     HANDLE thread;
     struct threadArgs* args;
     if ((args = malloc(sizeof(struct threadArgs))) == NULL) {
@@ -113,13 +122,13 @@ static int serveThread(SOCKET sock, unsigned short port) {
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-static int serveProc(SOCKET client, unsigned short port) {
+static int serveProc(SOCKET client, logger_t* pLogger, server_t* pServer) {
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
     char exec[MAX_PATH];
     LPSTR cmdLine;
     size_t cmdLineSize;
-    if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, installationDir) < strlen(installationDir) + strlen(HELPER_PATH) + 1) {
+    if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, pServer->installationDir) < strlen(pServer->installationDir) + strlen(HELPER_PATH) + 1) {
         return SERVER_FAILURE;
     }
     memset(&startupInfo, 0, sizeof(startupInfo));
@@ -127,18 +136,21 @@ static int serveProc(SOCKET client, unsigned short port) {
     startupInfo.cb = sizeof(startupInfo);
     startupInfo.dwFlags = STARTF_USESTDHANDLES;
     if (
-        (startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE ||
-        (startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE)) == INVALID_HANDLE_VALUE ||
-        (startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE)) == INVALID_HANDLE_VALUE) {
+        INVALID_HANDLE_VALUE == (startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE)) ||
+        INVALID_HANDLE_VALUE == (startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE)) ||
+        INVALID_HANDLE_VALUE == (startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE))) {
         return SERVER_FAILURE;
     }
-    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p %p", exec, port, client, logPipe, logEvent) + 1;
-    if ((cmdLine = malloc(cmdLineSize)) == NULL) {
+    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p %p", exec, pServer->port, client, pLogger->logPipe, pLogger->logEvent) + 1;
+    if (NULL == (cmdLine = malloc(cmdLineSize))) {
         return SERVER_FAILURE;
     }
     if (
-        snprintf(cmdLine, cmdLineSize, "%s %hu %p %p %p", exec, port, client, logPipe, logEvent) < cmdLineSize - 1 ||
-        !CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+        snprintf(cmdLine, cmdLineSize, "%s %hu %p %p %p", exec, pServer->port, client, pLogger->logPipe, pLogger->logEvent) < cmdLineSize - 1) {
+        free(cmdLine);
+        return SERVER_FAILURE;
+    }
+    if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
         free(cmdLine);
         return SERVER_FAILURE;
     }
@@ -152,7 +164,7 @@ static int serveProc(SOCKET client, unsigned short port) {
 
 /*****************************************************************************************************************/
 
-static void printHeading(struct config* options) {
+void printHeading(struct config* options) {
     printf("Started daemon with pid %d\n", getpid());
     printf("Listening on port %i (%s mode)\n", options->port, options->multiProcess ? "multiprocess" : "multithreaded");
 }
@@ -264,7 +276,7 @@ static void* serveThreadTask(void* args) {
 }
 
 /* Serve una richiesta in modalità multithreading. */
-static int serveThread(int sock, unsigned short port) {
+static int serveThread(int sock, int port) {
     pthread_t tid;
     struct threadArgs* tArgs;
     if ((tArgs = malloc(sizeof(struct threadArgs))) == NULL) {
@@ -282,8 +294,8 @@ static int serveThread(int sock, unsigned short port) {
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-static int serveProc(int sock, unsigned short port) {
-    pid_t pid;
+static int serveProc(int sock, ints port) {
+    proc_id_t pid;
     pid = fork();
     if (pid < 0) {
         return SERVER_FAILURE;
@@ -378,39 +390,46 @@ ON_ERROR:
     }
 }
 
-int startServer(server_t* pServer) {
+int runServer(server_t* pServer) {
+    fd_set incomingConnections;
     int ready = 0;
+    int exitCode = SERVER_SUCCESS;
     while (true) {
         do {
             if (requestShutdown) {
-                _shutdown(server);
-            } else if (ready == SOCKET_ERROR && sockErr() != EINTR) {
-                _err(_SELECT_ERR, true, -1);
+                exitCode = SERVER_SUCCESS;
+                break;
+            } else if (SOCKET_ERROR == ready && sockErr() != EINTR) {
+                exitCode = SERVER_FAILURE;
+                break;
             } else if (updateConfig) {
                 printf("Updating config...\n");
-                int prevMultiprocess = options.multiProcess;
-                if (readConfig(&options, READ_PORT | READ_MULTIPROCESS) != 0) {
+                int prevMultiprocess = pServer->multiProcess;
+                if (readConfig(pServer, READ_PORT | READ_MULTIPROCESS) != 0) {
                     _logErr(WARN " - " _CONFIG_ERR);
-                    defaultConfig(&options, READ_PORT);
+                    defaultConfig(pServer, READ_PORT);
                 }
-                if (options.port != htons(serverAddr.sin_port)) {
-                    server = prepareServer(server, &options, &serverAddr);
-                    printf("Switched to port %i\n", options.port);
+                if (pServer->port != htons(pServer->sockAddr.sin_port)) {
+                    if (SERVER_FAILURE == prepareSocket(pServer, SERVER_UPDATE)) {
+                        exitCode = SERVER_FAILURE;
+                        break;
+                    }
+                    printf("Switched to port %i\n", pServer->port);
                 }
-                if (options.multiProcess != prevMultiprocess) {
-                    printf("Switched to %s mode\n", options.multiProcess ? "multiprocess" : "multithreaded");
+                if (pServer->multiProcess != prevMultiprocess) {
+                    printf("Switched to %s mode\n", pServer->multiProcess ? "multiprocess" : "multithreaded");
                 }
                 updateConfig = false;
             }
             FD_ZERO(&incomingConnections);
-            FD_SET(server, &incomingConnections);
+            FD_SET(pServer->sock, &incomingConnections);
             FD_SET(awakeSelect, &incomingConnections);
-        } while ((ready = select(server + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(server, &incomingConnections));
-        printf("Incoming connection on port %d\n", htons(serverAddr.sin_port));
-        _socket client = accept(server, NULL, NULL);
-        if (client == INVALID_SOCKET) {
+        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(pServer->sock, &incomingConnections));
+        printf("Incoming connection on port %d\n", htons(pServer->sockAddr.sin_port));
+        socket_t client = accept(pServer->sock, NULL, NULL);
+        if (INVALID_SOCKET == client) {
             _logErr(WARN "Error serving client");
-        } else if (options.multiProcess) {
+        } else if (pServer->multiProcess) {
             // TODO controllare return value
             serveProc(client, options.port);
             closeSocket(client);
@@ -418,4 +437,5 @@ int startServer(server_t* pServer) {
             serveThread(client, options.port);
         }
     }
+    return exitCode;
 }

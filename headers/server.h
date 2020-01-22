@@ -1,3 +1,6 @@
+#ifndef SERVER_H
+#define SERVER_H
+
 #include <stdbool.h>
 #include "datatypes.h"
 
@@ -23,7 +26,12 @@ typedef struct {
     char installationDir[MAX_NAME];
 } server_t;
 
-int startup();
+struct threadArgs {
+    socket_t sock;
+    unsigned short port;
+};  // TODO typedef
+
+int initServer(server_t* pServer);
 
 int installDefaultSigHandlers();
 
@@ -33,4 +41,12 @@ void defaultConfig(server_t* pServer, int which);
 
 int readConfig(server_t* pServer, int which);
 
-int startServer(server_t* pServer);
+void printHeading(const server_t* pServer);
+
+int runServer(server_t* pServer);
+
+int serveThread(socket_t socket, int port);
+
+int serveProc(socket_t socket, logger_t* pLogger, server_t* pServer);
+
+#endif

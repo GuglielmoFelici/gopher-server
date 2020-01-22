@@ -1,5 +1,9 @@
-#include "headers/gopher.h"
-#include "headers/log.h"
+#include "../headers/protocol.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <windows.h>
+#include "../headers/datatypes.h"
+#include "../headers/platform.h"
 
 #define MAX_LINE 70
 
@@ -82,25 +86,16 @@ char gopherType(char* file) {
 
 /*****************************************************************************************************************/
 
-_string trimEnding(_string str) {
-    for (int i = strlen(str) - 1; i >= 0; i--) {
-        if (str[i] == ' ' || str[i] == '\r' || str[i] == '\n') {
-            str[i] = '\0';
-        }
-    }
-    return str;
-}
-
-bool validateInput(_string str) {
-    _string strtokptr;
-    _string ret;
+static bool validateInput(char* str) {
+    char* strtokptr;
+    char* ret;
     ret = strtok_r(str, CRLF, &strtokptr);
     return ret == NULL ||
            !strstr(ret, ".\\") && !strstr(ret, "./");
 }
 
-void normalizeInput(_string str) {
-    _string strtokptr;
+static void normalizeInput(char* str) {
+    char* strtokptr;
     if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
         strcpy(str, "." DIR_SEP);
     } else {
@@ -108,23 +103,24 @@ void normalizeInput(_string str) {
     }
 }
 
-int sendErrorResponse(_socket sock, _string msg) {
-    if (sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3) == SOCKET_ERROR) {
-        return SOCKET_ERROR;
+static int sendErrorResponse(socket_t sock, char* msg) {
+    if (SOCKET_ERROR == sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3)) {
+        return GOPHER_FAILURE;
     }
-    if (sendAll(sock, msg, strlen(msg)) == SOCKET_ERROR) {
-        return SOCKET_ERROR;
+    if (SOCKET_ERROR == sendAll(sock, msg, strlen(msg))) {
+        return GOPHER_FAILURE;
     }
-    if (sendAll(sock, CRLF ".", 3) == SOCKET_ERROR) {
-        return SOCKET_ERROR;
+    if (SOCKET_ERROR == sendAll(sock, CRLF ".", 3)) {
+        return GOPHER_FAILURE;
     }
-    if (closeSocket(sock) == SOCKET_ERROR) {
-        return SOCKET_ERROR;
+    if (SOCKET_ERROR == closeSocket(sock)) {
+        return GOPHER_FAILURE;
     }
+    return GOPHER_SUCCESS;
 }
 
 /* Costruisce la lista dei file e la invia al client */
-int sendDir(const char* path, int sock, unsigned short port) {
+static int sendDir(const char* path, int sock, int port) {
     _dir dir = NULL;
     char fileName[MAX_NAME], *filePath = NULL, *line = NULL;
     size_t lineSize, filePathSize;
@@ -190,11 +186,11 @@ ON_ERROR:
 
 /* Invia il file al client */
 void* sendFileTask(void* threadArgs) {
-    struct sendFileArgs args;
+    sendFileArgs args;
     struct sockaddr_in clientAddr;
     size_t clientLen, logSize;
     char *log, address[16];
-    args = *(struct sendFileArgs*)threadArgs;
+    args = *(sendFileArgs*)threadArgs;
     free(threadArgs);
     if (
         sendAll(args.dest, args.src, args.size) == SOCKET_ERROR ||
@@ -216,22 +212,23 @@ void* sendFileTask(void* threadArgs) {
         return NULL;
     }
     if (snprintf(log, logSize, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) > 0) {
-        logTransfer(log);
+        logTransfer(args.pLogger, log);
     }
     free(log);
 }
 
 /* Avvia il worker thread di trasmissione */
-int sendFile(const char* path, struct fileMappingData* map, int sock) {
-    _thread tid;
-    struct sendFileArgs* args;
-    if ((args = malloc(sizeof(struct sendFileArgs))) == NULL) {
+static int sendFile(const char* name, file_mapping_t* map, int sock, logger_t* pLogger) {
+    thread_t tid;
+    sendFileArgs* args = NULL;
+    if (NULL == (args = malloc(sizeof(sendFileArgs)))) {
         return GOPHER_FAILURE;
     }
     args->src = map->view;
     args->size = map->size;
     args->dest = sock;
-    strncpy(args->name, path, sizeof(args->name));
+    args->pLogger = pLogger;
+    strncpy(args->name, name, sizeof(args->name));
     if (_createThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args) != 0) {
         free(args);
         return GOPHER_FAILURE;
@@ -241,15 +238,16 @@ int sendFile(const char* path, struct fileMappingData* map, int sock) {
 }
 
 /* Esegue il protocollo. */
-int gopher(_socket sock, unsigned short port) {
-    _string selector = NULL;
-    struct fileMappingData map;
+int gopher(socket_t sock, int port, logger_t* pLogger) {
+    char* selector = NULL;
+    file_mapping_t map;
     char buf[BUFF_SIZE];
     size_t bytesRec = 0, selectorSize = 1;
     do {
-        if (
-            (bytesRec = recv(sock, buf, BUFF_SIZE, 0)) == SOCKET_ERROR ||
-            (selector = realloc(selector, selectorSize + bytesRec)) == NULL) {
+        if (SOCKET_ERROR == (bytesRec = recv(sock, buf, BUFF_SIZE, 0))) {
+            goto ON_ERROR;
+        }
+        if (NULL == (selector = realloc(selector, selectorSize + bytesRec))) {
             goto ON_ERROR;
         }
         memcpy(selector + selectorSize - 1, buf, bytesRec);
@@ -264,17 +262,20 @@ int gopher(_socket sock, unsigned short port) {
     normalizeInput(selector);
     printf("Request: _%s_\n", strlen(selector) == 0 ? "_empty" : selector);
     if (endsWith(selector, DIR_SEP)) {  // Directory
-        if (sendDir(selector, sock, port) != GOPHER_SUCCESS) {
+        if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
             goto ON_ERROR;
         }
     } else {  // File
-        if (isFile(selector) != GOPHER_SUCCESS) {
-            sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
+        int test;
+        if (GOPHER_SUCCESS != (test = isFile(selector))) {
+            if (test & GOPHER_NOT_FOUND) {
+                sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
+            }
             goto ON_ERROR;
         }
         if (
             getFileMap(selector, &map) != GOPHER_SUCCESS ||
-            sendFile(selector, &map, sock) != GOPHER_SUCCESS) {
+            sendFile(selector, &map, sock, pLogger) != GOPHER_SUCCESS) {
             goto ON_ERROR;
         }
     }
