@@ -2,63 +2,47 @@
 #include <stdio.h>
 #include <windows.h>
 
-HANDLE logFile;
-HANDLE logEvent;
+#define LOG_ERR "Logger error\n"
+#define MAX_LINE_SIZE 100
 
-void _logErr(LPCSTR message) {
-    return;  // TODO
-    char buf[256];
-    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  buf, 256, NULL);
-    Sleep(500);
-    fprintf(stderr, "! GOPHER LOGGER !\n%s\nSystem error: %s\n", message, buf);
-    fprintf(stderr, "Server will work, but logging will be disabled\n");
-    Sleep(INFINITE);  // Lascio all'utente la possibilità di leggere l'errore
-}
-
-BOOL sigHandler(DWORD signum) {
-    CloseHandle(logFile);
-    CloseHandle(logEvent);
-    exit(0);
-}
-
-/* Quando riceve un evento logEvent, legge dallo stdInput (estremo in lettura della pipe di log) */
+/* Quando viene segnalato l'evento logEvent, legge dallo stdInput (estremo in lettura della pipe di log) */
 DWORD main(DWORD argc, LPSTR* argv) {
-    char buff[4096] = "";
-    DWORD bytesRead;
-    DWORD bytesWritten;
-    DWORD sizeHigh;
-    DWORD sizeLow;
-    OVERLAPPED ovlp;
-    setlocale(LC_ALL, "");
-    memset(&ovlp, 0, sizeof(ovlp));
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE);
+    char buff[MAX_LINE_SIZE] = "";
+    HANDLE logEvent;
     if ((logEvent = OpenEvent(SYNCHRONIZE, FALSE, "logEvent")) == NULL) {
-        _logErr("Error starting logger\n.");
+        fprintf(stderr, LOG_ERR);
         exit(1);
     }
+    HANDLE logFile;
     if ((logFile = CreateFile("logFile", GENERIC_READ | FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
-        _logErr("Error opening logFile");
+        fprintf(stderr, LOG_ERR);
         exit(1);
     }
     SetFilePointer(logFile, 0, NULL, FILE_END);
     while (1) {
         WaitForSingleObject(logEvent, INFINITE);
+        DWORD bytesRead;
         if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buff, sizeof(buff), &bytesRead, NULL)) {
-            _logErr("Can't read from pipe");
+            fprintf(stderr, LOG_ERR);
             continue;
         }
-        sizeLow = GetFileSize(logFile, &sizeHigh);
-        if (LockFileEx(logFile, LOCKFILE_EXCLUSIVE_LOCK, 0, sizeLow, sizeHigh, &ovlp)) {
+        OVERLAPPED ovlp;
+        memset(&ovlp, 0, sizeof(ovlp));
+        LARGE_INTEGER fileSize;
+        if (!GetFileSizeEx(logFile, &fileSize)) {
+            fprintf(stderr, LOG_ERR);
+            continue;
+        };
+        if (LockFileEx(logFile, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
+            DWORD bytesWritten;
             if (!WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL)) {
-                _logErr("Error writing logFile");
+                fprintf(stderr, LOG_ERR);
             }
-            if (!UnlockFile(logFile, 0, 0, sizeLow, sizeHigh)) {
-                _logErr("Logger - error unlocking file");
+            if (!UnlockFile(logFile, 0, 0, fileSize.LowPart, fileSize.HighPart)) {
+                fprintf(stderr, LOG_ERR);
             }
         } else {
-            _logErr("Logger - Error locking file");
+            fprintf(stderr, LOG_ERR);
         }
     }
 }

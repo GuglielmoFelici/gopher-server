@@ -33,14 +33,13 @@ int startTransferLog(logger_t* pLogger) {
     attr.bInheritHandle = TRUE;
     attr.nLength = sizeof(attr);
     attr.lpSecurityDescriptor = NULL;
-    // logPipe è globale/condivisa, viene acceduta in scrittura quando avviene un trasferimento file
     HANDLE readPipe = NULL;
-    HANDLE logPipe = NULL;
+    HANDLE writePipe = NULL;
     HANDLE* pLogMutex = NULL;
-    if (!CreatePipe(&readPipe, &logPipe, &attr, 0)) {
+    if (!CreatePipe(&readPipe, &writePipe, &attr, 0)) {
         goto ON_ERROR;
     }
-    pLogger->logPipe = logPipe;
+    pLogger->logPipe = writePipe;
     if (NULL == (pLogMutex = malloc(sizeof(HANDLE)))) {
         goto ON_ERROR;
     }
@@ -72,17 +71,17 @@ int startTransferLog(logger_t* pLogger) {
     CloseHandle(readPipe);
     return LOGGER_SUCCESS;
 ON_ERROR:
-    if (logPipe) {
-        CloseHandle(logPipe);
+    if (readPipe) {
+        CloseHandle(readPipe);
+    }
+    if (writePipe) {
+        CloseHandle(writePipe);
     }
     if (logEvent) {
         CloseHandle(logEvent);
     }
     if (pLogMutex) {
         free(pLogMutex);
-    }
-    if (readPipe) {
-        CloseHandle(readPipe);
     }
     return LOGGER_FAILURE;
 }
