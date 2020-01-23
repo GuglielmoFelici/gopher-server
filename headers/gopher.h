@@ -38,10 +38,8 @@
 
 void _shutdown();
 
-void errorString(char* error, size_t size);
+void errorString(string_t error, size_t size);
 
-void _err(_cstring message, bool stderror, int code);
-
-void _logErr(_cstring message);
+void _logErr(cstring_t message);
 
 #endif

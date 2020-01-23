@@ -7,8 +7,8 @@
 #define MAX_NAME MAX_PATH
 #define PIPE_BUF 4096
 typedef SOCKET socket_t;
-typedef LPSTR _string;
-typedef LPCSTR _cstring;
+typedef LPSTR string_t;
+typedef LPCSTR cstring_t;
 typedef BOOL _handlerRet;
 typedef HANDLE thread_t, pipe_t, event_t, _map, _dir, mutex_t, cond_t;
 typedef DWORD proc_id_t, _sig_atomic;
@@ -23,8 +23,8 @@ typedef DWORD proc_id_t, _sig_atomic;
 #define MAX_NAME FILENAME_MAX
 typedef int socket_t, event_t;
 typedef int pipe_t;
-typedef char* _string;
-typedef const char* _cstring;
+typedef char* string_t;
+typedef const char* cstring_t;
 typedef void _handlerRet;
 typedef pthread_t thread_t;
 typedef void* (*LPTHREAD_START_ROUTINE)(void*);

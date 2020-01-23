@@ -20,11 +20,15 @@
 #endif
 
 /* Utils */
-bool endsWith(char* str1, char* str2);
+bool endsWith(cstring_t str1, cstring_t str2);
 
-int getCwd(char* dst, size_t size);
+int getCwd(string_t dst, size_t size);
 
-int changeCwd(const char* path);
+int changeCwd(cstring_t path);
+
+/* Signals */
+
+int sendInt(proc_id_t pid);
 
 /* Sockets */
 
@@ -32,17 +36,17 @@ int sockErr();
 
 int closeSocket(socket_t s);
 
-int sendAll(socket_t s, char* data, int length);
+int sendAll(socket_t s, cstring_t data, int length);
 
-const char* inetNtoa(struct in_addr* addr, void* dst, size_t size);
+cstring_t inetNtoa(const struct in_addr* addr, void* dst, size_t size);
 
 /* Files */
 
-int isFile(char* path);
+int isFile(cstring_t path);
 
-int isDir(const char* path);
+int isDir(cstring_t path);
 
-int iterateDir(const char* path, _dir* dir, char* name, size_t nameSize);
+int iterateDir(cstring_t path, _dir* dir, string_t name, size_t nameSize);
 
 int closeDir(_dir dir);
 
@@ -51,7 +55,7 @@ typedef struct {
     int size;
 } file_mapping_t;
 
-int getFileMap(char* path, file_mapping_t* mapData);
+int getFileMap(cstring_t path, file_mapping_t* mapData);
 
 int unmapMem(void* addr, size_t len);
 

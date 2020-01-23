@@ -20,8 +20,12 @@ typedef struct {
     char installationDir[MAX_NAME];
 } logger_t;
 
+void initLogger(logger_t* pLogger);
+
+int destroyLogger(logger_t* pLogger);
+
 int startTransferLog(logger_t* pLogger);
 
-int logTransfer(const logger_t* pLogger, const char* log);
+int logTransfer(const logger_t* pLogger, cstring_t log);
 
 #endif

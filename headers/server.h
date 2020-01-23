@@ -35,10 +35,12 @@ typedef struct {
 typedef struct {
     socket_t sock;
     int port;
-    logger_t* pLogger;
+    const logger_t* pLogger;
 } server_thread_args_t;
 
 int initServer(server_t* pServer);
+
+int destroyServer(server_t* pServer);
 
 int installDefaultSigHandlers();
 

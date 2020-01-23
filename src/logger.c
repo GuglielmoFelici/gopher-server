@@ -8,7 +8,7 @@
 
 /*****************************************************************************************************************/
 
-int logTransfer(const logger_t* pLogger, const char* log) {
+int logTransfer(const logger_t* pLogger, LPCSTR log) {
     // TODO mutex
     DWORD written;
     WaitForSingleObject(*(pLogger->pLogMutex), INFINITE);
@@ -86,6 +86,21 @@ ON_ERROR:
     return LOGGER_FAILURE;
 }
 
+int destroyLogger(logger_t* pLogger) {
+    pLogger->pid = -1;
+    if (pLogger->pLogMutex) {
+        free(pLogger->pLogMutex);
+    }
+    if (pLogger->pLogCond) {
+        free(pLogger->pLogCond);
+    }
+    if (!CloseHandle(pLogger->logEvent) ||
+        !CloseHandle(pLogger->logPipe)) {
+        return LOGGER_FAILURE;
+    }
+    return LOGGER_SUCCESS;
+}
+
 #else
 
 /*****************************************************************************************************************/
@@ -103,6 +118,24 @@ ON_ERROR:
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+int destroyLogger(logger_t* pLogger) {
+    pLogger->pid = -1;
+    if (close(pLogger->logPipe) != 0) {
+        return LOGGER_FAILURE;
+    }
+    if (pLogger->pLogMutex) {
+        if (munmap(pLogger->pLogMutex, sizeof(pthread_mutex_t)) != 0) {
+            return LOGGER_FAILURE;
+        }
+    }
+    if (pLogger->pLogCond) {
+        if (munmap(pLogger->pLogCond, sizeof(pthread_cond_t)) != 0) {
+            return LOGGER_FAILURE;
+        }
+    }
+    return LOGGER_SUCCESS;
+}
 
 /* Effettua una scrittura sulla pipe di logging */
 int logTransfer(const logger_t* pLogger, const char* log) {
@@ -192,12 +225,9 @@ int startTransferLog(logger_t* pLogger) {
     if ((pid = fork()) < 0) {
         goto ON_ERROR;
     } else if (pid == 0) {  // Logger
-        sigset_t set;
-        if (
-            sigemptyset(&set) < 0 ||
-            sigaddset(&set, SIGINT) < 0 ||
-            sigaddset(&set, SIGHUP) < 0 ||
-            sigprocmask(SIG_UNBLOCK, &set, NULL) < 0) {
+        struct sigaction act;
+        act.sa_handler = SIG_DFL;
+        if (sigaction(SIGINT, &act, NULL) < 0) {
             goto ON_ERROR;
         }
         close(pipeFd[1]);
@@ -231,3 +261,15 @@ ON_ERROR:
 }
 
 #endif
+
+/*****************************************************************************************************************/
+/*                                             COMMON FUNCTIONS                                                 */
+
+/*****************************************************************************************************************/
+
+void initLogger(logger_t* pLogger) {
+    pLogger->pid = -1;
+    pLogger->pLogCond = NULL;
+    pLogger->pLogMutex = NULL;
+    strncpy(pLogger->installationDir, "", sizeof(pLogger->installationDir));
+}

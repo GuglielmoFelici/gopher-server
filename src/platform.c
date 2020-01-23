@@ -11,7 +11,7 @@
 
 /************************************************** UTILS ********************************************************/
 
-void errorString(char *error, size_t size) {
+void errorString(LPSTR error, size_t size) {
     FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                   error, size, NULL);
@@ -34,8 +34,14 @@ int getCwd(LPSTR dst, size_t size) {
     return GetCurrentDirectory(size, dst) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int changeCwd(const char *path) {
+int changeCwd(LPCSTR path) {
     return SetCurrentDirectory(path) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
+/********************************************** SIGNALS *************************************************************/
+
+int sendInt(DWORD pid) {
+    return GenerateConsoleCtrlEvent(CTRL_C_EVENT, pid) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -49,7 +55,7 @@ int closeSocket(SOCKET s) {
     return closesocket(s) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
+LPCSTR inetNtoa(const struct in_addr *addr, void *dst, size_t size) {
     return strncpy(dst, inet_ntoa(*addr), size);
 }
 
@@ -72,7 +78,7 @@ int daemonize() {
 
 /* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
-int isFile(LPSTR path) {
+int isFile(LPCSTR path) {
     DWORD attr;
     if ((attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
         return PLATFORM_SUCCESS;
@@ -93,7 +99,7 @@ int isDir(LPCSTR path) {
 }
 
 /* Mappa un file in memoria */
-int getFileMap(LPSTR path, file_mapping_t *mapData) {
+int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
     LPVOID view;
     LARGE_INTEGER fileSize;
@@ -137,7 +143,7 @@ ON_ERROR:
     Legge la prossima entry nella directory. 
     Se *dir è NULL, apre la directory contenuta in path. Se *dir non è NULL, path può essere NULL 
 */
-int iterateDir(const char *path, HANDLE *dir, LPSTR name, size_t nameSize) {
+int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
     WIN32_FIND_DATA data;
     if (*dir == NULL) {
         char dirPath[MAX_NAME + 1];
@@ -194,6 +200,12 @@ int changeCwd(const char *path) {
     return chdir(path) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
+/********************************************** SIGNALS *************************************************************/
+
+int sendInt(proc_id_t pid) {
+    return kill(pid, SIGINT) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
 /********************************************** SOCKETS *************************************************************/
 
 int sockErr() {
@@ -204,7 +216,7 @@ int closeSocket(int s) {
     return close(s) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
+const char *inetNtoa(const struct in_addr *addr, void *dst, size_t size) {
     return inet_ntop(AF_INET, &addr->s_addr, dst, size);
 }
 
@@ -269,7 +281,7 @@ int daemonize() {
 
 /* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
-int isFile(char *path) {
+int isFile(const char *path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0) {
         return errno == ENOENT ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
@@ -287,7 +299,7 @@ int isDir(const char *path) {
     return S_ISDIR(statbuf.st_mode) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int getFileMap(char *path, file_mapping_t *mapData) {
+int getFileMap(const char *path, file_mapping_t *mapData) {
     void *map;
     int fd;
     struct stat statBuf;
@@ -344,12 +356,12 @@ int unmapMem(void *addr, size_t len) {
 
 /*****************************************************************************************************************/
 
-bool endsWith(char *str1, char *str2) {
+bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
 // TODO valori di ritorno
-int sendAll(socket_t s, char *data, int length) {
+int sendAll(socket_t s, cstring_t data, int length) {
     int count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);
@@ -362,18 +374,8 @@ int sendAll(socket_t s, char *data, int length) {
     return 0;
 }
 
-/* Stampa l'errore su stderr ed esce */
-void _err(_cstring message, bool stderror, int code) {
-    char error[MAX_ERROR_SIZE] = "";
-    if (stderror) {
-        errorString(error, sizeof(error));
-    }
-    fprintf(stderr, "%s - %s\n", message, error);
-    exit(code);
-}
-
 /* Stampa l'errore su stderr */
-void _logErr(_cstring message) {
+void _logErr(cstring_t message) {
     char buf[MAX_ERROR_SIZE];
     errorString(buf, MAX_ERROR_SIZE);
     fprintf(stderr, "%s\nSystem error message: %s\n", message, buf);

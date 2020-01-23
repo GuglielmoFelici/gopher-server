@@ -16,8 +16,8 @@
 
 #include <windows.h>
 
-static void normalizeInput(char* str) {
-    char* strtokptr;
+static void normalizeInput(LPSTR str) {
+    LPSTR strtokptr;
     if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
         strcpy(str, "./");
     } else {
@@ -113,15 +113,14 @@ char gopherType(char* file) {
 
 /*****************************************************************************************************************/
 
-static bool validateInput(char* str) {
-    char* strtokptr;
-    char* ret;
+static bool validateInput(string_t str) {
+    string_t strtokptr, ret;
     ret = strtok_r(str, CRLF, &strtokptr);
     return ret == NULL ||
            !strstr(ret, ".\\") && !strstr(ret, "./");
 }
 
-static int sendErrorResponse(socket_t sock, char* msg) {
+static int sendErrorResponse(socket_t sock, cstring_t msg) {
     if (SOCKET_ERROR == sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3)) {
         return GOPHER_FAILURE;
     }
@@ -138,7 +137,7 @@ static int sendErrorResponse(socket_t sock, char* msg) {
 }
 
 /* Costruisce la lista dei file e la invia al client */
-static int sendDir(const char* path, int sock, int port) {
+static int sendDir(cstring_t path, int sock, int port) {
     _dir dir = NULL;
     char fileName[MAX_NAME], *filePath = NULL, *line = NULL;
     size_t lineSize, filePathSize;
@@ -208,7 +207,8 @@ void* sendFileTask(void* threadArgs) {
     struct sockaddr_in clientAddr;
     int clientLen;
     size_t logSize;
-    char *log, address[16];
+    string_t log;
+    char address[16];
     args = *(send_args_t*)threadArgs;
     free(threadArgs);
     if (
@@ -237,7 +237,7 @@ void* sendFileTask(void* threadArgs) {
 }
 
 /* Avvia il worker thread di trasmissione */
-static int sendFile(const char* name, const file_mapping_t* map, int sock, const logger_t* pLogger) {
+static int sendFile(cstring_t name, const file_mapping_t* map, int sock, const logger_t* pLogger) {
     thread_t tid;
     send_args_t* args = NULL;
     if (NULL == (args = malloc(sizeof(send_args_t)))) {
@@ -258,7 +258,7 @@ static int sendFile(const char* name, const file_mapping_t* map, int sock, const
 
 /* Esegue il protocollo. */
 int gopher(socket_t sock, int port, const logger_t* pLogger) {
-    char* selector = NULL;
+    string_t selector = NULL;
     file_mapping_t map;
     char buf[BUFF_SIZE];
     size_t bytesRec = 0, selectorSize = 1;

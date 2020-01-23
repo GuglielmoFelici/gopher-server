@@ -4,13 +4,23 @@
 #include "../headers/server.h"
 #include "../headers/wingetopt.h"
 
-int main(int argc, _string* argv) {
+#define MAX_ERR 100
+
+int main(int argc, string_t* argv) {
     server_t server;
+    logger_t logger;
+    char errorMsg[MAX_ERR] = "";
     if (SERVER_SUCCESS != initServer(&server)) {
-        _err(_STARTUP_ERR, true, -1);
+        strncpy(errorMsg, _STARTUP_ERR, sizeof(errorMsg));
+        goto ON_ERROR;
     }
+    initLogger(&logger);
+    // TODO
+    // le directory di installazione vanno inizializzate negli init?
+
     if (PLATFORM_SUCCESS != getCwd(server.installationDir, sizeof(server.installationDir))) {
-        _err("Cannot get current working directory", true, -1);
+        strncpy(errorMsg, "Cannot get current working directory", sizeof(errorMsg));
+        goto ON_ERROR;
     }
     if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
         _logErr(WARN " - " _PORT_CONFIG_ERR);
@@ -25,17 +35,17 @@ int main(int argc, _string* argv) {
     while ((opt = getopt(argc, argv, "mhp:d:")) != -1) {
         switch (opt) {
             case 'h':
-                printf(USAGE "\n");
-                exit(0);
+                strncpy(errorMsg, USAGE, sizeof(errorMsg));
+                goto ON_ERROR;
             case 'm':
                 server.multiProcess = true;
                 break;
             case 'p':;
-                char* strtolPtr = NULL;
+                string_t strtolPtr = NULL;
                 int port = strtol(optarg, &strtolPtr, 10);
                 if (port < 1 || port > 65535) {
-                    fprintf(stderr, "Invalid port number: %s\n", optarg);
-                    exit(1);
+                    strncpy(errorMsg, "Invalid port number", sizeof(errorMsg));
+                    goto ON_ERROR;
                 } else {
                     server.port = port;
                 }
@@ -50,34 +60,46 @@ int main(int argc, _string* argv) {
                     fprintf(stderr, "Option -%c requires an argument (use -h for usage info).\n", optopt);
                 } else {
                     fprintf(stderr, "Unknown option `-%c'.\n", optopt);
-                    printf(USAGE "\n");
-                    exit(1);
+                    strncpy(errorMsg, USAGE, sizeof(errorMsg));
+                    goto ON_ERROR;
                 }
             default:
-                exit(1);
+                strncpy(errorMsg, "Error parsing options", sizeof(errorMsg));
+                goto ON_ERROR;
         }
     }
-
-    // TODO daemonize ?
-
     /* Configurazione */
     if (SERVER_SUCCESS != installDefaultSigHandlers()) {
-        _err(_SYS_ERR, true, -1);
+        strncpy(errorMsg, _SYS_ERR, sizeof(errorMsg));
+        goto ON_ERROR;
     }
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
-        _err(_SOCKET_ERR, true, -1);
+        strncpy(errorMsg, _SOCKET_ERR, sizeof(errorMsg));
+        goto ON_ERROR;
     }
-    logger_t logger;
+    // TODO perché puntatore?
     strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
         printf(WARN " - Error starting logger\n");
     }
     if (PLATFORM_SUCCESS != daemonize()) {
-        _err(_STARTUP_ERR, true, -1);
+        strncpy(errorMsg, _STARTUP_ERR, sizeof(errorMsg));
+        goto ON_ERROR;
     }
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {
-        _err(_STARTUP_ERR, true, -1);
+        strncpy(errorMsg, _STARTUP_ERR, sizeof(errorMsg));
+        goto ON_ERROR;
     }
+    sendInt(logger.pid);
+    destroyServer(&server);
+    destroyLogger(&logger);
     printf("Done.\n");
+    return 0;
+ON_ERROR:
+    fprintf(stderr, "%s\n", errorMsg);
+    sendInt(logger.pid);
+    destroyServer(&server);
+    destroyLogger(&logger);
+    return 1;
 }

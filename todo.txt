@@ -1,6 +1,7 @@
 IMPORTANTE: HEADER GUARDS
 
 Common:
+    rimuovere _logErr
     cosa fare al termine del server?
     usare const e volatile?
     Spostare definizioni da datatypes
@@ -19,6 +20,7 @@ Linux:
     LOGGING TUTTO SBAGLIATO
 
 Windows:
+    detach console del logger? (per evitare ctrl-c del padre)
     attenzione: subthread ricevono eventi console (e.g. rilettura configurazione)
     verificare chiusura di tutti gli handle
     Eliminare validateInput()?

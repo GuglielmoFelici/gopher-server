@@ -35,6 +35,11 @@ int initServer(server_t* pServer) {
     return WSAStartup(versionWanted, &wsaData) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
+int destroyServer(server_t* pServer) {
+    memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
+    return closesocket(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
+}
+
 /* Invia un messaggio vuoto al socket awakeSelect per interrompere la select del server. */
 static int wakeUpServer() {
     SOCKET s;
@@ -179,15 +184,20 @@ int initServer(server_t* pServer) {
     return SERVER_SUCCESS;
 }
 
+int destroyServer(server_t* pServer) {
+    memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
+    return close(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
+}
+
 /********************************************** SIGNALS *************************************************************/
 
 /* Richiede la rilettura del file di configurazione */
 static void hupHandler(int signum) {
     updateConfig = true;
 }
-
 /* Richiede la terminazione */
 static void intHandler(int signum) {
+    printf("ciao, sono %d\n", getpid());
     requestShutdown = true;
 }
 
@@ -299,7 +309,7 @@ void defaultConfig(server_t* pServer, int which) {
 int readConfig(server_t* pServer, int which) {
     // TODO error check
     FILE* configFile = NULL;
-    char* configPath = NULL;
+    string_t configPath = NULL;
     size_t configPathSize = strlen(pServer->installationDir) + strlen(CONFIG_FILE) + 2;
     if (NULL == (configPath = malloc(configPathSize))) {
         goto ON_ERROR;
@@ -321,7 +331,7 @@ int readConfig(server_t* pServer, int which) {
     if (fclose(configFile) != 0) {
         goto ON_ERROR;
     }
-    char* strtolptr = NULL;
+    string_t strtolptr = NULL;
     if (which & READ_PORT) {
         int port;
         port = strtol(portBuff, &strtolptr, 10);
