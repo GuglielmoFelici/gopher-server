@@ -46,7 +46,7 @@ int sockErr() {
 }
 
 int closeSocket(SOCKET s) {
-    return closesocket(s);
+    return closesocket(s) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
@@ -55,16 +55,13 @@ const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
-bool detachThread(HANDLE tHandle) {
-    CloseHandle(tHandle);
+int detachThread(HANDLE tHandle) {
+    return CloseHandle(tHandle) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int _createThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
+int startThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     *tid = CreateThread(NULL, 0, routine, args, 0, NULL);
-    if (tid != NULL) {
-        return 0;
-    }
-    return -1;
+    return tid ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int daemon() {
@@ -158,11 +155,11 @@ int iterateDir(const char *path, HANDLE *dir, LPSTR name, size_t nameSize) {
 }
 
 int closeDir(HANDLE dir) {
-    return FindClose(dir);
+    return FindClose(dir) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int unmapMem(void *addr, size_t len) {
-    return UnmapViewOfFile(addr);
+    return UnmapViewOfFile(addr) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 #else
@@ -179,7 +176,7 @@ void errorString(char *error, size_t size) {
 }
 
 int changeCwd(const char *path) {
-    return chdir(path) < 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    return chdir(path) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -189,7 +186,7 @@ int sockErr() {
 }
 
 int closeSocket(int s) {
-    return close(s);
+    return close(s) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
@@ -198,12 +195,12 @@ const char *inetNtoa(struct in_addr *addr, void *dst, size_t size) {
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
-bool detachThread(pthread_t tid) {
-    return pthread_detach(tid) >= 0;
+int detachThread(pthread_t tid) {
+    return pthread_detach(tid) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int _createThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
-    return pthread_create(tid, NULL, routine, args);
+int startThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
+    return pthread_create(tid, NULL, routine, args) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int daemon() {
@@ -251,7 +248,6 @@ int daemon() {
             return close(devNull) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
         }
     }
-    return 0;
 }
 
 /*********************************************** FILES ****************************************************************/
@@ -276,9 +272,9 @@ int isDir(const char *path) {
     return S_ISDIR(statbuf.st_mode) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int getFileMap(char *path, struct fileMappingData *mapData) {
+int getFileMap(char *path, file_mapping_t *mapData) {
     void *map;
-    int fd;
+    int fd;unmapMem(
     struct stat statBuf;
     struct sendFileArgs *args;
     pthread_t tid;
@@ -317,11 +313,11 @@ int iterateDir(const char *path, DIR **dir, char *name, size_t nameSize) {
 }
 
 int closeDir(DIR *dir) {
-    return closedir(dir);
+    return closedir(dir) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int unmapMem(void *addr, size_t len) {
-    return munmap(addr, len);
+    return munmap(addr, len) != MAP_FAILED ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /*********************************************** LOGGER ***************************************************************/

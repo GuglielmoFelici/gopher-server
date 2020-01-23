@@ -48,9 +48,9 @@ int unmapMem(void* addr, size_t len);
 
 /* Threads & processes */
 
-int _createThread(thread_t* tid, LPTHREAD_START_ROUTINE routine, void* args);
+int startThread(thread_t* tid, LPTHREAD_START_ROUTINE routine, void* args);
 
-bool detachThread(thread_t tid);
+int detachThread(thread_t tid);
 
 int daemon();
 

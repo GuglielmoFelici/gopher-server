@@ -267,7 +267,7 @@ static int serveProc(int client, logger_t* pLogger, server_t* pServer) {
 /* Inizializza il socket del server e lo mette in ascolto */
 int prepareSocket(server_t* pServer, int flags) {
     if (flags & SERVER_UPDATE) {
-        if (SOCKET_ERROR == closeSocket(pServer->sock)) {
+        if (PLATFORM_FAILURE == closeSocket(pServer->sock)) {
             return SERVER_FAILURE;
         };
     }

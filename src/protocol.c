@@ -128,7 +128,7 @@ static int sendErrorResponse(socket_t sock, char* msg) {
     if (SOCKET_ERROR == sendAll(sock, CRLF ".", 3)) {
         return GOPHER_FAILURE;
     }
-    if (SOCKET_ERROR == closeSocket(sock)) {
+    if (PLATFORM_FAILURE == closeSocket(sock)) {
         return GOPHER_FAILURE;
     }
     return GOPHER_SUCCESS;
@@ -244,7 +244,7 @@ static int sendFile(const char* name, file_mapping_t* map, int sock, logger_t* p
     args->dest = sock;
     args->pLogger = pLogger;
     strncpy(args->name, name, sizeof(args->name));
-    if (_createThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args) != 0) {
+    if (PLATFORM_SUCCESS != startThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args)) {
         free(args);
         return GOPHER_FAILURE;
     }
