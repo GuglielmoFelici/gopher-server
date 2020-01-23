@@ -45,7 +45,7 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
 #define EXT_BIN 0x0800
 #define EXT_GIF 0x1000
 #define EXT_IMG 0xE000
-#define CHECK_GRP(index, group) group&(int)pow(2., index)
+#define CHECK_GRP(index, group) (group) & (int)pow(2., (index))
 
 #define FILE_CMD_MAX 256
 #define FILE_CMD_NOT_FOUND "No such file or directory"
@@ -56,14 +56,14 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
 #define FILE_CMD_GIF "GIF"
 #define FILE_CMD_TXT "text"
 
-int gopher(socket_t sock, int port, logger_t* pLogger);
+int gopher(socket_t sock, int port, const logger_t* pLogger);
 
 typedef struct {
     void* src;
     int size;
     socket_t dest;
     char name[MAX_NAME];
-    logger_t* pLogger;
-} sendFileArgs;
+    const logger_t* pLogger;
+} send_args_t;
 
 #endif

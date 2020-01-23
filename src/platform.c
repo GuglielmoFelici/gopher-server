@@ -30,12 +30,12 @@ void _shutdown(SOCKET server) {
     // ExitThread(0);
 }
 
-int changeCwd(const char *path) {
-    return SetCurrentDirectory(path) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
-}
-
 int getCwd(LPSTR dst, size_t size) {
     return GetCurrentDirectory(size, dst) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
+int changeCwd(const char *path) {
+    return SetCurrentDirectory(path) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -64,7 +64,7 @@ int startThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return tid ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int daemon() {
+int daemonize() {
     return PLATFORM_SUCCESS;
 }
 
@@ -169,10 +169,25 @@ int unmapMem(void *addr, size_t len) {
 
 /*****************************************************************************************************************/
 
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
+#include <string.h>
+#include <sys/file.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 /************************************************** UTILS ********************************************************/
 
 void errorString(char *error, size_t size) {
     snprintf(error, size, "%s", strerror(errno));
+}
+
+int getCwd(char *dst, size_t size) {
+    return getcwd(dst, size) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int changeCwd(const char *path) {
@@ -203,7 +218,7 @@ int startThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return pthread_create(tid, NULL, routine, args) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int daemon() {
+int daemonize() {
     int pid;
     // pid = fork();
     pid = 0;
@@ -241,7 +256,7 @@ int daemon() {
             if ((devNull = open("/dev/null", O_RDWR)) < 0) {
                 return PLATFORM_FAILURE;
             }
-            if (dup2(serverStdIn, STDIN_FILENO) < 0)
+            if (dup2(devNull, STDIN_FILENO) < 0)
                 ;  //|| dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
             // return PLATFORM_FAILURE;
             // }
@@ -274,7 +289,7 @@ int isDir(const char *path) {
 
 int getFileMap(char *path, file_mapping_t *mapData) {
     void *map;
-    int fd;unmapMem(
+    int fd;
     struct stat statBuf;
     struct sendFileArgs *args;
     pthread_t tid;
@@ -317,7 +332,7 @@ int closeDir(DIR *dir) {
 }
 
 int unmapMem(void *addr, size_t len) {
-    return munmap(addr, len) != MAP_FAILED ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    return munmap(addr, len) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /*********************************************** LOGGER ***************************************************************/
@@ -333,6 +348,7 @@ bool endsWith(char *str1, char *str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
+// TODO valori di ritorno
 int sendAll(socket_t s, char *data, int length) {
     int count = 0, sent = 0;
     while (count < length) {

@@ -8,7 +8,7 @@
 
 /*****************************************************************************************************************/
 
-int logTransfer(logger_t* pLogger, LPSTR log) {
+int logTransfer(const logger_t* pLogger, const char* log) {
     // TODO mutex
     DWORD written;
     WaitForSingleObject(*(pLogger->pLogMutex), INFINITE);
@@ -93,114 +93,141 @@ ON_ERROR:
 
 /*****************************************************************************************************************/
 
-bool loggerShutdown = false;
+#include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <sys/prctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /* Effettua una scrittura sulla pipe di logging */
-int logTransfer(char *log) {
+int logTransfer(const logger_t* pLogger, const char* log) {
     if (
-        pthread_mutex_lock(logMutex) < 0 ||
-        write(logPipe, log, strlen(log)) < 0 ||
-        pthread_cond_signal(logCond) < 0 ||
-        pthread_mutex_unlock(logMutex) < 0) {
-        return GOPHER_FAILURE;
+        pthread_mutex_lock(pLogger->pLogMutex) < 0 ||
+        write(pLogger->logPipe, log, strlen(log)) < 0 ||
+        pthread_cond_signal(pLogger->pLogCond) < 0 ||
+        pthread_mutex_unlock(pLogger->pLogMutex) < 0) {
+        return LOGGER_FAILURE;
     }
-    return GOPHER_SUCCESS;
-
-    return pthread_mutex_lock(logMutex) > 0 &&
-           write(logPipe, log, strlen(log)) > 0 &&
-           pthread_cond_signal(logCond) > 0 &&
-           pthread_mutex_unlock(logMutex) > 0;
+    return LOGGER_SUCCESS;
 }
 
 /* Loop di logging */
-void loggerLoop(int inPipe) {
-    int logFile, exitCode = GOPHER_SUCCESS;
-    char buff[PIPE_BUF];
+static void loggerLoop(const logger_t* pLogger) {
+    int logFile = -1;
+    char buff[MAX_LINE_SIZE];
     char logFilePath[MAX_NAME];
-    if (pthread_mutex_lock(logMutex) < 0) {
-        exitCode = GOPHER_FAILURE;
-        goto ON_EXIT;
+    if (pthread_mutex_lock(pLogger->pLogMutex) < 0) {
+        goto ON_ERROR;
     }
     printf("Logger mutex locked\n");
     prctl(PR_SET_NAME, "Gopher logger");
     prctl(PR_SET_PDEATHSIG, SIGINT);
-    snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", installationDir);
+    if (snprintf(logFilePath, sizeof(logFilePath), "%s/logFile", pLogger->installationDir) >= sizeof(logFilePath)) {
+        printf("nome logger troppo lungo");
+        goto ON_ERROR;
+    }
     if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
-        printf(WARN " - Can't start logger\n");
-        goto ON_EXIT;
+        printf("Can't start logger\n");
+        goto ON_ERROR;
     }
     while (1) {
         size_t bytesRead;
-        if (loggerShutdown) {
-            printf("logger requested shutdown\n");
-            goto ON_EXIT;
-        }
-        pthread_cond_wait(logCond, logMutex);
+        pthread_cond_wait(pLogger->pLogCond, pLogger->pLogMutex);
         printf("Logger entered cond\n");
-        if ((bytesRead = read(inPipe, buff, PIPE_BUF)) < 0) {
+        if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff))) < 0) {
             printf("Logger err\n");
-            exitCode = GOPHER_FAILURE;
-            goto ON_EXIT;
+            goto ON_ERROR;
         } else {
-            if (strcmp(buff, "EXIT") == 0) {
-                goto ON_EXIT;
-            }
             if (write(logFile, buff, bytesRead) < 0) {
-                printf(WARN " - Failed logging\n");
+                printf("Failed logging\n");
             }
         }
         printf("Logger end of loop\n");
     }
-ON_EXIT:
-    pthread_mutex_unlock(logMutex);
-    munmap(logMutex, sizeof(pthread_mutex_t));
-    munmap(logCond, sizeof(pthread_cond_t));
-    close(inPipe);
-    close(logFile);
-    exit(exitCode);
+ON_ERROR:
+    if (logFile >= 0) {
+        close(logFile);
+    }
+    exit(1);
 }
 
 /* Avvia il processo di logging dei trasferimenti. */
-void startTransferLog() {
+int startTransferLog(logger_t* pLogger) {
     int pid;
-    int pipeFd[2];
+    int pipeFd[2] = {-1, -1};
     pthread_mutex_t mutex;
     pthread_mutexattr_t mutexAttr;
     pthread_cond_t cond;
     pthread_condattr_t condAttr;
+    pthread_mutex_t* pMutex = MAP_FAILED;
+    pthread_cond_t* pCond = MAP_FAILED;
     // Inizializza mutex e condition variable per notificare il logger che sono pronti nuovi dati sulla pipe.
+    // TODO controlla cascata
     if (pthread_mutexattr_init(&mutexAttr) < 0 ||
         pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED) < 0 ||
         pthread_mutex_init(&mutex, &mutexAttr) < 0 ||
         pthread_condattr_init(&condAttr) < 0 ||
         pthread_condattr_setpshared(&condAttr, PTHREAD_PROCESS_SHARED) < 0 ||
         pthread_cond_init(&cond, &condAttr) < 0) {
-        _err("startTransferLog() - impossibile inizializzare i mutex\n", true, -1);
+        goto ON_ERROR;
     }
-    logMutex = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (logMutex == MAP_FAILED) {
-        _err("startTransferLog() - impossibile mappare il mutex in memoria\n", true, -1);
+    pMutex = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (MAP_FAILED == pMutex) {
+        goto ON_ERROR;
     }
-    *logMutex = mutex;
-    logCond = mmap(NULL, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (logCond == MAP_FAILED) {
-        _err("startTransferLog() - impossibile mappare la condition variable in memoria\n", true, -1);
+    *pMutex = mutex;
+    pCond = mmap(NULL, sizeof(pthread_cond_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (MAP_FAILED == pCond) {
+        goto ON_ERROR;
     }
-    *logCond = cond;
+    *pCond = cond;
     if (pipe(pipeFd) < 0) {
-        _err("startTransferLog() - impossibile aprire la pipe\n", true, -1);
+        goto ON_ERROR;
     }
     if ((pid = fork()) < 0) {
-        _err("startTransferLog() - fork fallita\n", true, pid);
+        goto ON_ERROR;
     } else if (pid == 0) {  // Logger
-        loggerPid = getpid();
+        sigset_t set;
+        if (
+            sigemptyset(&set) < 0 ||
+            sigaddset(&set, SIGINT) < 0 ||
+            sigaddset(&set, SIGHUP) < 0 ||
+            sigprocmask(SIG_UNBLOCK, &set, NULL) < 0) {
+            goto ON_ERROR;
+        }
         close(pipeFd[1]);
-        loggerLoop(pipeFd[0]);
+        pLogger->pLogCond = pCond;
+        pLogger->pLogMutex = pMutex;
+        pLogger->pid = getpid();
+        pLogger->logPipe = pipeFd[0];
+        loggerLoop(pLogger);
     } else {  // Server
         close(pipeFd[0]);
-        logPipe = pipeFd[1];  // logPipe è globale, viene acceduta per inviare i dati al logger
-        loggerPid = pid;
+        pLogger->pLogCond = pCond;
+        pLogger->pLogMutex = pMutex;
+        pLogger->logPipe = pipeFd[1];
+        pLogger->pid = pid;
+        return LOGGER_SUCCESS;
     }
+ON_ERROR:
+    if (MAP_FAILED != pMutex) {
+        munmap(pLogger, sizeof(pthread_mutex_t));
+    }
+    if (MAP_FAILED != pCond) {
+        munmap(pLogger, sizeof(pthread_cond_t));
+    }
+    if (pipeFd[0] == -1) {
+        close(pipeFd[0]);
+    }
+    if (pipeFd[1] == -1) {
+        close(pipeFd[1]);
+    }
+    return LOGGER_FAILURE;
 }
 
 #endif

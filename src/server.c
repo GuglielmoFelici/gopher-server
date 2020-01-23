@@ -1,7 +1,6 @@
 #include "../headers/server.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include <windows.h>
 #include "../headers/datatypes.h"
 #include "../headers/log.h"
 #include "../headers/logger.h"
@@ -19,6 +18,8 @@ static struct sockaddr_in awakeAddr;
 /*                                             WINDOWS FUNCTIONS                                                 */
 
 /*****************************************************************************************************************/
+
+#include <windows.h>
 
 void printHeading(const server_t* pServer) {
     printf("Listening on port %d (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
@@ -124,8 +125,8 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-static int serveProc(SOCKET client, logger_t* pLogger, server_t* pServer) {
-    char exec[MAX_PATH];
+static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pServer) {
+    char exec[MAX_NAME];
     if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, pServer->installationDir) < strlen(pServer->installationDir) + strlen(HELPER_PATH) + 1) {
         return SERVER_FAILURE;
     }
@@ -166,7 +167,7 @@ static int serveProc(SOCKET client, logger_t* pLogger, server_t* pServer) {
 
 /*****************************************************************************************************************/
 
-void printHeading(server_t* pServer) {
+void printHeading(const server_t* pServer) {
     printf("Started daemon with pid %d\n", getpid());
     printf("Listening on port %i (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
 }
@@ -245,7 +246,7 @@ static int serveThread(int sock, int port, logger_t* pLogger) {
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-static int serveProc(int client, logger_t* pLogger, server_t* pServer) {
+static int serveProc(int client, const logger_t* pLogger, const server_t* pServer) {
     pid_t pid = fork();
     if (pid < 0) {
         return SERVER_FAILURE;

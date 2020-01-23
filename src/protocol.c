@@ -1,7 +1,6 @@
 #include "../headers/protocol.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include <windows.h>
 #include "../headers/datatypes.h"
 #include "../headers/logger.h"
 #include "../headers/platform.h"
@@ -14,6 +13,8 @@
 /*                                             WINDOWS FUNCTIONS                                                 */
 
 /*****************************************************************************************************************/
+
+#include <windows.h>
 
 static void normalizeInput(char* str) {
     char* strtokptr;
@@ -65,6 +66,8 @@ char gopherType(LPSTR filePath) {
 /*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
+
+#include <string.h>
 
 static void normalizeInput(char* str) {
     char* strtokptr;
@@ -201,11 +204,12 @@ ON_ERROR:
 
 /* Invia il file al client */
 void* sendFileTask(void* threadArgs) {
-    sendFileArgs args;
+    send_args_t args;
     struct sockaddr_in clientAddr;
-    size_t clientLen, logSize;
+    int clientLen;
+    size_t logSize;
     char *log, address[16];
-    args = *(sendFileArgs*)threadArgs;
+    args = *(send_args_t*)threadArgs;
     free(threadArgs);
     if (
         sendAll(args.dest, args.src, args.size) == SOCKET_ERROR ||
@@ -217,7 +221,7 @@ void* sendFileTask(void* threadArgs) {
         unmapMem(args.src, args.size);
     }
     clientLen = sizeof(clientAddr);
-    if (getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen) == SOCKET_ERROR) {
+    if (SOCKET_ERROR == getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen)) {
         memset(&clientAddr, 0, clientLen);
     }
     closeSocket(args.dest);
@@ -233,10 +237,10 @@ void* sendFileTask(void* threadArgs) {
 }
 
 /* Avvia il worker thread di trasmissione */
-static int sendFile(const char* name, file_mapping_t* map, int sock, logger_t* pLogger) {
+static int sendFile(const char* name, const file_mapping_t* map, int sock, const logger_t* pLogger) {
     thread_t tid;
-    sendFileArgs* args = NULL;
-    if (NULL == (args = malloc(sizeof(sendFileArgs)))) {
+    send_args_t* args = NULL;
+    if (NULL == (args = malloc(sizeof(send_args_t)))) {
         return GOPHER_FAILURE;
     }
     args->src = map->view;
@@ -253,7 +257,7 @@ static int sendFile(const char* name, file_mapping_t* map, int sock, logger_t* p
 }
 
 /* Esegue il protocollo. */
-int gopher(socket_t sock, int port, logger_t* pLogger) {
+int gopher(socket_t sock, int port, const logger_t* pLogger) {
     char* selector = NULL;
     file_mapping_t map;
     char buf[BUFF_SIZE];

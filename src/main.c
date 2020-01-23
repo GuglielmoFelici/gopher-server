@@ -42,7 +42,7 @@ int main(int argc, _string* argv) {
                 break;
             case 'd':
                 if (PLATFORM_SUCCESS != changeCwd(optarg)) {
-                    fprintf(stderr, WARN " - Can't change directory, default one will be used\n", optarg);
+                    fprintf(stderr, WARN " - Can't change directory, default one will be used\n");
                 }
                 break;
             case '?':
@@ -73,7 +73,7 @@ int main(int argc, _string* argv) {
     if (!pLogger) {
         printf(WARN " - Error starting logger\n");
     }
-    if (PLATFORM_SUCCESS != daemon()) {
+    if (PLATFORM_SUCCESS != daemonize()) {
         _err(_STARTUP_ERR, true, -1);
     }
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {

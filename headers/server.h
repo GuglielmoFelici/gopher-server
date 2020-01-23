@@ -1,6 +1,11 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#if defined(_WIN32)
+#else
+#include <netinet/in.h>
+#endif
+
 #include <stdbool.h>
 #include "datatypes.h"
 #include "logger.h"

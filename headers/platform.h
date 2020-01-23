@@ -1,14 +1,23 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#endif
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include "datatypes.h"
 
 #define PLATFORM_SUCCESS 0
 #define PLATFORM_FAILURE -1
-
 #define MAX_ERROR_SIZE 60  // TODO
+#ifndef SOCKET_ERROR
+#define SOCKET_ERROR -1
+#endif
 
 /* Utils */
 bool endsWith(char* str1, char* str2);
@@ -52,6 +61,6 @@ int startThread(thread_t* tid, LPTHREAD_START_ROUTINE routine, void* args);
 
 int detachThread(thread_t tid);
 
-int daemon();
+int daemonize();
 
 #endif

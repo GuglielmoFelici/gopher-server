@@ -1,1 +1,1 @@
-gcc -g *.c -pthread -o linuxserver
+gcc -g src/*.c -pthread -o linuxserver
