@@ -46,11 +46,13 @@ int main(int argc, _string* argv) {
                 }
                 break;
             case '?':
-                if (optopt == 'd' || optopt == 'p')
+                if (optopt == 'd' || optopt == 'p') {
                     fprintf(stderr, "Option -%c requires an argument (use -h for usage info).\n", optopt);
-                else
+                } else {
                     fprintf(stderr, "Unknown option `-%c'.\n", optopt);
-                exit(1);
+                    printf(USAGE "\n");
+                    exit(1);
+                }
             default:
                 exit(1);
         }
@@ -70,6 +72,9 @@ int main(int argc, _string* argv) {
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
         printf(WARN " - Error starting logger\n");
+    }
+    if (PLATFORM_SUCCESS != daemon()) {
+        _err(_STARTUP_ERR, true, -1);
     }
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {
         _err(_STARTUP_ERR, true, -1);

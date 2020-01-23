@@ -67,6 +67,10 @@ int _createThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return -1;
 }
 
+int daemon() {
+    return PLATFORM_SUCCESS;
+}
+
 /*********************************************** FILES  ***************************************************************/
 
 /* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
@@ -208,6 +212,54 @@ bool detachThread(pthread_t tid) {
 
 int _createThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return pthread_create(tid, NULL, routine, args);
+}
+
+int daemon() {
+    int pid;
+    // pid = fork();
+    pid = 0;
+    if (pid < 0) {
+        return PLATFORM_FAILURE;
+    } else if (pid > 0) {
+        exit(0);
+    } else {
+        sigset_t set;
+        // if (setsid() < 0) {
+        //     return PLATFORM_FAILURE;
+        // }
+        if (sigemptyset(&set) < 0) {
+            return PLATFORM_FAILURE;
+        }
+        if (sigaddset(&set, SIGHUP) < 0) {
+            return PLATFORM_FAILURE;
+        }
+        if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+            return PLATFORM_FAILURE;
+        }
+        // pid = fork();
+        pid = 0;
+        if (pid < 0) {
+            return PLATFORM_FAILURE;
+        } else if (pid > 0) {
+            exit(0);
+        } else {
+            umask(S_IRUSR & S_IWUSR & S_IRGRP & S_IWGRP);
+            if (sigprocmask(SIG_UNBLOCK, &set, NULL) < 0) {
+                return PLATFORM_FAILURE;
+            }
+            int devNull;
+            // TODO eventualmente usare syslog
+            if ((devNull = open("/dev/null", O_RDWR)) < 0) {
+                return PLATFORM_FAILURE;
+            }
+            if (dup2(serverStdIn, STDIN_FILENO) < 0)
+                ;  //|| dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+            // return PLATFORM_FAILURE;
+            // }
+            return close(devNull) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+        }
+    }
+    return 0;
 }
 
 /*********************************************** FILES ****************************************************************/

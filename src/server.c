@@ -24,13 +24,11 @@ void printHeading(const server_t* pServer) {
     printf("Listening on port %d (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
 }
 
-/* Inizializza la struttura puntata da pServer */
+/* Inizializza la WSA */
 int initServer(server_t* pServer) {
-    // strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
-    // pServer->multiProcess = INVALID_MULTIPROCESS;
-    // pServer->port = INVALID_PORT;
-    // pServer->sock = INVALID_SOCKET;
-    // memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
+    strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
+    pServer->sock = INVALID_SOCKET;
+    memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
     return WSAStartup(versionWanted, &wsaData) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
@@ -168,63 +166,15 @@ static int serveProc(SOCKET client, logger_t* pLogger, server_t* pServer) {
 
 /*****************************************************************************************************************/
 
-void printHeading(struct config* options) {
+void printHeading(server_t* pServer) {
     printf("Started daemon with pid %d\n", getpid());
-    printf("Listening on port %i (%s mode)\n", options->port, options->multiProcess ? "multiprocess" : "multithreaded");
+    printf("Listening on port %i (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
 }
 
-/* Rende il server un processo demone */
-int startup() {
-    int pid;
-    // pid = fork();
-    pid = 0;
-    if (pid < 0) {
-        return SERVER_FAILURE;
-    } else if (pid > 0) {
-        exit(0);
-    } else {
-        sigset_t set;
-        // if (setsid() < 0) {
-        //     _err(_DAEMON_ERR, true, errno);
-        // }
-        if (sigemptyset(&set) < 0) {
-            return SERVER_FAILURE;
-        }
-        if (sigaddset(&set, SIGHUP) < 0) {
-            return SERVER_FAILURE;
-        }
-        if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
-            return SERVER_FAILURE;
-        }
-        // pid = fork();
-        pid = 0;
-        if (pid < 0) {
-            return SERVER_FAILURE;
-        } else if (pid > 0) {
-            exit(0);
-        } else {
-            int serverStdIn, serverStdErr, serverStdOut;
-            char fileName[PATH_MAX];
-            if (sigprocmask(SIG_UNBLOCK, &set, NULL) < 0) {
-                return SERVER_FAILURE;
-            }
-            // TODO controllare che cazzo fare con gli stream
-            // TODO eventualmente usare syslog
-            if ((serverStdIn = open("/dev/null", O_RDWR)) < 0) {
-                return SERVER_FAILURE;
-            }
-            snprintf(fileName, PATH_MAX, "%s/serverStdOut", installationDir);
-            serverStdOut = creat(fileName, S_IRWXU);
-            snprintf(fileName, PATH_MAX, "%s/serverStdErr", installationDir);
-            serverStdErr = creat(fileName, S_IRWXU);
-            if (dup2(serverStdIn, STDIN_FILENO) < 0)
-                ;  //|| dup2(serverStdOut, STDOUT_FILENO) < 0 || dup2(serverStdErr, STDERR_FILENO) < 0) {
-            //     _err(_DAEMON_ERR, true, -1);
-            // }
-            return close(serverStdIn) + close(serverStdOut) + close(serverStdErr);
-        }
-    }
-    return 0;
+int initServer(server_t* pServer) {
+    strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
+    pServer->sock = INVALID_SOCKET;
+    memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
 }
 
 /********************************************** SIGNALS *************************************************************/

@@ -46,10 +46,12 @@ int getFileMap(char* path, file_mapping_t* mapData);
 
 int unmapMem(void* addr, size_t len);
 
-/* Threads */
+/* Threads & processes */
 
 int _createThread(thread_t* tid, LPTHREAD_START_ROUTINE routine, void* args);
 
 bool detachThread(thread_t tid);
+
+int daemon();
 
 #endif
