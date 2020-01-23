@@ -174,14 +174,6 @@ int unmapMem(void *addr, size_t len) {
 
 /************************************************** UTILS ********************************************************/
 
-/* Termina il logger ed esce. */
-void _shutdown(int server) {
-    kill(loggerPid, SIGINT);
-    close(logPipe);
-    close(server);
-    pthread_exit(0);
-}
-
 void errorString(char *error, size_t size) {
     snprintf(error, size, "%s", strerror(errno));
 }

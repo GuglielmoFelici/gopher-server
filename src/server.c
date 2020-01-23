@@ -175,6 +175,7 @@ int initServer(server_t* pServer) {
     strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
     pServer->sock = INVALID_SOCKET;
     memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
+    return SERVER_SUCCESS;
 }
 
 /********************************************** SIGNALS *************************************************************/
@@ -186,7 +187,6 @@ static void hupHandler(int signum) {
 
 /* Richiede la terminazione */
 static void intHandler(int signum) {
-    printf("Shutting down...\n");
     requestShutdown = true;
 }
 
@@ -204,43 +204,40 @@ static int installSigHandler(int sig, void (*func)(int), int flags) {
 
 /* Installa i gestori predefiniti di segnali */
 int installDefaultSigHandlers() {
-    if (installSigHandler(SIGINT, &intHandler, 0) != SERVER_SUCCESS ||
-        installSigHandler(SIGHUP, &hupHandler, SA_NODEFER) != SERVER_SUCCESS) {
-        _err(_SYS_ERR, true, errno);
+    if (SERVER_SUCCESS != installSigHandler(SIGINT, &intHandler, 0)) {
+        return SERVER_FAILURE;
     }
+    return installSigHandler(SIGHUP, &hupHandler, SA_NODEFER);
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
 static void* serveThreadTask(void* args) {
-    sigset_t set;
     int sock;
-    server_thread_args_t tArgs;
+    sigset_t set;
+    server_thread_args_t tArgs = *(server_thread_args_t*)args;
+    free(args);
     if (
         sigemptyset(&set) < 0 ||
         sigaddset(&set, SIGHUP) < 0 ||
         pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-        free(args);
         exit(1);
     }
-    tArgs = *(server_thread_args_t*)args;
-    free(args);
-    gopher(tArgs.sock, tArgs.port);
+    gopher(tArgs.sock, tArgs.port, tArgs.pLogger);
 }
 
 /* Serve una richiesta in modalità multithreading. */
-static int serveThread(int sock, int port) {
-    pthread_t tid;
-    server_thread_args_t* tArgs;
-    if ((tArgs = malloc(sizeof(server_thread_args_t))) == NULL) {
+static int serveThread(int sock, int port, logger_t* pLogger) {
+    server_thread_args_t* tArgs = malloc(sizeof(server_thread_args_t));
+    if (NULL == tArgs) {
         return SERVER_FAILURE;
     }
     tArgs->sock = sock;
     tArgs->port = port;
+    tArgs->pLogger = pLogger;
+    pthread_t tid;
     if (pthread_create(&tid, NULL, serveThreadTask, tArgs)) {
-        // TODO error
-        printf(_THREAD_ERR "\n");
         return SERVER_FAILURE;
     }
     pthread_detach(tid);
@@ -248,13 +245,12 @@ static int serveThread(int sock, int port) {
 }
 
 /* Serve una richiesta in modalità multiprocesso. */
-static int serveProc(int sock, ints port) {
-    proc_id_t pid;
-    pid = fork();
+static int serveProc(int client, logger_t* pLogger, server_t* pServer) {
+    pid_t pid = fork();
     if (pid < 0) {
         return SERVER_FAILURE;
     } else if (pid == 0) {
-        gopher(sock, port);
+        gopher(client, pServer->port, pLogger);
         pthread_exit(0);
     } else {
         return SERVER_SUCCESS;

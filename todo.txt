@@ -1,19 +1,14 @@
 IMPORTANTE: HEADER GUARDS
 
 Common:
-    usare / sia in linux che in windows? "path/path\" funziona...
+    cosa fare al termine del server?
     usare const e volatile?
-    Controllare il funzionamento di atexit
     Spostare definizioni da datatypes
-    Mettere startup() subito prima del main loop?
     controllare tutti i sizeof e gli strlen
     verificare tutte le *alloc e free
     togliere tutti gli _ ???
-    Rivedere datatypes
-    controllare i return -1
     Purgare costanti
     indenta le syscalls in ||
-    startup() fa troppe cose?
     lock in sendfile
     
 
@@ -24,6 +19,7 @@ Linux:
     LOGGING TUTTO SBAGLIATO
 
 Windows:
+    attenzione: subthread ricevono eventi console (e.g. rilettura configurazione)
     verificare chiusura di tutti gli handle
     Eliminare validateInput()?
     Windows Logger
