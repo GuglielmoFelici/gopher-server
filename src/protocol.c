@@ -18,7 +18,7 @@
 
 static void normalizeInput(LPSTR str) {
     LPSTR strtokptr;
-    if (strncmp(str, CRLF, strlen(CRLF)) == 0) {
+    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
         strcpy(str, "./");
     } else {
         strtok_r(str, CRLF, &strtokptr);
@@ -71,7 +71,7 @@ char gopherType(LPSTR filePath) {
 
 static void normalizeInput(char* str) {
     char* strtokptr;
-    if (strncmp(str, CRLF, strlen(CRLF)) == 0) {
+    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
         strcpy(str, "./");
     } else {
         strtok_r(str, CRLF, &strtokptr);
@@ -161,7 +161,7 @@ static int sendDir(cstring_t path, int sock, int port) {
             goto ON_ERROR;
         }
         type = gopherType(filePath);
-        lineSize = 1 + strlen(fileName) + strlen(filePath) + sizeof(GOPHER_DOMAIN) + strlen(CRLF) + 7;
+        lineSize = 1 + strlen(fileName) + strlen(filePath) + sizeof(GOPHER_DOMAIN) + sizeof(CRLF) + 7;
         if (lineSize > (line ? strlen(line) : 0)) {
             if ((line = realloc(line, lineSize)) == NULL) {
                 sendErrorResponse(sock, SYS_ERR_MSG);
