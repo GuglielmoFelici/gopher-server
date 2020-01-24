@@ -101,7 +101,7 @@ int isDir(LPCSTR path) {
 /* Mappa un file in memoria */
 int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
-    LPVOID view;
+    LPVOID view = NULL;
     LARGE_INTEGER fileSize;
     OVERLAPPED ovlp;
     if ((file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
@@ -165,6 +165,7 @@ int closeDir(HANDLE dir) {
 }
 
 int unmapMem(void *addr, size_t len) {
+    // TODO chiudere handle
     return UnmapViewOfFile(addr) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 

@@ -202,6 +202,7 @@ ON_ERROR:
 }
 
 /* Invia il file al client */
+// TODO static?
 void* sendFileTask(void* threadArgs) {
     send_args_t args;
     struct sockaddr_in clientAddr;
