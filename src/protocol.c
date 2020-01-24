@@ -18,7 +18,7 @@
 
 static void normalizeInput(LPSTR str) {
     LPSTR strtokptr;
-    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
+    if (strncmp(str, CRLF, strlen(CRLF)) == 0) {
         strcpy(str, "./");
     } else {
         strtok_r(str, CRLF, &strtokptr);
@@ -71,7 +71,7 @@ char gopherType(LPSTR filePath) {
 
 static void normalizeInput(char* str) {
     char* strtokptr;
-    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
+    if (strncmp(str, CRLF, strlen(CRLF)) == 0) {
         strcpy(str, "./");
     } else {
         strtok_r(str, CRLF, &strtokptr);
@@ -161,7 +161,7 @@ static int sendDir(cstring_t path, int sock, int port) {
             goto ON_ERROR;
         }
         type = gopherType(filePath);
-        lineSize = 1 + strlen(fileName) + strlen(filePath) + sizeof(GOPHER_DOMAIN) + sizeof(CRLF) + 7;
+        lineSize = 1 + strlen(fileName) + strlen(filePath) + sizeof(GOPHER_DOMAIN) + strlen(CRLF) + 7;
         if (lineSize > (line ? strlen(line) : 0)) {
             if ((line = realloc(line, lineSize)) == NULL) {
                 sendErrorResponse(sock, SYS_ERR_MSG);
@@ -213,7 +213,7 @@ void* sendFileTask(void* threadArgs) {
     free(threadArgs);
     if (
         sendAll(args.dest, args.src, args.size) == SOCKET_ERROR ||
-        sendAll(args.dest, CRLF ".", sizeof(CRLF) + 1) == SOCKET_ERROR) {
+        sendAll(args.dest, CRLF ".", 3) == SOCKET_ERROR) {
         closeSocket(args.dest);
         return NULL;
     }
@@ -240,6 +240,9 @@ void* sendFileTask(void* threadArgs) {
 static int sendFile(cstring_t name, const file_mapping_t* map, int sock, const logger_t* pLogger) {
     thread_t tid;
     send_args_t* args = NULL;
+    if (!map || !pLogger) {
+        return GOPHER_FAILURE;
+    }
     if (NULL == (args = malloc(sizeof(send_args_t)))) {
         return GOPHER_FAILURE;
     }

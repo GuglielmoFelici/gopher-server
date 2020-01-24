@@ -131,6 +131,10 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
 
 /* Serve una richiesta in modalità multiprocesso. */
 static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pServer) {
+    // TODO goto on error
+    if (!pLogger || !pServer) {
+        return SERVER_FAILURE;
+    }
     char exec[MAX_NAME];
     if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, pServer->installationDir) < strlen(pServer->installationDir) + strlen(HELPER_PATH) + 1) {
         return SERVER_FAILURE;
@@ -309,18 +313,9 @@ void defaultConfig(server_t* pServer, int which) {
 int readConfig(server_t* pServer, int which) {
     // TODO error check
     FILE* configFile = NULL;
-    string_t configPath = NULL;
-    size_t configPathSize = strlen(pServer->installationDir) + strlen(CONFIG_FILE) + 2;
-    if (NULL == (configPath = malloc(configPathSize))) {
+    if (NULL == (configFile = fopen(pServer->configFile, "r"))) {
         goto ON_ERROR;
     }
-    if (snprintf(configPath, configPathSize, "%s/%s", pServer->installationDir, CONFIG_FILE) < configPathSize - 1) {
-        goto ON_ERROR;
-    }
-    if (NULL == (configFile = fopen(configPath, "r"))) {
-        goto ON_ERROR;
-    }
-    free(configPath);
     char portBuff[6], multiProcess[2];
     while (fgetc(configFile) != CONFIG_DELIMITER)
         ;
@@ -345,8 +340,8 @@ int readConfig(server_t* pServer, int which) {
     }
     return SERVER_SUCCESS;
 ON_ERROR:
-    if (configPath) {
-        free(configPath);
+    if (configFile) {
+        fclose(configFile);
         return SERVER_FAILURE;
     }
 }

@@ -5,6 +5,7 @@
 #include "../headers/wingetopt.h"
 
 #define MAX_ERR 100
+#define CONFIG_FILE "config"
 
 int main(int argc, string_t* argv) {
     server_t server;
@@ -22,6 +23,7 @@ int main(int argc, string_t* argv) {
         strncpy(errorMsg, "Cannot get current working directory", sizeof(errorMsg));
         goto ON_ERROR;
     }
+    snprintf(server.configFile, sizeof(server.configFile), "%s/%s", server.installationDir, CONFIG_FILE);
     if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
         _logErr(WARN " - " _PORT_CONFIG_ERR);
         defaultConfig(&server, READ_PORT);

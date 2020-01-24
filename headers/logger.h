@@ -20,7 +20,7 @@ typedef struct {
     char installationDir[MAX_NAME];
 } logger_t;
 
-void initLogger(logger_t* pLogger);
+int initLogger(logger_t* pLogger);
 
 int destroyLogger(logger_t* pLogger);
 

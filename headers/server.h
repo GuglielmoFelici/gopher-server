@@ -11,7 +11,6 @@
 #include "logger.h"
 
 #define CONFIG_DELIMITER '='
-#define CONFIG_FILE "config"
 #define DEFAULT_MULTI_PROCESS 0
 #define DEFAULT_PORT 7070
 #define INVALID_PORT 0
@@ -30,6 +29,7 @@ typedef struct {
     unsigned short port;
     bool multiProcess;
     char installationDir[MAX_NAME];
+    char configFile[MAX_NAME];
 } server_t;
 
 typedef struct {
