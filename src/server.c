@@ -309,19 +309,11 @@ void defaultConfig(server_t* pServer, int which) {
 int readConfig(server_t* pServer, int which) {
     // TODO error check
     FILE* configFile = NULL;
-    string_t configPath = NULL;
-    size_t configPathSize = strlen(pServer->installationDir) + strlen(CONFIG_FILE) + 2;
-    if (NULL == (configPath = malloc(configPathSize))) {
+    if (NULL == (configFile = fopen(pServer->configFile, "r"))) {
         goto ON_ERROR;
     }
-    if (snprintf(configPath, configPathSize, "%s/%s", pServer->installationDir, CONFIG_FILE) < configPathSize - 1) {
-        goto ON_ERROR;
-    }
-    if (NULL == (configFile = fopen(configPath, "r"))) {
-        goto ON_ERROR;
-    }
-    free(configPath);
     char portBuff[6], multiProcess[2];
+    // EOF?
     while (fgetc(configFile) != CONFIG_DELIMITER)
         ;
     fgets(portBuff, sizeof(portBuff), configFile);
@@ -345,10 +337,10 @@ int readConfig(server_t* pServer, int which) {
     }
     return SERVER_SUCCESS;
 ON_ERROR:
-    if (configPath) {
-        free(configPath);
-        return SERVER_FAILURE;
+    if (configFile) {
+        fclose(configFile);
     }
+    return SERVER_FAILURE;
 }
 
 int runServer(server_t* pServer, logger_t* pLogger) {

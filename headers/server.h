@@ -11,11 +11,8 @@
 #include "logger.h"
 
 #define CONFIG_DELIMITER '='
-#define CONFIG_FILE "config"
-#define DEFAULT_MULTI_PROCESS 0
+#define DEFAULT_MULTI_PROCESS false
 #define DEFAULT_PORT 7070
-#define INVALID_PORT 0
-#define INVALID_MULTIPROCESS -1
 #define READ_PORT 0x0001
 #define READ_MULTIPROCESS 0x0002
 #define SERVER_UPDATE 0
@@ -29,6 +26,7 @@ typedef struct {
     struct sockaddr_in sockAddr;
     unsigned short port;
     bool multiProcess;
+    char configFile[MAX_NAME];
     char installationDir[MAX_NAME];
 } server_t;
 
