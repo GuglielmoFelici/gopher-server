@@ -9,3 +9,4 @@ Detachare thread in windows:
     https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitthread
 Daemon:
     https://stackoverflow.com/questions/17954432/creating-a-daemon-in-linux
+.

@@ -1,4 +1,4 @@
-IMPORTANTE: HEADER GUARDS
+﻿IMPORTANTE: HEADER GUARDS
 
 Common:
     rimuovere _logErr

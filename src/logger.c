@@ -152,7 +152,7 @@ int destroyLogger(logger_t* pLogger) {
 /* Effettua una scrittura sulla pipe di logging */
 int logTransfer(const logger_t* pLogger, const char* log) {
     if (
-        !plogger ||
+        !pLogger ||
         pthread_mutex_lock(pLogger->pLogMutex) < 0 ||
         write(pLogger->logPipe, log, strlen(log)) < 0 ||
         pthread_cond_signal(pLogger->pLogCond) < 0 ||
@@ -180,7 +180,8 @@ static void loggerLoop(const logger_t* pLogger) {
         printf("nome logger troppo lungo");
         goto ON_ERROR;
     }
-    if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
+    // i diritti sono giusti?
+    if ((logFile = creat(logFilePath, S_IRWXU)) < 0) {
         printf("Can't start logger\n");
         goto ON_ERROR;
     }

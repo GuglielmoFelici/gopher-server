@@ -16,11 +16,10 @@ DWORD main(DWORD argc, LPSTR* argv) {
         exit(1);
     }
     HANDLE logFile;
-    if ((logFile = CreateFile(LOG_FILE, GENERIC_READ | FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+    if (INVALID_HANDLE_VALUE == (logFile = CreateFile(LOG_FILE, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL))) {
         fprintf(stderr, LOG_ERR);
         exit(1);
     }
-    SetFilePointer(logFile, 0, NULL, FILE_END);
     while (1) {
         WaitForSingleObject(logEvent, INFINITE);
         DWORD bytesRead;
@@ -37,11 +36,9 @@ DWORD main(DWORD argc, LPSTR* argv) {
         };
         if (LockFileEx(logFile, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
             DWORD bytesWritten;
-            printf("log %s\n", buff);
             if (!WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL)) {
                 fprintf(stderr, LOG_ERR);
             }
-            printf("scritti %d\n", bytesWritten);
             if (!UnlockFile(logFile, 0, 0, fileSize.LowPart, fileSize.HighPart)) {
                 fprintf(stderr, LOG_ERR);
             }
