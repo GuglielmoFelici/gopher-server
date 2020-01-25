@@ -11,7 +11,7 @@ if (Test-Path $outFile) {
 if (!$(Test-Path $outDir)) {
 	mkdir $outDir *>$null
 }
-Get-ChildItem -Path $path | ForEach-Object {
+Get-ChildItem -Path $path -Exclude "out" | ForEach-Object {
 	$out = $_
 	$isDir = $(Test-Path -Path $path$_ -PathType Container)
 	if (Test-Path -Path $path$_ -PathType Container) {
