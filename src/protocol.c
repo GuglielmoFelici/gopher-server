@@ -112,8 +112,9 @@ static void normalizePath(string_t str) {
 static bool validateInput(string_t str) {
     string_t strtokptr, ret;
     ret = strtok_r(str, CRLF, &strtokptr);
+    char last = ret[strlen(ret) - 1];
     return ret == NULL ||
-           !strstr(ret, ".") && !strstr(ret, ".\\") && !strstr(ret, "./");
+           !strstr(ret, "..") && !strstr(ret, ".\\") && !strstr(ret, "./") && last != '.';
 }
 
 static int sendErrorResponse(socket_t sock, cstring_t msg) {

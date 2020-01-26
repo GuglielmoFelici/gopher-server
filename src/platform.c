@@ -320,13 +320,21 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
     struct stat statBuf;
     struct sendFileArgs *args;
     pthread_t tid;
-    if (
-        // TODO VERIFICARE QUESTA CASCATA
-        (fd = open(path, O_RDONLY)) < 0 ||
-        flock(fd, LOCK_EX) < 0 ||
-        fstat(fd, &statBuf) < 0 ||
-        (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED ||
-        flock(fd, LOCK_UN) < 0 ||
+    if ((fd = open(path, O_RDONLY)) < 0) {
+        return PLATFORM_FAILURE;
+    }
+    if (flock(fd, LOCK_EX) < 0) {
+        return PLATFORM_FAILURE;
+    }
+    if (fstat(fd, &statBuf) < 0) {
+        flock(fd, LOCK_UN);
+        return PLATFORM_FAILURE;
+    }
+    if (MAP_FAILED == (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0))) {
+        flock(fd, LOCK_UN);
+        return PLATFORM_FAILURE;
+    }
+    if (flock(fd, LOCK_UN) < 0 ||
         close(fd) < 0) {
         return PLATFORM_FAILURE;
     }
