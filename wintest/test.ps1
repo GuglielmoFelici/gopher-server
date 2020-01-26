@@ -21,13 +21,8 @@ if (Test-Path $outDir) {
 $result = $(Get-ChildItem -Recurse -Depth $depth -Path $path | 
 	Where-Object { $_.FullName -notmatch ($excludes) } | 
 	ForEach-Object {
-		Write-Output "porco dio"
-		echo $_.FullName
 		$relPath = ($_ | Resolve-Path -Relative).replace($path, "")
 		$isDir = $(Test-Path -Path $_.fullname -PathType Container)
-		if ($isDir) {
-			$relPath = "$relPath/"
-		}
 		$out = $relPath -replace '[\\/]', '_'
 		mycurl gopher://localhost:$port//$relPath --output $outDir/$out *>$null 
 		if (!$isDir) {
