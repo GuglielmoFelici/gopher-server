@@ -57,6 +57,9 @@ char gopherType(LPSTR filePath) {
 
 /* Ritorna il carattere di codifica del tipo di file */
 char gopherType(char* file) {  // TODO const?
+    if (fileAttributes(file) & PLATFORM_ISDIR) {
+        return GOPHER_DIR;
+    }
     char cmd[MAX_NAME];
     char cmdOut[FILE_CMD_MAX];
     FILE* response;
@@ -73,8 +76,6 @@ char gopherType(char* file) {  // TODO const?
         return GOPHER_BINARY;
     } else if (strstr(cmdOut, FILE_CMD_IMG)) {
         return GOPHER_IMAGE;
-    } else if (strstr(cmdOut, FILE_CMD_DIR)) {
-        return GOPHER_DIR;
     } else if (strstr(cmdOut, FILE_CMD_GIF)) {
         return GOPHER_GIF;
     } else if (strstr(cmdOut, FILE_CMD_TXT)) {
