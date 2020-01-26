@@ -19,7 +19,7 @@
 /* Ritorna il carattere di codifica del tipo di file */
 char gopherType(LPSTR filePath) {
     LPSTR ext;
-    if (isDir(filePath) == GOPHER_SUCCESS) {
+    if (fileAttributes(filePath) & PLATFORM_ISDIR) {
         return GOPHER_DIR;
     }
     ext = strrchr(filePath, '.');
@@ -166,6 +166,7 @@ static int sendDir(cstring_t path, int sock, int port) {
     }
     if (!(res & PLATFORM_END_OF_DIR)) {
         dir = NULL;
+        sendErrorResponse(sock, SYS_ERR_MSG);
         goto ON_ERROR;
     }
     if (send(sock, ".", 1, 0) < 1) {
@@ -270,9 +271,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     printf("Request: _%s_\n", selector);
     int fileAttr = fileAttributes(selector);
     if (PLATFORM_FILE_ERR & fileAttr) {
-        if (PLATFORM_NOT_FOUND & fileAttr) {
-            sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
-        }
+        sendErrorResponse(sock, PLATFORM_NOT_FOUND & fileAttr ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
         goto ON_ERROR;
     } else if (PLATFORM_ISDIR & fileAttr) {  // Directory TODO aggiungi slash finale
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
