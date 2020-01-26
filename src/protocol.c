@@ -16,20 +16,6 @@
 
 #include <windows.h>
 
-static void normalizeInput(LPSTR str) {
-    LPSTR strtokptr;
-    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
-        strcpy(str, "./");
-    } else {
-        strtok_r(str, CRLF, &strtokptr);
-    }
-    for (int i = 0; i < strlen(str); i++) {
-        if (str[i] == '\\') {
-            str[i] = '/';
-        }
-    }
-}
-
 /* Ritorna il carattere di codifica del tipo di file */
 char gopherType(LPSTR filePath) {
     LPSTR ext;
@@ -69,17 +55,8 @@ char gopherType(LPSTR filePath) {
 
 #include <string.h>
 
-static void normalizeInput(char* str) {
-    char* strtokptr;
-    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
-        strcpy(str, "./");
-    } else {
-        strtok_r(str, CRLF, &strtokptr);
-    }
-}
-
 /* Ritorna il carattere di codifica del tipo di file */
-char gopherType(char* file) {
+char gopherType(char* file) {  // TODO const?
     char cmd[MAX_NAME];
     char cmdOut[FILE_CMD_MAX];
     FILE* response;
@@ -113,11 +90,29 @@ char gopherType(char* file) {
 
 /*****************************************************************************************************************/
 
+static void normalizePath(string_t str) {
+    string_t strtokptr;
+    if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
+        strcpy(str, ".");
+    } else {
+        strtok_r(str, CRLF, &strtokptr);
+    }
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        if (str[i] == '\\') {
+            str[i] = '/';
+        }
+    }
+    if (str[len - 1] == '/') {
+        str[len - 1] = '\0';
+    }
+}
+
 static bool validateInput(string_t str) {
     string_t strtokptr, ret;
     ret = strtok_r(str, CRLF, &strtokptr);
     return ret == NULL ||
-           !strstr(ret, ".\\") && !strstr(ret, "./");
+           !strstr(ret, ".") && !strstr(ret, ".\\") && !strstr(ret, "./");
 }
 
 static int sendErrorResponse(socket_t sock, cstring_t msg) {
@@ -139,44 +134,37 @@ static int sendErrorResponse(socket_t sock, cstring_t msg) {
 /* Costruisce la lista dei file e la invia al client */
 static int sendDir(cstring_t path, int sock, int port) {
     _dir dir = NULL;
-    char fileName[MAX_NAME], *filePath = NULL, *line = NULL;
+    char filePath[MAX_NAME];
+    char *fileName = NULL, *line = NULL;
     size_t lineSize, filePathSize;
-    char type;
     int res;
-    if ((res = isDir(path)) != GOPHER_SUCCESS) {
-        if (res & GOPHER_NOT_FOUND) {
-            sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
+    while (PLATFORM_SUCCESS == (res = iterateDir(path, &dir, filePath, sizeof(filePath)))) {
+        normalizePath(filePath);
+        if (NULL == (fileName = strrchr(filePath, '/'))) {
+            fileName = filePath;
+        } else {
+            fileName++;
         }
-        goto ON_ERROR;
-    }
-    while ((res = iterateDir(path, &dir, fileName, sizeof(fileName))) == GOPHER_SUCCESS) {
         if (strcmp(fileName, ".") == 0 || strcmp(fileName, "..") == 0) {
             continue;  // Ignora le entry ./ e ../
         }
-        filePathSize = strlen(path) + strlen(fileName) + 1;
-        if ((filePath = realloc(filePath, filePathSize)) == NULL) {
-            goto ON_ERROR;
-        }
-        if (snprintf(filePath, filePathSize, "%s%s", strcmp(path, "./") == 0 ? "" : path, fileName) < 0) {
-            goto ON_ERROR;
-        }
-        type = gopherType(filePath);
-        lineSize = 1 + strlen(fileName) + strlen(filePath) + sizeof(GOPHER_DOMAIN) + sizeof(CRLF) + 7;
+        char type = gopherType(filePath);
+        lineSize = 1 + strlen(fileName) + strlen(filePath) + sizeof(GOPHER_DOMAIN) + sizeof(CRLF) + 6;
         if (lineSize > (line ? strlen(line) : 0)) {
-            if ((line = realloc(line, lineSize)) == NULL) {
+            if (NULL == (line = realloc(line, lineSize))) {
                 sendErrorResponse(sock, SYS_ERR_MSG);
                 goto ON_ERROR;
             }
         }
-        if (snprintf(line, lineSize, "%c%s\t%s%s\t%s\t%hu" CRLF, type, fileName, filePath, (type == GOPHER_DIR ? "/" : ""), GOPHER_DOMAIN, port) <= 0) {
+        if (snprintf(line, lineSize, "%c%s\t%s\t%s\t%hu" CRLF, type, fileName, filePath, GOPHER_DOMAIN, port) <= 0) {
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
-        if (sendAll(sock, line, strlen(line)) == SOCKET_ERROR) {
+        if (SOCKET_ERROR == sendAll(sock, line, strlen(line))) {
             goto ON_ERROR;
         }
     }
-    if (!(res & GOPHER_END_OF_DIR)) {
+    if (!(res & PLATFORM_END_OF_DIR)) {
         dir = NULL;
         goto ON_ERROR;
     }
@@ -184,14 +172,10 @@ static int sendDir(cstring_t path, int sock, int port) {
         goto ON_ERROR;
     }
     free(line);
-    free(filePath);
     closeDir(dir);
     closeSocket(sock);
     return GOPHER_SUCCESS;
 ON_ERROR:
-    if (filePath) {
-        free(filePath);
-    }
     if (line) {
         free(line);
     }
@@ -282,20 +266,19 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         sendErrorResponse(sock, BAD_SELECTOR_MSG);
         goto ON_ERROR;
     }
-    normalizeInput(selector);
+    normalizePath(selector);  // TODO rimuovi gli slash finali
     printf("Request: _%s_\n", selector);
-    if (endsWith(selector, "/")) {  // Directory
+    int fileAttr = fileAttributes(selector);
+    if (PLATFORM_FILE_ERR & fileAttr) {
+        if (PLATFORM_NOT_FOUND & fileAttr) {
+            sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
+        }
+        goto ON_ERROR;
+    } else if (PLATFORM_ISDIR & fileAttr) {  // Directory TODO aggiungi slash finale
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
             goto ON_ERROR;
         }
     } else {  // File
-        int test;
-        if (GOPHER_SUCCESS != (test = isFile(selector))) {
-            if (test & GOPHER_NOT_FOUND) {
-                sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
-            }
-            goto ON_ERROR;
-        }
         if (
             getFileMap(selector, &map) != GOPHER_SUCCESS ||
             sendFile(selector, &map, sock, pLogger) != GOPHER_SUCCESS) {

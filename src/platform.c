@@ -80,25 +80,15 @@ int daemonize() {
 
 /*********************************************** FILES  ***************************************************************/
 
-/* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
-   settato se il path non è stato trovato. */
-int isFile(LPCSTR path) {
-    DWORD attr;
-    if ((attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-        return PLATFORM_SUCCESS;
-    } else {
-        return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
+int fileAttributes(LPCSTR path) {
+    DWORD attr = GetFileAttributes(path);
+    if (INVALID_FILE_ATTRIBUTES == attr) {
+        return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FILE_ERR | PLATFORM_NOT_FOUND : PLATFORM_FILE_ERR;
     }
-}
-
-/* Ritorna PLATFORM_SUCCESS se path punta a una directory. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
-   settato se il path non è stato trovato. */
-int isDir(LPCSTR path) {
-    DWORD attr;
-    if ((attr = GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) {
-        return PLATFORM_SUCCESS;
+    if (attr & FILE_ATTRIBUTE_DIRECTORY) {
+        return PLATFORM_ISDIR;
     } else {
-        return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
+        return PLATFORM_ISFILE;
     }
 }
 
@@ -151,16 +141,17 @@ int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
     WIN32_FIND_DATA data;
     if (*dir == NULL) {
         char dirPath[MAX_NAME + 1];
-        snprintf(dirPath, MAX_NAME, "%s*", path);
+        snprintf(dirPath, MAX_NAME, "%s/*", path);
         if ((*dir = FindFirstFile(dirPath, &data)) == INVALID_HANDLE_VALUE) {
-            return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
+            return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
         }
     } else {
         if (!FindNextFile(*dir, &data)) {
-            return GetLastError() == ERROR_NO_MORE_FILES ? PLATFORM_FAILURE | GOPHER_END_OF_DIR : PLATFORM_FAILURE;
+            return GetLastError() == ERROR_NO_MORE_FILES ? PLATFORM_FAILURE | PLATFORM_END_OF_DIR : PLATFORM_FAILURE;
         }
     }
-    strncpy(name, data.cFileName, nameSize);
+    bool isCurrent = strcmp(path, ".") == 0;
+    snprintf(name, nameSize, "%s%s%s", isCurrent ? "" : path, isCurrent ? "" : "/", entry->d_name);
     return PLATFORM_SUCCESS;
 }
 
@@ -284,24 +275,43 @@ int daemonize() {
 
 /*********************************************** FILES ****************************************************************/
 
-/* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
-   settato se il path non è stato trovato. */
-int isFile(const char *path) {
+int fileAttributes(cstring_t path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0) {
-        return errno == ENOENT ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
+        return errno == ENOENT ? PLATFORM_FILE_ERR | PLATFORM_NOT_FOUND : PLATFORM_FILE_ERR;
+        ;
     }
-    return S_ISREG(statbuf.st_mode) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    if (S_ISREG(statbuf.st_mode)) {
+        return PLATFORM_ISFILE;
+    } else if (S_ISDIR(statbuf.st_mode)) {
+        return PLATFORM_ISDIR;
+    } else {
+        return PLATFORM_FILE_ERR;
+    }
+}
+
+/* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
+   settato se il path non è stato trovato. */
+bool isFile(const char *path, int *error) {
+    struct stat statbuf;
+    if (stat(path, &statbuf) != 0) {
+        if (error) {
+            *error = errno == ENOENT ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
+        }
+        return false;
+    }
+    return S_ISREG(statbuf.st_mode);
 }
 
 /* Ritorna PLATFORM_SUCCESS se path punta a una directory. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
-int isDir(const char *path) {
+bool isDir(const char *path, int *error) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0) {
-        return errno == ENOENT ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
+        *error = errno == ENOENT ? PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
+        return false;
     }
-    return S_ISDIR(statbuf.st_mode) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    return S_ISDIR(statbuf.st_mode);
 }
 
 int getFileMap(const char *path, file_mapping_t *mapData) {
@@ -332,15 +342,16 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
 int iterateDir(const char *path, DIR **dir, char *name, size_t nameSize) {
     struct dirent *entry;
     if (*dir == NULL) {
-        if ((*dir = opendir(path)) == NULL) {
-            return errno == ENOENT ? PLATFORM_FAILURE | GOPHER_NOT_FOUND : PLATFORM_FAILURE;
+        if (NULL == (*dir = opendir(path))) {
+            return errno == ENOENT ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
         }
     }
     entry = readdir(*dir);
     if (entry == NULL) {
-        return errno == EBADF ? PLATFORM_FAILURE : PLATFORM_FAILURE | GOPHER_END_OF_DIR;
+        return errno == EBADF ? PLATFORM_FAILURE : PLATFORM_FAILURE | PLATFORM_END_OF_DIR;
     }
-    strncpy(name, entry->d_name, nameSize);
+    bool isCurrent = strcmp(path, ".") == 0;
+    snprintf(name, nameSize, "%s%s%s", isCurrent ? "" : path, isCurrent ? "" : "/", entry->d_name);
     return PLATFORM_SUCCESS;
 }
 
