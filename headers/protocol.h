@@ -11,7 +11,6 @@
 #define GOPHER_SUCCESS 0x0000
 #define GOPHER_FAILURE 0x0001
 #define GOPHER_NOT_FOUND 0x0002
-#define GOPHER_END_OF_DIR 0x0004
 // Messages
 #define ERROR_MSG "3Error"
 #define BAD_SELECTOR_MSG "Bad selector"
