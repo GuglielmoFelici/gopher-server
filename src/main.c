@@ -79,8 +79,7 @@ int main(int argc, string_t* argv) {
         strncpy(errorMsg, _SOCKET_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    // TODO perché puntatore?
-    strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
+    // TODO perché puntatore ? strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
         printf(WARN " - Error starting logger\n");
@@ -93,14 +92,14 @@ int main(int argc, string_t* argv) {
         strncpy(errorMsg, _STARTUP_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    sendInt(logger.pid);
+    closeProc(logger.pid);
     destroyServer(&server);
     destroyLogger(&logger);
     printf("Done.\n");
     return 0;
 ON_ERROR:
     fprintf(stderr, "%s\n", errorMsg);
-    sendInt(logger.pid);
+    closeProc(logger.pid);
     destroyServer(&server);
     destroyLogger(&logger);
     return 1;

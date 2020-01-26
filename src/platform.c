@@ -40,8 +40,12 @@ int changeCwd(LPCSTR path) {
 
 /********************************************** SIGNALS *************************************************************/
 
-int sendInt(DWORD pid) {
-    return GenerateConsoleCtrlEvent(CTRL_C_EVENT, pid) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int closeProc(DWORD pid) {
+    HANDLE proc;
+    if (NULL == (proc = OpenProcess(DELETE, FALSE, pid))) {
+        return PLATFORM_FAILURE;
+    }
+    return TerminateProcess(proc, 0) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -203,8 +207,8 @@ int changeCwd(const char *path) {
 
 /********************************************** SIGNALS *************************************************************/
 
-int sendInt(proc_id_t pid) {
-    return kill(pid, SIGINT) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int closeProc(proc_id_t pid) {
+    return pid > 0 && kill(pid, 0) == 0 && kill(pid, SIGINT) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/

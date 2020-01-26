@@ -61,8 +61,8 @@ log/err
 log/info
 log/test
 config/config
-test/out/*
-test/compare_res
+*test/out/*
+*test/compare_res
 logFile
 
 linuxserver

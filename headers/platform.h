@@ -28,7 +28,7 @@ int changeCwd(cstring_t path);
 
 /* Signals */
 
-int sendInt(proc_id_t pid);
+int closeProc(proc_id_t pid);
 
 /* Sockets */
 
