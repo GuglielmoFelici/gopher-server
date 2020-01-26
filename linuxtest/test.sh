@@ -40,4 +40,5 @@ for filename in $(find $path -maxdepth $depth); do
     filename=${filename#$path}
     filename=${filename#/}
     curl gopher://localhost:$port//${filename#$path}$(test $isDir -eq 0 && echo /) --output $outDir/${filename//\//_} >/dev/null 2>&1
+    test $isDir -ne 0 && cmp 
 done
