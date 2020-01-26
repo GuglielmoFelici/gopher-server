@@ -151,7 +151,7 @@ int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
         }
     }
     bool isCurrent = strcmp(path, ".") == 0;
-    snprintf(name, nameSize, "%s%s%s", isCurrent ? "" : path, isCurrent ? "" : "/", entry->d_name);
+    snprintf(name, nameSize, "%s%s%s", isCurrent ? "" : path, isCurrent ? "" : "/", data.cFileName);
     return PLATFORM_SUCCESS;
 }
 
