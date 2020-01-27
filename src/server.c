@@ -68,9 +68,9 @@ static BOOL ctrlC(DWORD signum) {
 }
 
 /* Richiede la rilettura del file di configurazione */
-static BOOL sigHandler(DWORD signum) {
-    if (signum != CTRL_C_EVENT) {
-        updateConfig = true;
+static BOOL ctrlBrk(DWORD signum) {
+    if (signum == CTRL_BREAK_EVENT) {
+        updateConfig = true;  // TODO solo se main?
         if (wakeUpServer() < 0) {
             logErr("Error updating");
         }
@@ -99,7 +99,7 @@ int installDefaultSigHandlers() {
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE)) {
         goto ON_ERROR;
     }
-    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE)) {
+    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlBrk, TRUE)) {
         goto ON_ERROR;
     }
     return SERVER_SUCCESS;
@@ -379,10 +379,10 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             } else if (SOCKET_ERROR == ready && sockErr() != EINTR) {
                 return SERVER_FAILURE;
             } else if (updateConfig) {
-                printf("Updating config...\n");
+                printf("Updating config\n");
                 int prevMultiprocess = pServer->multiProcess;
                 if (readConfig(pServer, READ_PORT | READ_MULTIPROCESS) != 0) {
-                    logErr(WARN " - " _CONFIG_ERR);
+                    logErr(WARN MAIN_CONFIG_ERR);
                     defaultConfig(pServer, READ_PORT);
                 }
                 if (pServer->port != htons(pServer->sockAddr.sin_port)) {
