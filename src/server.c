@@ -127,7 +127,7 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
     args->sock = sock;
     args->port = port;
     args->pLogger = pLogger;
-    if ((thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL)) == NULL) {
+    if (NULL == (thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL))) {
         free(args);
         return SERVER_FAILURE;
     }
@@ -294,26 +294,31 @@ static int serveProc(int client, const logger_t* pLogger, const server_t* pServe
 /* Inizializza il socket del server e lo mette in ascolto */
 int prepareSocket(server_t* pServer, int flags) {
     if (!pServer) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     if (flags & SERVER_UPDATE) {
         if (PLATFORM_FAILURE == closeSocket(pServer->sock)) {
-            return SERVER_FAILURE;
+            goto ON_ERROR;
         };
     }
     if (INVALID_SOCKET == (pServer->sock = socket(AF_INET, SOCK_STREAM, 0))) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     pServer->sockAddr.sin_family = AF_INET;
     pServer->sockAddr.sin_addr.s_addr = INADDR_ANY;
     pServer->sockAddr.sin_port = htons(pServer->port);
     if (bind(pServer->sock, (struct sockaddr*)&(pServer->sockAddr), sizeof(pServer->sockAddr)) < 0) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     if (listen(pServer->sock, 5) < 0) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     return SERVER_SUCCESS;
+ON_ERROR:
+    if (pServer) {
+        closesocket(pServer->sock);
+    }
+    return SERVER_FAILURE;
 }
 
 void defaultConfig(server_t* pServer, int which) {
@@ -369,6 +374,9 @@ ON_ERROR:
 }
 
 int runServer(server_t* pServer, logger_t* pLogger) {
+    if (!pServer) {
+        return SERVER_FAILURE;
+    }
     fd_set incomingConnections;
     int ready = 0;
     printHeading(pServer);
@@ -376,7 +384,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         do {
             if (requestShutdown) {
                 return SERVER_SUCCESS;
-            } else if (SOCKET_ERROR == ready && sockErr() != EINTR) {
+            } else if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (updateConfig) {
                 printf("Updating config\n");
@@ -409,7 +417,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             if (SERVER_SUCCESS != serveProc(client, pLogger, pServer)) {
                 logErr("Error serving client\n");
             };
-            closeSocket(client);  // Questo??
+            closeSocket(client);  // TODO Questo??
         } else {
             serveThread(client, pServer->port, pLogger);
         }

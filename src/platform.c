@@ -71,7 +71,7 @@ int fileAttributes(LPCSTR path) {
 
 /* Mappa un file in memoria */
 int getFileMap(LPCSTR path, file_mapping_t *mapData) {
-    HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
+    HANDLE file = NULL, map = NULL;
     LPVOID view = NULL;
     LARGE_INTEGER fileSize;
     OVERLAPPED ovlp;
@@ -105,10 +105,10 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     mapData->size = fileSize.LowPart;
     return PLATFORM_SUCCESS;
 ON_ERROR:
-    if (file && file != INVALID_HANDLE_VALUE) {
+    if (file) {
         CloseHandle(file);
     }
-    if (map && map != INVALID_HANDLE_VALUE) {
+    if (map) {
         CloseHandle(map);
     }
     if (view) {
@@ -124,8 +124,8 @@ ON_ERROR:
 int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
     WIN32_FIND_DATA data;
     if (*dir == NULL) {
-        char dirPath[MAX_NAME + 1];
-        snprintf(dirPath, MAX_NAME, "%s/*", path);
+        char dirPath[MAX_NAME + 2];
+        snprintf(dirPath, sizeof(dirPath), "%s/*", path);
         if ((*dir = FindFirstFile(dirPath, &data)) == INVALID_HANDLE_VALUE) {
             return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
         }
