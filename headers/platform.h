@@ -33,10 +33,6 @@ int getCwd(string_t dst, size_t size);
 
 int changeCwd(cstring_t path);
 
-/* Signals */
-
-int closeProc(proc_id_t pid);
-
 /* Sockets */
 
 int sockErr();

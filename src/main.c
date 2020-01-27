@@ -92,15 +92,16 @@ int main(int argc, string_t* argv) {
         strncpy(errorMsg, _STARTUP_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    closeProc(logger.pid);
     destroyServer(&server);
-    destroyLogger(&logger);
+    if (LOGGER_SUCCESS != stopLogger(&logger)) {
+        printf(WARN " - Error closing logger\n");
+    }
     printf("Done.\n");
     return 0;
 ON_ERROR:
     fprintf(stderr, "%s\n", errorMsg);
     closeProc(logger.pid);
     destroyServer(&server);
-    destroyLogger(&logger);
+    stopLogger(&logger);
     return 1;
 }

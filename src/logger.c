@@ -91,11 +91,15 @@ ON_ERROR:
     return LOGGER_FAILURE;
 }
 
-int destroyLogger(logger_t* pLogger) {
+int stopLogger(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
+    if (!TerminateProcess(pLogger->pid, 0)) {
+        return LOGGER_FAILURE;
+    }
     pLogger->pid = -1;
+    CloseHandle(*(pLogger->pLogMutex));
     if (pLogger->pLogMutex) {
         free(pLogger->pLogMutex);
     }
@@ -127,8 +131,11 @@ int destroyLogger(logger_t* pLogger) {
 #include <sys/types.h>
 #include <unistd.h>
 
-int destroyLogger(logger_t* pLogger) {
+int stopLogger(logger_t* pLogger) {
     if (!pLogger) {
+        return LOGGER_FAILURE;
+    }
+    if (pLogger->pid < 0 || kill(pLogger->pid, 0) != 0 || kill(pLogger->pid, SIGINT) != 0) {
         return LOGGER_FAILURE;
     }
     pLogger->pid = -1;

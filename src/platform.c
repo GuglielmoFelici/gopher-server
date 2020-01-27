@@ -38,16 +38,6 @@ int changeCwd(LPCSTR path) {
     return SetCurrentDirectory(path) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-/********************************************** SIGNALS *************************************************************/
-
-int closeProc(DWORD pid) {
-    HANDLE proc;
-    if (NULL == (proc = OpenProcess(DELETE, FALSE, pid))) {
-        return PLATFORM_FAILURE;
-    }
-    return TerminateProcess(proc, 0) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
-}
-
 /********************************************** SOCKETS *************************************************************/
 
 /* Ritorna l'ultimo codice di errore relativo alle chiamate WSA */
@@ -194,12 +184,6 @@ int getCwd(char *dst, size_t size) {
 
 int changeCwd(const char *path) {
     return chdir(path) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
-}
-
-/********************************************** SIGNALS *************************************************************/
-
-int closeProc(proc_id_t pid) {
-    return pid > 0 && kill(pid, 0) == 0 && kill(pid, SIGINT) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
