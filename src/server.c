@@ -131,6 +131,10 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
 
 /* Serve una richiesta in modalità multiprocesso. */
 static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pServer) {
+    // TODO goto on error
+    if (!pLogger || !pServer) {
+        return SERVER_FAILURE;
+    }
     char exec[MAX_NAME];
     if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, pServer->installationDir) < strlen(pServer->installationDir) + strlen(HELPER_PATH) + 1) {
         return SERVER_FAILURE;

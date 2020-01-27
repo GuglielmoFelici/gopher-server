@@ -11,6 +11,9 @@
 int logTransfer(const logger_t* pLogger, LPCSTR log) {
     // TODO mutex
     DWORD written;
+    if (!pLogger) {
+        return LOGGER_FAILURE;
+    }
     WaitForSingleObject(*(pLogger->pLogMutex), INFINITE);
     if (!WriteFile(pLogger->logPipe, log, strlen(log), &written, NULL)) {
         return LOGGER_FAILURE;
@@ -36,6 +39,9 @@ int startTransferLog(logger_t* pLogger) {
     HANDLE readPipe = NULL;
     HANDLE writePipe = NULL;
     HANDLE* pLogMutex = NULL;
+    if (!pLogger) {
+        goto ON_ERROR;
+    }
     if (!CreatePipe(&readPipe, &writePipe, &attr, 0)) {
         goto ON_ERROR;
     }
@@ -87,6 +93,9 @@ ON_ERROR:
 }
 
 int destroyLogger(logger_t* pLogger) {
+    if (!pLogger) {
+        return LOGGER_FAILURE;
+    }
     pLogger->pid = -1;
     if (pLogger->pLogMutex) {
         free(pLogger->pLogMutex);
@@ -120,6 +129,9 @@ int destroyLogger(logger_t* pLogger) {
 #include <unistd.h>
 
 int destroyLogger(logger_t* pLogger) {
+    if (!pLogger) {
+        return LOGGER_FAILURE;
+    }
     pLogger->pid = -1;
     if (close(pLogger->logPipe) != 0) {
         return LOGGER_FAILURE;
@@ -140,6 +152,7 @@ int destroyLogger(logger_t* pLogger) {
 /* Effettua una scrittura sulla pipe di logging */
 int logTransfer(const logger_t* pLogger, const char* log) {
     if (
+        !pLogger ||
         pthread_mutex_lock(pLogger->pLogMutex) < 0 ||
         write(pLogger->logPipe, log, strlen(log)) < 0 ||
         pthread_cond_signal(pLogger->pLogCond) < 0 ||
@@ -154,6 +167,9 @@ static void loggerLoop(const logger_t* pLogger) {
     int logFile = -1;
     char buff[MAX_LINE_SIZE];
     char logFilePath[MAX_NAME];
+    if (!pLogger) {
+        goto ON_ERROR;
+    }
     if (pthread_mutex_lock(pLogger->pLogMutex) < 0) {
         goto ON_ERROR;
     }
@@ -164,7 +180,8 @@ static void loggerLoop(const logger_t* pLogger) {
         printf("nome logger troppo lungo");
         goto ON_ERROR;
     }
-    if ((logFile = open(logFilePath, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU)) < 0) {
+    // i diritti sono giusti?
+    if ((logFile = creat(logFilePath, S_IRWXU)) < 0) {
         printf("Can't start logger\n");
         goto ON_ERROR;
     }
@@ -199,6 +216,9 @@ int startTransferLog(logger_t* pLogger) {
     pthread_condattr_t condAttr;
     pthread_mutex_t* pMutex = MAP_FAILED;
     pthread_cond_t* pCond = MAP_FAILED;
+    if (!pLogger) {
+        goto ON_ERROR;
+    }
     // Inizializza mutex e condition variable per notificare il logger che sono pronti nuovi dati sulla pipe.
     // TODO controlla cascata
     if (pthread_mutexattr_init(&mutexAttr) < 0 ||
@@ -267,9 +287,13 @@ ON_ERROR:
 
 /*****************************************************************************************************************/
 
-void initLogger(logger_t* pLogger) {
+int initLogger(logger_t* pLogger) {
+    if (!pLogger) {
+        return LOGGER_FAILURE;
+    }
     pLogger->pid = -1;
     pLogger->pLogCond = NULL;
     pLogger->pLogMutex = NULL;
     strncpy(pLogger->installationDir, "", sizeof(pLogger->installationDir));
+    return LOGGER_SUCCESS;
 }

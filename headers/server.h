@@ -11,7 +11,7 @@
 #include "logger.h"
 
 #define CONFIG_DELIMITER '='
-#define DEFAULT_MULTI_PROCESS false
+#define DEFAULT_MULTI_PROCESS 0
 #define DEFAULT_PORT 7070
 #define READ_PORT 0x0001
 #define READ_MULTIPROCESS 0x0002
@@ -28,6 +28,7 @@ typedef struct {
     bool multiProcess;
     char configFile[MAX_NAME];
     char installationDir[MAX_NAME];
+    char configFile[MAX_NAME];
 } server_t;
 
 typedef struct {

@@ -12,8 +12,15 @@
 #include <stdlib.h>
 #include "datatypes.h"
 
-#define PLATFORM_SUCCESS 0
-#define PLATFORM_FAILURE -1
+#define PLATFORM_SUCCESS 0x0000
+#define PLATFORM_FAILURE 0x0001
+
+#define PLATFORM_FILE_ERR 0x0001
+#define PLATFORM_ISFILE 0x0002
+#define PLATFORM_ISDIR 0x0004
+#define PLATFORM_NOT_FOUND 0x0008
+#define PLATFORM_END_OF_DIR 0x0010
+
 #define MAX_ERROR_SIZE 60  // TODO
 #ifndef SOCKET_ERROR
 #define SOCKET_ERROR -1
@@ -28,7 +35,7 @@ int changeCwd(cstring_t path);
 
 /* Signals */
 
-int sendInt(proc_id_t pid);
+int closeProc(proc_id_t pid);
 
 /* Sockets */
 
@@ -42,9 +49,7 @@ cstring_t inetNtoa(const struct in_addr* addr, void* dst, size_t size);
 
 /* Files */
 
-int isFile(cstring_t path);
-
-int isDir(cstring_t path);
+int fileAttributes(cstring_t path);
 
 int iterateDir(cstring_t path, _dir* dir, string_t name, size_t nameSize);
 
