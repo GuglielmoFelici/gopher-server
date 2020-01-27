@@ -28,14 +28,14 @@ if (Test-Path $outDir) {
 $result = $(Get-ChildItem -Recurse -Depth $depth -Path $path | 
 	Where-Object { $_.FullName -notmatch ($excludes) } | 
 	ForEach-Object {
-		$relPath = ($_ | Resolve-Path -Relative).replace($path, "")
+		$relPath = (($_ | Resolve-Path -Relative) -replace '\\', '/').Replace($path, "")
 		$isDir = $(Test-Path -Path $_.fullname -PathType Container)
 		$out = $relPath -replace '[\\/]', '_'
 		mycurl gopher://localhost:$port//$relPath --output $outDir/$out *>$null 
 		if (!$isDir) {
-			$comp = (fc.exe /b $path$relPath $outDir\$out 2>&1) | Out-String
+			$comp = (fc.exe /b ("$path$relPath" -replace '/', '\\' ) $outDir\$out  2>&1 ) | Out-String
 			Write-Output $comp | Out-File $compareFile -Append
-			return $comp -notmatch '[A-Z\d]{8}: ([A-Z\d]{2} ?){2}'
+			return $comp -notmatch '[A-Z\d]{8}: ([A-Z\d]{2} ?){2}' -and $comp -notmatch '[Ii]mpossibile'
 		}
 	}) -notcontains $False
 if ($result) {
