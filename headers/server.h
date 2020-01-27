@@ -26,7 +26,6 @@ typedef struct {
     struct sockaddr_in sockAddr;
     unsigned short port;
     bool multiProcess;
-    char configFile[MAX_NAME];
     char installationDir[MAX_NAME];
     char configFile[MAX_NAME];
 } server_t;

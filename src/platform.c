@@ -113,10 +113,10 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     if (
         // TODO testare perché possono fallire queste chiamate
         !LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
-        (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL ||
+        NULL == (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) ||
         !UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
         !CloseHandle(file) ||
-        (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) == NULL ||
+        NULL == (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) ||
         !CloseHandle(map)) {
         goto ON_ERROR;
     }

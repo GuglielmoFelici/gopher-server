@@ -9,7 +9,6 @@
 /*****************************************************************************************************************/
 
 int logTransfer(const logger_t* pLogger, LPCSTR log) {
-    // TODO mutex
     DWORD written;
     if (!pLogger) {
         return LOGGER_FAILURE;
@@ -30,7 +29,6 @@ int logTransfer(const logger_t* pLogger, LPCSTR log) {
 /* Avvia il processo di logging dei trasferimenti. */
 int startTransferLog(logger_t* pLogger) {
     char exec[MAX_NAME] = "";
-    snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, pLogger->installationDir);
     SECURITY_ATTRIBUTES attr;
     memset(&attr, 0, sizeof(attr));
     attr.bInheritHandle = TRUE;
@@ -42,6 +40,7 @@ int startTransferLog(logger_t* pLogger) {
     if (!pLogger) {
         goto ON_ERROR;
     }
+    snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, pLogger->installationDir);
     if (!CreatePipe(&readPipe, &writePipe, &attr, 0)) {
         goto ON_ERROR;
     }
@@ -70,7 +69,7 @@ int startTransferLog(logger_t* pLogger) {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, pLogger->installationDir, &startupInfo, &processInfo)) {
+    if (!CreateProcess(exec, NULL, NULL, NULL, FALSE, 0, NULL, pLogger->installationDir, &startupInfo, &processInfo)) {
         goto ON_ERROR;
     }
     pLogger->pid = processInfo.dwProcessId;
@@ -294,6 +293,8 @@ int initLogger(logger_t* pLogger) {
     pLogger->pid = -1;
     pLogger->pLogCond = NULL;
     pLogger->pLogMutex = NULL;
-    strncpy(pLogger->installationDir, "", sizeof(pLogger->installationDir));
+    if (!GetCurrentDirectory(sizeof(pLogger->installationDir), pLogger->installationDir)) {
+        return LOGGER_FAILURE;
+    }
     return LOGGER_SUCCESS;
 }

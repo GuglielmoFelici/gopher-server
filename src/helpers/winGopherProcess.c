@@ -9,30 +9,40 @@ DWORD main(DWORD argc, LPSTR* argv) {
     int port = -1;
     mutex_t* pMutex = NULL;
     logger_t* pLogger = NULL;
+    HANDLE logEvent = NULL;
+    HANDLE logPipe = NULL;
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
+    int step = 0;
     if (WSAStartup(versionWanted, &wsaData) != 0) {
         goto ON_ERROR;
     }
+    sscanf(argv[1], "%hu", &port);
+    sscanf(argv[2], "%p", &sock);
+    sscanf(argv[3], "%p", &(logPipe));
     pMutex = malloc(sizeof(mutex_t));
     if (NULL == pMutex) {
         goto ON_ERROR;
     }
-    if (NULL == (*pMutex = OpenMutex(SYNCHRONIZE, FALSE, LOG_MUTEX_NAME))) {
-        goto ON_ERROR;
+    *pMutex = OpenMutex(SYNCHRONIZE, FALSE, LOG_MUTEX_NAME);
+    logEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, LOGGER_EVENT_NAME);
+    if (!(*pMutex && !logEvent && !logPipe)) {
+        pLogger = NULL;
+    } else {
+        pLogger = malloc(sizeof(logger_t));
+        if (NULL == pLogger) {
+            goto ON_ERROR;
+        }
+        pLogger->logEvent = logEvent;
+        pLogger->logPipe = logPipe;
+        pLogger->pLogMutex = *pMutex;
     }
-    pLogger = malloc(sizeof(logger_t));
-    if (NULL == pLogger) {
-        goto ON_ERROR;
-    }
-    pLogger->pLogMutex = pMutex;
-    sscanf(argv[1], "%hu", &port);
-    sscanf(argv[2], "%p", &sock);
-    sscanf(argv[3], "%p", &(pLogger->logPipe));
-    sscanf(argv[4], "%p", &(pLogger->logEvent));
     gopher(sock, port, pLogger);
     ExitThread(0);
 ON_ERROR:
+    if (INVALID_SOCKET != sock) {
+        closesocket(sock);
+    }
     WSACleanup();
     if (pLogger) {
         free(pLogger);

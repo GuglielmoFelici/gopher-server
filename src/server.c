@@ -27,6 +27,9 @@ void printHeading(const server_t* pServer) {
 
 /* Inizializza la WSA */
 int initServer(server_t* pServer) {
+    if (!pServer) {
+        return SERVER_FAILURE;
+    }
     strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
     pServer->sock = INVALID_SOCKET;
     memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
@@ -37,7 +40,7 @@ int initServer(server_t* pServer) {
 
 int destroyServer(server_t* pServer) {
     memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
-    return closesocket(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
+    return closesocket(awakeSelect) == 0 && closesocket(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 /* Invia un messaggio vuoto al socket awakeSelect per interrompere la select del server. */
@@ -88,18 +91,21 @@ int installDefaultSigHandlers() {
     awakeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     size_t awakeAddrSize = sizeof(awakeAddr);
     if (SOCKET_ERROR == bind(awakeSelect, (struct sockaddr*)&awakeAddr, sizeof(awakeAddr))) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     if (SOCKET_ERROR == getsockname(awakeSelect, (struct sockaddr*)&awakeAddr, &awakeAddrSize)) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE)) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE)) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     return SERVER_SUCCESS;
+ON_ERROR:
+    closesocket(awakeSelect);
+    return SERVER_FAILURE;
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
@@ -132,7 +138,11 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
 /* Serve una richiesta in modalità multiprocesso. */
 static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pServer) {
     // TODO goto on error
-    if (!pLogger || !pServer) {
+    HANDLE logPipe = NULL;
+    if (pLogger) {
+        logPipe = pLogger->logPipe;
+    }
+    if (!pServer) {
         return SERVER_FAILURE;
     }
     char exec[MAX_NAME];
@@ -144,7 +154,7 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
-    startupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startupInfo.dwFlags = STARTF_USESTDHANDLES;  // TODO rimuovere
     if (
         INVALID_HANDLE_VALUE == (startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE)) ||
         INVALID_HANDLE_VALUE == (startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE)) ||
@@ -153,11 +163,11 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     }
     LPSTR cmdLine = NULL;
     size_t cmdLineSize;
-    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p %p", exec, pServer->port, client, pLogger->logPipe, pLogger->logEvent) + 1;
+    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p", exec, pServer->port, client, logPipe) + 1;
     if (NULL == (cmdLine = malloc(cmdLineSize))) {
         return SERVER_FAILURE;
     }
-    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p %p", exec, pServer->port, client, pLogger->logPipe, pLogger->logEvent) < cmdLineSize - 1) {
+    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p", exec, pServer->port, client, logPipe) < cmdLineSize - 1) {
         free(cmdLine);
         return SERVER_FAILURE;
     }
@@ -281,6 +291,9 @@ static int serveProc(int client, const logger_t* pLogger, const server_t* pServe
 
 /* Inizializza il socket del server e lo mette in ascolto */
 int prepareSocket(server_t* pServer, int flags) {
+    if (!pServer) {
+        return SERVER_FAILURE;
+    }
     if (flags & SERVER_UPDATE) {
         if (PLATFORM_FAILURE == closeSocket(pServer->sock)) {
             return SERVER_FAILURE;
@@ -385,8 +398,10 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             _logErr(WARN "Error serving client");
         } else if (pServer->multiProcess) {
             // TODO controllare return value
-            serveProc(client, pLogger, pServer);
-            closeSocket(client);
+            if (SERVER_SUCCESS != serveProc(client, pLogger, pServer)) {
+                printf("Error serving client\n");
+            };
+            closeSocket(client);  // Questo??
         } else {
             serveThread(client, pServer->port, pLogger);
         }

@@ -15,7 +15,7 @@ int main(int argc, string_t* argv) {
         strncpy(errorMsg, _STARTUP_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    initLogger(&logger);
+    initLogger(&logger);  // TODO rimuovere?
     // TODO
     // le directory di installazione vanno inizializzate negli init?
 
