@@ -3,7 +3,6 @@
 
 #define _GNU_SOURCE
 #include "datatypes.h"
-#include "gopher.h"
 
 #define _CONFIG_ERR "Can't read configuration file, default settings will be used."
 #define _MULTIPROCESS_CONFIG_ERR "Can't read configuration file, multiprocess will be disabled."

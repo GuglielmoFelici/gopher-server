@@ -95,7 +95,7 @@ int stopLogger(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
-    if (!TerminateProcess(pLogger->pid, 0)) {
+    if (!TerminateProcess(OpenProcess(DELETE, FALSE, pLogger->pid), 0)) {
         return LOGGER_FAILURE;
     }
     pLogger->pid = -1;
@@ -300,8 +300,6 @@ int initLogger(logger_t* pLogger) {
     pLogger->pid = -1;
     pLogger->pLogCond = NULL;
     pLogger->pLogMutex = NULL;
-    if (!GetCurrentDirectory(sizeof(pLogger->installationDir), pLogger->installationDir)) {
-        return LOGGER_FAILURE;
-    }
+    strncpy(pLogger->installationDir, "", sizeof(pLogger->installationDir));
     return LOGGER_SUCCESS;
 }

@@ -21,7 +21,6 @@
 #define PLATFORM_NOT_FOUND 0x0008
 #define PLATFORM_END_OF_DIR 0x0010
 
-#define MAX_ERROR_SIZE 60  // TODO
 #ifndef SOCKET_ERROR
 #define SOCKET_ERROR -1
 #endif
@@ -32,6 +31,8 @@ bool endsWith(cstring_t str1, cstring_t str2);
 int getCwd(string_t dst, size_t size);
 
 int changeCwd(cstring_t path);
+
+void logErr(cstring_t message);
 
 /* Sockets */
 

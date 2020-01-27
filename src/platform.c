@@ -17,19 +17,6 @@ void errorString(LPSTR error, size_t size) {
                   error, size, NULL);
 }
 
-/* Termina graziosamente il logger, poi termina il server. */
-void _shutdown(SOCKET server) {
-    // TODO
-    // free(logMutex);
-    // closesocket(server);
-    // closesocket(awakeSelect);
-    // CloseHandle(*logMutex);
-    // CloseHandle(logEvent);
-    // CloseHandle(logPipe);
-    // printf("Shutting down...\n");
-    // ExitThread(0);
-}
-
 int getCwd(LPSTR dst, size_t size) {
     return GetCurrentDirectory(size, dst) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
@@ -100,10 +87,14 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
         return PLATFORM_SUCCESS;
     }
     memset(&ovlp, 0, sizeof(ovlp));
+    if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
+        goto ON_ERROR;
+    }
+    if (NULL == (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL))) {
+        UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp);
+        goto ON_ERROR;
+    }
     if (
-        // TODO testare perché possono fallire queste chiamate
-        !LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
-        NULL == (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) ||
         !UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
         !CloseHandle(file) ||
         NULL == (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) ||
@@ -114,11 +105,14 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     mapData->size = fileSize.LowPart;
     return PLATFORM_SUCCESS;
 ON_ERROR:
-    if (file != INVALID_HANDLE_VALUE) {
+    if (file && file != INVALID_HANDLE_VALUE) {
         CloseHandle(file);
     }
-    if (map != INVALID_HANDLE_VALUE) {
+    if (map && map != INVALID_HANDLE_VALUE) {
         CloseHandle(map);
+    }
+    if (view) {
+        UnmapViewOfFile(view);
     }
     return PLATFORM_FAILURE;
 }
@@ -150,7 +144,6 @@ int closeDir(HANDLE dir) {
 }
 
 int unmapMem(void *addr, size_t len) {
-    // TODO chiudere handle
     return UnmapViewOfFile(addr) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
@@ -355,8 +348,6 @@ int unmapMem(void *addr, size_t len) {
     return munmap(addr, len) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-/*********************************************** LOGGER ***************************************************************/
-
 #endif
 
 /*****************************************************************************************************************/
@@ -368,23 +359,20 @@ bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-// TODO valori di ritorno
 int sendAll(socket_t s, cstring_t data, int length) {
     int count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);
         if (sent == SOCKET_ERROR) {
-            return SOCKET_ERROR;
+            return PLATFORM_FAILURE;
         }
         count += sent;
         length -= sent;
     }
-    return 0;
+    return PLATFORM_SUCCESS;
 }
 
 /* Stampa l'errore su stderr */
-void _logErr(cstring_t message) {
-    char buf[MAX_ERROR_SIZE];
-    errorString(buf, MAX_ERROR_SIZE);
-    fprintf(stderr, "%s\nSystem error message: %s\n", message, buf);
+void logErr(cstring_t message) {
+    fprintf(stderr, "%s\n", message);
 }

@@ -1,4 +1,5 @@
-#include "../headers/gopher.h"
+#include <stdio.h>
+#include "../headers/log.h"
 #include "../headers/logger.h"
 #include "../headers/platform.h"
 #include "../headers/server.h"
@@ -15,21 +16,19 @@ int main(int argc, string_t* argv) {
         strncpy(errorMsg, _STARTUP_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    initLogger(&logger);  // TODO rimuovere?
-    // TODO
-    // le directory di installazione vanno inizializzate negli init?
-
+    initLogger(&logger);
     if (PLATFORM_SUCCESS != getCwd(server.installationDir, sizeof(server.installationDir))) {
         strncpy(errorMsg, "Cannot get current working directory", sizeof(errorMsg));
         goto ON_ERROR;
     }
+    strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
     snprintf(server.configFile, sizeof(server.configFile), "%s/%s", server.installationDir, CONFIG_FILE);
     if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
-        _logErr(WARN " - " _PORT_CONFIG_ERR);
+        logErr(WARN " - " _PORT_CONFIG_ERR);
         defaultConfig(&server, READ_PORT);
     }
     if (SERVER_SUCCESS != readConfig(&server, READ_MULTIPROCESS)) {
-        _logErr(WARN " - " _MULTIPROCESS_CONFIG_ERR);
+        logErr(WARN " - " _MULTIPROCESS_CONFIG_ERR);
         defaultConfig(&server, READ_MULTIPROCESS);
     }
     /* Parsing opzioni */
@@ -43,8 +42,7 @@ int main(int argc, string_t* argv) {
                 server.multiProcess = true;
                 break;
             case 'p':;
-                string_t strtolPtr = NULL;
-                int port = strtol(optarg, &strtolPtr, 10);
+                int port = strtol(optarg, NULL, 10);
                 if (port < 1 || port > 65535) {
                     strncpy(errorMsg, "Invalid port number", sizeof(errorMsg));
                     goto ON_ERROR;
@@ -54,19 +52,14 @@ int main(int argc, string_t* argv) {
                 break;
             case 'd':
                 if (PLATFORM_SUCCESS != changeCwd(optarg)) {
-                    fprintf(stderr, WARN " - Can't change directory, default one will be used\n");
+                    logErr(WARN " - Can't change directory, default one will be used");
                 }
                 break;
             case '?':
-                if (optopt == 'd' || optopt == 'p') {
-                    fprintf(stderr, "Option -%c requires an argument (use -h for usage info).\n", optopt);
-                } else {
-                    fprintf(stderr, "Unknown option `-%c'.\n", optopt);
-                    strncpy(errorMsg, USAGE, sizeof(errorMsg));
-                    goto ON_ERROR;
-                }
+                strncpy(errorMsg, USAGE, sizeof(errorMsg));
+                goto ON_ERROR;
             default:
-                strncpy(errorMsg, "Error parsing options", sizeof(errorMsg));
+                strncpy(errorMsg, USAGE, sizeof(errorMsg));
                 goto ON_ERROR;
         }
     }
@@ -79,10 +72,9 @@ int main(int argc, string_t* argv) {
         strncpy(errorMsg, _SOCKET_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    // TODO perché puntatore ? strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
-        printf(WARN " - Error starting logger\n");
+        logErr(WARN " - Error starting logger\n");
     }
     if (PLATFORM_SUCCESS != daemonize()) {
         strncpy(errorMsg, _STARTUP_ERR, sizeof(errorMsg));
@@ -94,13 +86,13 @@ int main(int argc, string_t* argv) {
     }
     destroyServer(&server);
     if (LOGGER_SUCCESS != stopLogger(&logger)) {
-        printf(WARN " - Error closing logger\n");
+        logErr(WARN " - Error closing logger\n");
     }
     printf("Done.\n");
     return 0;
 ON_ERROR:
-    fprintf(stderr, "%s\n", errorMsg);
-    closeProc(logger.pid);
+    logErr(errorMsg);
+    stopLogger(&logger);
     destroyServer(&server);
     stopLogger(&logger);
     return 1;

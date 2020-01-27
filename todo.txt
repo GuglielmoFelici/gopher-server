@@ -1,7 +1,10 @@
 ﻿IMPORTANTE: HEADER GUARDS
 
 Common:
+    controllare re-entrance
+    rivedere necessita di logger.installationDir
     rimuovere _logErr
+    verificare tutti i print e i log
     cosa fare al termine del server?
     usare const e volatile?
     Spostare definizioni da datatypes

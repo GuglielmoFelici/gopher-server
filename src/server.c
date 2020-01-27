@@ -59,7 +59,7 @@ static BOOL ctrlC(DWORD signum) {
     if (signum == CTRL_C_EVENT) {
         requestShutdown = true;
         if (wakeUpServer() < 0) {
-            _logErr("Can't close gracefully");
+            logErr("Can't close gracefully");
             exit(1);
         }
         return true;
@@ -72,7 +72,7 @@ static BOOL sigHandler(DWORD signum) {
     if (signum != CTRL_C_EVENT) {
         updateConfig = true;
         if (wakeUpServer() < 0) {
-            _logErr("Error updating");
+            logErr("Error updating");
         }
         return true;
     }
@@ -137,17 +137,17 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
 
 /* Serve una richiesta in modalità multiprocesso. */
 static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pServer) {
-    // TODO goto on error
     HANDLE logPipe = NULL;
+    LPSTR cmdLine = NULL;
     if (pLogger) {
         logPipe = pLogger->logPipe;
     }
     if (!pServer) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     char exec[MAX_NAME];
     if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, pServer->installationDir) < strlen(pServer->installationDir) + strlen(HELPER_PATH) + 1) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
@@ -159,24 +159,26 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
         INVALID_HANDLE_VALUE == (startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE)) ||
         INVALID_HANDLE_VALUE == (startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE)) ||
         INVALID_HANDLE_VALUE == (startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE))) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
-    LPSTR cmdLine = NULL;
     size_t cmdLineSize;
     cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p", exec, pServer->port, client, logPipe) + 1;
     if (NULL == (cmdLine = malloc(cmdLineSize))) {
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p", exec, pServer->port, client, logPipe) < cmdLineSize - 1) {
-        free(cmdLine);
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
-        free(cmdLine);
-        return SERVER_FAILURE;
+        goto ON_ERROR;
     }
     free(cmdLine);
     return SERVER_SUCCESS;
+ON_ERROR:
+    if (cmdLine) {
+        free(cmdLine);
+    }
+    return SERVER_FAILURE;
 }
 
 #else
@@ -324,33 +326,39 @@ void defaultConfig(server_t* pServer, int which) {
 }
 
 int readConfig(server_t* pServer, int which) {
-    // TODO error check
     FILE* configFile = NULL;
     if (NULL == (configFile = fopen(pServer->configFile, "r"))) {
         goto ON_ERROR;
     }
     char portBuff[6], multiProcess[2];
-    // EOF?
-    while (fgetc(configFile) != CONFIG_DELIMITER)
-        ;
+    char c;
+    do {
+        c = fgetc(configFile);
+    } while (c != CONFIG_DELIMITER);
+    if (c == EOF) {
+        goto ON_ERROR;
+    }
     fgets(portBuff, sizeof(portBuff), configFile);
-    while (fgetc(configFile) != CONFIG_DELIMITER)
-        ;
+    do {
+        c = fgetc(configFile);
+    } while (c != CONFIG_DELIMITER);
+    if (c == EOF) {
+        goto ON_ERROR;
+    }
     fgets(multiProcess, sizeof(multiProcess), configFile);
     if (fclose(configFile) != 0) {
         goto ON_ERROR;
     }
-    string_t strtolptr = NULL;
     if (which & READ_PORT) {
         int port;
-        port = strtol(portBuff, &strtolptr, 10);
+        port = strtol(portBuff, NULL, 10);
         if (port < 1 || port > 65535) {
             goto ON_ERROR;
         }
         pServer->port = port;
     }
     if (which & READ_MULTIPROCESS) {
-        pServer->multiProcess = strtol(multiProcess, &strtolptr, 10);
+        pServer->multiProcess = strtol(multiProcess, NULL, 10);
     }
     return SERVER_SUCCESS;
 ON_ERROR:
@@ -374,7 +382,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                 printf("Updating config...\n");
                 int prevMultiprocess = pServer->multiProcess;
                 if (readConfig(pServer, READ_PORT | READ_MULTIPROCESS) != 0) {
-                    _logErr(WARN " - " _CONFIG_ERR);
+                    logErr(WARN " - " _CONFIG_ERR);
                     defaultConfig(pServer, READ_PORT);
                 }
                 if (pServer->port != htons(pServer->sockAddr.sin_port)) {
@@ -395,11 +403,11 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         printf("Incoming connection on port %d\n", pServer->port);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
-            _logErr(WARN "Error serving client");
+            logErr(WARN "Error serving client");
         } else if (pServer->multiProcess) {
             // TODO controllare return value
             if (SERVER_SUCCESS != serveProc(client, pLogger, pServer)) {
-                printf("Error serving client\n");
+                logErr("Error serving client\n");
             };
             closeSocket(client);  // Questo??
         } else {
