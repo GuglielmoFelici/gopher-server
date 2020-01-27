@@ -62,20 +62,20 @@ int main(int argc, string_t* argv) {
                 goto ON_ERROR;
         }
     }
+    logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
+    if (!pLogger) {
+        logErr(WARN MAIN_START_LOG_ERR);
+    }
     /* Configurazione */
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
         strncpy(errorMsg, MAIN_SOCKET_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
-    if (!pLogger) {
-        logErr(WARN " - Error starting logger\n");
-    }
     if (SERVER_SUCCESS != installDefaultSigHandlers()) {
         strncpy(errorMsg, MAIN_SYS_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    if (PLATFORM_SUCCESS != daemonize()) {
+    if (PLATFORM_SUCCESS != daemonize()) {  // TODO spostare?
         strncpy(errorMsg, MAIN_STARTUP_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }

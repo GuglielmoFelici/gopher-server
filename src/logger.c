@@ -15,6 +15,7 @@ int logTransfer(const logger_t* pLogger, LPCSTR log) {
     }
     WaitForSingleObject(*(pLogger->pLogMutex), INFINITE);
     if (!WriteFile(pLogger->logPipe, log, strlen(log), &written, NULL)) {
+        printf("log %d\n", GetLastError());
         return LOGGER_FAILURE;
     }
     if (!SetEvent(pLogger->logEvent)) {
@@ -69,7 +70,7 @@ int startTransferLog(logger_t* pLogger) {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    if (!CreateProcess(exec, NULL, NULL, NULL, FALSE, 0, NULL, pLogger->installationDir, &startupInfo, &processInfo)) {
+    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, pLogger->installationDir, &startupInfo, &processInfo)) {
         goto ON_ERROR;
     }
     pLogger->pid = processInfo.dwProcessId;

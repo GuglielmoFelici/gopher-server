@@ -13,6 +13,7 @@
 #define MAIN_SOCKET_ERR "Can't initialize socket."
 #define MAIN_BIND_ERR "Can't bind socket."
 #define MAIN_LISTEN_ERR "Socket - listen failed."
+#define MAIN_START_LOG_ERR "Error starting logger."
 #define MAIN_CLOSE_LOG_ERR "Error stopping logger."
 #define MAIN_FORK_ERR "Fork failed."
 #define MAIN_DAEMON_ERR "Can't daemonize process."
