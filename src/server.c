@@ -46,17 +46,19 @@ int destroyServer(server_t* pServer) {
 
 /* Termina graziosamente il programma. */
 static BOOL WINAPI ctrlC(DWORD signum) {
+    printf("ciao\n");
     return requestShutdown = (signum == CTRL_C_EVENT);
 }
 
 /* Richiede la rilettura del file di configurazione */
 static BOOL WINAPI ctrlBrk(DWORD signum) {
-    updateConfig = (signum == CTRL_BREAK_EVENT);
+    printf("ciao\n");
+    return updateConfig = (signum == CTRL_BREAK_EVENT);
 }
 
 /* Installa i gestori di eventi */
 int installDefaultSigHandlers() {
-    return SetConsoleCtrlHandler(ctrlC, TRUE) && SetConsoleCtrlHandler(ctrlBrk, TRUE) ? SERVER_SUCCESS : SERVER_FAILURE;
+    return (SetConsoleCtrlHandler(ctrlC, TRUE) && SetConsoleCtrlHandler(ctrlBrk, TRUE)) ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
@@ -334,7 +336,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         return SERVER_FAILURE;
     }
     fd_set incomingConnections;
-    struct timeval timeOut = SEL_TIMEOUT;
+    struct timeval timeOut;
     int ready = 0;
     printHeading(pServer);
     while (true) {
@@ -361,9 +363,10 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                 }
                 updateConfig = false;
             }
+            timeOut = SEL_TIMEOUT;
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
-        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0 || !FD_ISSET(pServer->sock, &incomingConnections));
+        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
         printf("Incoming connection on port %d\n", pServer->port);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
