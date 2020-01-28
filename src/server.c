@@ -7,6 +7,9 @@
 #include "../headers/platform.h"
 #include "../headers/protocol.h"
 
+#define CHECK_CONFIG 0x0001
+#define CHECK_SHUTDOWN 0x0002
+
 static _sig_atomic volatile updateConfig = false;     // Controllo della modifica del file di configurazione
 static _sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazione
 
@@ -19,6 +22,9 @@ static _sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazi
 
 #define SEL_TIMEOUT \
     (struct timeval) { 1, 0 }
+#define SIGNAL_MUTEX "sigMtx"
+
+static HANDLE signalMutex = NULL;
 
 void printHeading(const server_t* pServer) {
     printf("Listening on port %d (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
@@ -34,7 +40,10 @@ int initServer(server_t* pServer) {
     memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
-    return WSAStartup(versionWanted, &wsaData) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
+    if (WSAStartup(versionWanted, &wsaData) != 0) {
+        return SERVER_FAILURE;
+    }
+    return (signalMutex = CreateMutex(NULL, FALSE, SIGNAL_MUTEX)) ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 int destroyServer(server_t* pServer) {
@@ -44,20 +53,40 @@ int destroyServer(server_t* pServer) {
 
 /********************************************** SIGNALS *************************************************************/
 
-/* Termina graziosamente il programma. */
-static BOOL WINAPI ctrlC(DWORD signum) {
-    printf("ciao\n");
-    return requestShutdown = (signum == CTRL_C_EVENT);
-}
-
-/* Richiede la rilettura del file di configurazione */
-static BOOL WINAPI ctrlBrk(DWORD signum) {
-    return updateConfig = (signum == CTRL_BREAK_EVENT);
+static BOOL WINAPI ctrlHandler(DWORD signum) {
+    if (signum == CTRL_C_EVENT || signum == CTRL_BREAK_EVENT) {
+        if (WAIT_OBJECT_0 != WaitForSingleObject(signalMutex, INFINITE)) {
+            return FALSE;
+        }
+        if (signum == CTRL_C_EVENT) {
+            requestShutdown = true;
+        } else {
+            updateConfig = true;
+        }
+        return ReleaseMutex(signalMutex);
+    } else {
+        return FALSE;
+    }
 }
 
 /* Installa i gestori di eventi */
 int installDefaultSigHandlers() {
-    return (SetConsoleCtrlHandler(ctrlC, TRUE) && SetConsoleCtrlHandler(ctrlBrk, TRUE)) ? SERVER_SUCCESS : SERVER_FAILURE;
+    return SetConsoleCtrlHandler(ctrlHandler, TRUE) ? SERVER_SUCCESS : SERVER_FAILURE;
+}
+
+static bool checkSignal(int which) {
+    bool ret = false;
+    if (WAIT_OBJECT_0 != WaitForSingleObject(signalMutex, INFINITE)) {
+        return false;
+    }
+    if (which && CHECK_SHUTDOWN) {
+        ret = requestShutdown;
+    } else if (which && CHECK_CONFIG) {
+        ret = updateConfig;
+        updateConfig = false;
+    }
+    ReleaseMutex(signalMutex);
+    return ret;
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
@@ -99,7 +128,6 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     }
     if (pLogger) {
         logPipe = pLogger->logPipe;
-        logEvent = pLogger->logEvent;
     }
     char exec[MAX_NAME];
     if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, pServer->installationDir) < strlen(pServer->installationDir) + strlen(HELPER_PATH) + 1) {
@@ -195,6 +223,13 @@ int installDefaultSigHandlers() {
         return SERVER_FAILURE;
     }
     return installSigHandler(SIGHUP, &hupHandler, SA_NODEFER);
+}
+
+static bool checkSignal(int which) {
+    if (which && CHECK_SHUTDOWN) {
+        return requestShutdown;
+    }
+    return (which && CHECK_CONFIG) ? updateConfig : false;
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
@@ -345,9 +380,9 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         do {
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
-            } else if (requestShutdown) {
+            } else if (checkSignal(CHECK_SHUTDOWN)) {
                 return SERVER_SUCCESS;
-            } else if (updateConfig) {
+            } else if (checkSignal(CHECK_CONFIG)) {
                 printf("Updating config\n");
                 int prevMultiprocess = pServer->multiProcess;
                 if (readConfig(pServer, READ_PORT | READ_MULTIPROCESS) != 0) {
@@ -363,7 +398,6 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                 if (pServer->multiProcess != prevMultiprocess) {
                     printf("Switched to %s mode\n", pServer->multiProcess ? "multiprocess" : "multithreaded");
                 }
-                updateConfig = false;
             }
             timeOut = SEL_TIMEOUT;
             FD_ZERO(&incomingConnections);
