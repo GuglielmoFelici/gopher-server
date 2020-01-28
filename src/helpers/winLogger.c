@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <windows.h>
 
-#define LOG_ERR "Logger error\n"
+#define LOG_ERR "WARNING - Logger - Fatal error\n"
 #define MAX_LINE_SIZE 100
 #define LOGGER_EVENT_NAME "logEvent"
 #define LOG_FILE "logFile"
