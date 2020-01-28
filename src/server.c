@@ -52,7 +52,6 @@ static BOOL WINAPI ctrlC(DWORD signum) {
 
 /* Richiede la rilettura del file di configurazione */
 static BOOL WINAPI ctrlBrk(DWORD signum) {
-    printf("ciao\n");
     return updateConfig = (signum == CTRL_BREAK_EVENT);
 }
 
@@ -65,7 +64,6 @@ int installDefaultSigHandlers() {
 
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
 static DWORD WINAPI serveThreadTask(LPVOID args) {
-    SetConsoleCtrlHandler(ctrlBrk, FALSE);
     server_thread_args_t gopherArgs = *(server_thread_args_t*)args;
     free(args);
     gopher(gopherArgs.sock, gopherArgs.port, gopherArgs.pLogger);

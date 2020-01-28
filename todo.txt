@@ -1,7 +1,8 @@
 ﻿IMPORTANTE: HEADER GUARDS
 
 Common:
-    controllare re-entrance
+    hugely thread unsafe?
+        controllare re-entrance
     rivedere necessita di logger.installationDir
     rimuovere _logErr
     verificare tutti i print e i log
