@@ -17,7 +17,7 @@
 #include <windows.h>
 
 /* Ritorna il carattere di codifica del tipo di file */
-char gopherType(LPSTR filePath) {
+static char gopherType(LPCSTR filePath) {
     LPSTR ext;
     if (fileAttributes(filePath) & PLATFORM_ISDIR) {
         return GOPHER_DIR;
@@ -56,29 +56,28 @@ char gopherType(LPSTR filePath) {
 #include <string.h>
 
 /* Ritorna il carattere di codifica del tipo di file */
-char gopherType(char* file) {  // TODO const?
+static char gopherType(const char* file) {
     if (fileAttributes(file) & PLATFORM_ISDIR) {
         return GOPHER_DIR;
     }
     char cmd[MAX_NAME];
-    char cmdOut[FILE_CMD_MAX];
     FILE* response;
     int bytesRead;
     if (snprintf(cmd, sizeof(cmd), "file \"%s\"", file) < 0) {
         return GOPHER_UNKNOWN;
     }
     response = popen(cmd, "r");
-    bytesRead = fread(cmdOut, 1, FILE_CMD_MAX, response);
+    bytesRead = fread(cmd, 1, sizeof(cmd), response);
     fclose(response);
-    if (strstr(cmdOut, FILE_CMD_NOT_FOUND)) {
+    if (strstr(cmd, FILE_CMD_NOT_FOUND)) {
         return GOPHER_UNKNOWN;
-    } else if (strstr(cmdOut, FILE_CMD_EXEC1) || strstr(cmdOut, FILE_CMD_EXEC2)) {
+    } else if (strstr(cmd, FILE_CMD_EXEC1) || strstr(cmd, FILE_CMD_EXEC2)) {
         return GOPHER_BINARY;
-    } else if (strstr(cmdOut, FILE_CMD_IMG)) {
+    } else if (strstr(cmd, FILE_CMD_IMG)) {
         return GOPHER_IMAGE;
-    } else if (strstr(cmdOut, FILE_CMD_GIF)) {
+    } else if (strstr(cmd, FILE_CMD_GIF)) {
         return GOPHER_GIF;
-    } else if (strstr(cmdOut, FILE_CMD_TXT)) {
+    } else if (strstr(cmd, FILE_CMD_TXT)) {
         return GOPHER_TEXT;
     }
     return GOPHER_UNKNOWN;
@@ -91,22 +90,28 @@ char gopherType(char* file) {  // TODO const?
 
 /*****************************************************************************************************************/
 
-static void normalizePath(string_t str) {
-    string_t strtokptr;
+/* Rimuove CRLF; se la stringa è vuota, ci scrive "."; 
+   cambia tutti i backslash in forward slash; rimuove i trailing slash */
+static int normalizePath(string_t str) {
+    if (!str) {
+        return GOPHER_FAILURE;
+    }
     if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
         strcpy(str, ".");
     } else {
+        string_t strtokptr;
         strtok_r(str, CRLF, &strtokptr);
-    }
-    int len = strlen(str);
-    for (int i = 0; i < len; i++) {
-        if (str[i] == '\\') {
-            str[i] = '/';
+        int len = strlen(str);
+        for (int i = 0; i < len; i++) {
+            if (str[i] == '\\') {
+                str[i] = '/';
+            }
+        }
+        if (str[len - 1] == '/') {
+            str[len - 1] = '\0';
         }
     }
-    if (str[len - 1] == '/') {
-        str[len - 1] = '\0';
-    }
+    return GOPHER_SUCCESS;
 }
 
 static bool validateInput(string_t str) {
@@ -140,7 +145,9 @@ static int sendDir(cstring_t path, int sock, int port) {
     size_t lineSize, filePathSize;
     int res;
     while (PLATFORM_SUCCESS == (res = iterateDir(path, &dir, filePath, sizeof(filePath)))) {
-        normalizePath(filePath);
+        if (GOPHER_SUCCESS != normalizePath(filePath)) {
+            goto ON_ERROR;
+        }
         if (NULL == (fileName = strrchr(filePath, '/'))) {
             fileName = filePath;
         } else {
@@ -188,8 +195,8 @@ ON_ERROR:
 }
 
 /* Invia il file al client */
-// TODO static?
-void* sendFileTask(void* threadArgs) {
+// TODO static? per windows si
+static void* sendFileTask(void* threadArgs) {
     send_args_t args;
     struct sockaddr_in clientAddr;
     int clientLen;
@@ -213,11 +220,12 @@ void* sendFileTask(void* threadArgs) {
     }
     closeSocket(args.dest);
     inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
-    logSize = snprintf(NULL, 0, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) + 1;
+    string_t logFormat = "File: %s | Size: %db | Sent to: %s:%i\n";
+    logSize = snprintf(NULL, 0, logFormat, args.name, args.size, address, clientAddr.sin_port) + 1;
     if ((log = malloc(logSize)) == NULL) {
         return NULL;
     }
-    if (snprintf(log, logSize, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) > 0) {
+    if (snprintf(log, logSize, logFormat, args.name, args.size, address, clientAddr.sin_port) > 0) {
         logTransfer(args.pLogger, log);
     }
     free(log);
@@ -265,16 +273,18 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     } while (bytesRec > 0 && !strstr(selector, CRLF));
     printf("Selector: %s_\n", selector);
     if (!validateInput(selector)) {
-        sendErrorResponse(sock, BAD_SELECTOR_MSG);
+        sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
         goto ON_ERROR;
     }
-    normalizePath(selector);  // TODO rimuovi gli slash finali
+    if (GOPHER_SUCCESS != normalizePath(selector)) {
+        goto ON_ERROR;
+    }
     printf("Request: _%s_\n", selector);
     int fileAttr = fileAttributes(selector);
     if (PLATFORM_FILE_ERR & fileAttr) {
         sendErrorResponse(sock, PLATFORM_NOT_FOUND & fileAttr ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
         goto ON_ERROR;
-    } else if (PLATFORM_ISDIR & fileAttr) {  // Directory TODO aggiungi slash finale
+    } else if (PLATFORM_ISDIR & fileAttr) {
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
             goto ON_ERROR;
         }

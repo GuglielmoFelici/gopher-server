@@ -17,35 +17,12 @@ void errorString(LPSTR error, size_t size) {
                   error, size, NULL);
 }
 
-/* Termina graziosamente il logger, poi termina il server. */
-void _shutdown(SOCKET server) {
-    // TODO
-    // free(logMutex);
-    // closesocket(server);
-    // closesocket(awakeSelect);
-    // CloseHandle(*logMutex);
-    // CloseHandle(logEvent);
-    // CloseHandle(logPipe);
-    // printf("Shutting down...\n");
-    // ExitThread(0);
-}
-
 int getCwd(LPSTR dst, size_t size) {
     return GetCurrentDirectory(size, dst) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int changeCwd(LPCSTR path) {
     return SetCurrentDirectory(path) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
-}
-
-/********************************************** SIGNALS *************************************************************/
-
-int closeProc(DWORD pid) {
-    HANDLE proc;
-    if (NULL == (proc = OpenProcess(DELETE, FALSE, pid))) {
-        return PLATFORM_FAILURE;
-    }
-    return TerminateProcess(proc, 0) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -94,7 +71,7 @@ int fileAttributes(LPCSTR path) {
 
 /* Mappa un file in memoria */
 int getFileMap(LPCSTR path, file_mapping_t *mapData) {
-    HANDLE file = INVALID_HANDLE_VALUE, map = INVALID_HANDLE_VALUE;
+    HANDLE file = NULL, map = NULL;
     LPVOID view = NULL;
     LARGE_INTEGER fileSize;
     OVERLAPPED ovlp;
@@ -110,13 +87,17 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
         return PLATFORM_SUCCESS;
     }
     memset(&ovlp, 0, sizeof(ovlp));
+    if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
+        goto ON_ERROR;
+    }
+    if (NULL == (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL))) {
+        UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp);
+        goto ON_ERROR;
+    }
     if (
-        // TODO testare perché possono fallire queste chiamate
-        !LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
-        (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL ||
         !UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
         !CloseHandle(file) ||
-        (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) == NULL ||
+        NULL == (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) ||
         !CloseHandle(map)) {
         goto ON_ERROR;
     }
@@ -124,11 +105,14 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     mapData->size = fileSize.LowPart;
     return PLATFORM_SUCCESS;
 ON_ERROR:
-    if (file != INVALID_HANDLE_VALUE) {
+    if (file) {
         CloseHandle(file);
     }
-    if (map != INVALID_HANDLE_VALUE) {
+    if (map) {
         CloseHandle(map);
+    }
+    if (view) {
+        UnmapViewOfFile(view);
     }
     return PLATFORM_FAILURE;
 }
@@ -140,8 +124,8 @@ ON_ERROR:
 int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
     WIN32_FIND_DATA data;
     if (*dir == NULL) {
-        char dirPath[MAX_NAME + 1];
-        snprintf(dirPath, MAX_NAME, "%s/*", path);
+        char dirPath[MAX_NAME + 2];
+        snprintf(dirPath, sizeof(dirPath), "%s/*", path);
         if ((*dir = FindFirstFile(dirPath, &data)) == INVALID_HANDLE_VALUE) {
             return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
         }
@@ -160,7 +144,6 @@ int closeDir(HANDLE dir) {
 }
 
 int unmapMem(void *addr, size_t len) {
-    // TODO chiudere handle
     return UnmapViewOfFile(addr) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
@@ -194,12 +177,6 @@ int getCwd(char *dst, size_t size) {
 
 int changeCwd(const char *path) {
     return chdir(path) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
-}
-
-/********************************************** SIGNALS *************************************************************/
-
-int closeProc(proc_id_t pid) {
-    return pid > 0 && kill(pid, 0) == 0 && kill(pid, SIGINT) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -371,8 +348,6 @@ int unmapMem(void *addr, size_t len) {
     return munmap(addr, len) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-/*********************************************** LOGGER ***************************************************************/
-
 #endif
 
 /*****************************************************************************************************************/
@@ -384,23 +359,20 @@ bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-// TODO valori di ritorno
 int sendAll(socket_t s, cstring_t data, int length) {
     int count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);
         if (sent == SOCKET_ERROR) {
-            return SOCKET_ERROR;
+            return PLATFORM_FAILURE;
         }
         count += sent;
         length -= sent;
     }
-    return 0;
+    return PLATFORM_SUCCESS;
 }
 
 /* Stampa l'errore su stderr */
-void _logErr(cstring_t message) {
-    char buf[MAX_ERROR_SIZE];
-    errorString(buf, MAX_ERROR_SIZE);
-    fprintf(stderr, "%s\nSystem error message: %s\n", message, buf);
+void logErr(cstring_t message) {
+    fprintf(stderr, "%s\n", message);
 }

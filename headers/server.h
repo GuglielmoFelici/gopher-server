@@ -10,11 +10,10 @@
 #include "datatypes.h"
 #include "logger.h"
 
+#define HELPER_PATH "src\\helpers\\winGopherProcess.exe"
 #define CONFIG_DELIMITER '='
 #define DEFAULT_MULTI_PROCESS 0
 #define DEFAULT_PORT 7070
-#define INVALID_PORT 0
-#define INVALID_MULTIPROCESS -1
 #define READ_PORT 0x0001
 #define READ_MULTIPROCESS 0x0002
 #define SERVER_UPDATE 0

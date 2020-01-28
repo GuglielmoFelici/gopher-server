@@ -22,7 +22,7 @@ typedef struct {
 
 int initLogger(logger_t* pLogger);
 
-int destroyLogger(logger_t* pLogger);
+int stopLogger(logger_t* pLogger);
 
 int startTransferLog(logger_t* pLogger);
 

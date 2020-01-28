@@ -9,13 +9,13 @@
 /*****************************************************************************************************************/
 
 int logTransfer(const logger_t* pLogger, LPCSTR log) {
-    // TODO mutex
     DWORD written;
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
     WaitForSingleObject(*(pLogger->pLogMutex), INFINITE);
     if (!WriteFile(pLogger->logPipe, log, strlen(log), &written, NULL)) {
+        printf("log %d\n", GetLastError());
         return LOGGER_FAILURE;
     }
     if (!SetEvent(pLogger->logEvent)) {
@@ -30,7 +30,6 @@ int logTransfer(const logger_t* pLogger, LPCSTR log) {
 /* Avvia il processo di logging dei trasferimenti. */
 int startTransferLog(logger_t* pLogger) {
     char exec[MAX_NAME] = "";
-    snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, pLogger->installationDir);
     SECURITY_ATTRIBUTES attr;
     memset(&attr, 0, sizeof(attr));
     attr.bInheritHandle = TRUE;
@@ -42,6 +41,7 @@ int startTransferLog(logger_t* pLogger) {
     if (!pLogger) {
         goto ON_ERROR;
     }
+    snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, pLogger->installationDir);
     if (!CreatePipe(&readPipe, &writePipe, &attr, 0)) {
         goto ON_ERROR;
     }
@@ -92,11 +92,15 @@ ON_ERROR:
     return LOGGER_FAILURE;
 }
 
-int destroyLogger(logger_t* pLogger) {
+int stopLogger(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
+    if (!TerminateProcess(OpenProcess(DELETE, FALSE, pLogger->pid), 0)) {
+        return LOGGER_FAILURE;
+    }
     pLogger->pid = -1;
+    CloseHandle(*(pLogger->pLogMutex));
     if (pLogger->pLogMutex) {
         free(pLogger->pLogMutex);
     }
@@ -128,8 +132,11 @@ int destroyLogger(logger_t* pLogger) {
 #include <sys/types.h>
 #include <unistd.h>
 
-int destroyLogger(logger_t* pLogger) {
+int stopLogger(logger_t* pLogger) {
     if (!pLogger) {
+        return LOGGER_FAILURE;
+    }
+    if (pLogger->pid < 0 || kill(pLogger->pid, 0) != 0 || kill(pLogger->pid, SIGINT) != 0) {
         return LOGGER_FAILURE;
     }
     pLogger->pid = -1;
