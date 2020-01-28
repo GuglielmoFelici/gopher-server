@@ -10,8 +10,8 @@
 #define CHECK_CONFIG 0x0001
 #define CHECK_SHUTDOWN 0x0002
 
-static _sig_atomic volatile updateConfig = false;     // Controllo della modifica del file di configurazione
-static _sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazione
+static sig_atomic volatile updateConfig = false;     // Controllo della modifica del file di configurazione
+static sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazione
 
 #if defined(_WIN32)
 
@@ -22,7 +22,6 @@ static _sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazi
 
 #define SEL_TIMEOUT \
     (struct timeval) { 1, 0 }
-#define SIGNAL_MUTEX "sigMtx"
 
 static HANDLE signalMutex = NULL;
 
@@ -43,12 +42,12 @@ int initServer(server_t* pServer) {
     if (WSAStartup(versionWanted, &wsaData) != 0) {
         return SERVER_FAILURE;
     }
-    return (signalMutex = CreateMutex(NULL, FALSE, SIGNAL_MUTEX)) ? SERVER_SUCCESS : SERVER_FAILURE;
+    return (signalMutex = CreateMutex(NULL, FALSE, NULL)) ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 int destroyServer(server_t* pServer) {
     memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
-    return closesocket(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
+    return closesocket(pServer->sock) == 0 && CloseHandle(signalMutex) ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 /********************************************** SIGNALS *************************************************************/
