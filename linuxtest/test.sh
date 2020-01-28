@@ -29,6 +29,11 @@ echo "Testing files in $path
 Recursion limited to $depth
 Port $port"
 
+if [[ $(curl gopher://localhost:$port// 2>&1) =~ '[Ff]ail' ]]; then
+    echo "Failed to connect to server"
+    exit
+fi
+
 test -f $compFile || touch $compFile
 echo "" > $compFile
 test -d $outDir || mkdir $outDir >/dev/null 2>&1

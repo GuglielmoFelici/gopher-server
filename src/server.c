@@ -132,8 +132,14 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
 /* Serve una richiesta in modalità multiprocesso. */
 static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pServer) {
     // TODO goto on error
-    if (!pLogger || !pServer) {
+    pipe_t logPipe = NULL;
+    event_t logEvent = NULL;
+    if (!pServer) {
         return SERVER_FAILURE;
+    }
+    if (pLogger) {
+        logPipe = pLogger->logPipe;
+        logEvent = pLogger->logEvent;
     }
     char exec[MAX_NAME];
     if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, pServer->installationDir) < strlen(pServer->installationDir) + strlen(HELPER_PATH) + 1) {
@@ -153,11 +159,11 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     }
     LPSTR cmdLine = NULL;
     size_t cmdLineSize;
-    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p %p", exec, pServer->port, client, pLogger->logPipe, pLogger->logEvent) + 1;
+    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p %p", exec, pServer->port, client, logPipe, logEvent) + 1;
     if (NULL == (cmdLine = malloc(cmdLineSize))) {
         return SERVER_FAILURE;
     }
-    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p %p", exec, pServer->port, client, pLogger->logPipe, pLogger->logEvent) < cmdLineSize - 1) {
+    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p %p", exec, pServer->port, client, logPipe, logEvent) < cmdLineSize - 1) {
         free(cmdLine);
         return SERVER_FAILURE;
     }
