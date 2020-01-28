@@ -9,8 +9,6 @@
 
 static _sig_atomic volatile updateConfig = false;     // Controllo della modifica del file di configurazione
 static _sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazione
-static socket_t awakeSelect;                          // Socket per interrompere la select su windows
-static struct sockaddr_in awakeAddr;
 
 #if defined(_WIN32)
 
@@ -19,7 +17,8 @@ static struct sockaddr_in awakeAddr;
 
 /*****************************************************************************************************************/
 
-#include <windows.h>
+#define SEL_TIMEOUT \
+    (struct timeval) { 1, 0 }
 
 void printHeading(const server_t* pServer) {
     printf("Listening on port %d (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
@@ -40,78 +39,31 @@ int initServer(server_t* pServer) {
 
 int destroyServer(server_t* pServer) {
     memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
-    return closesocket(awakeSelect) == 0 && closesocket(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
-}
-
-/* Invia un messaggio vuoto al socket awakeSelect per interrompere la select del server. */
-static int wakeUpServer() {
-    SOCKET s;
-    if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == INVALID_SOCKET) {
-        return -1;
-    }
-    return sendto(s, "Wake up!", 0, 0, (struct sockaddr*)&awakeAddr, sizeof(awakeAddr));
+    return closesocket(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 /********************************************** SIGNALS *************************************************************/
 
 /* Termina graziosamente il programma. */
-static BOOL ctrlC(DWORD signum) {
-    if (signum == CTRL_C_EVENT) {
-        requestShutdown = true;
-        if (wakeUpServer() < 0) {
-            logErr("Can't close gracefully");
-            exit(1);
-        }
-        return true;
-    }
-    return false;
+static BOOL WINAPI ctrlC(DWORD signum) {
+    return requestShutdown = (signum == CTRL_C_EVENT);
 }
 
 /* Richiede la rilettura del file di configurazione */
-static BOOL ctrlBrk(DWORD signum) {
-    if (signum == CTRL_BREAK_EVENT) {
-        updateConfig = true;  // TODO solo se main?
-        if (wakeUpServer() < 0) {
-            logErr("Error updating");
-        }
-        return true;
-    }
-    return false;
+static BOOL WINAPI ctrlBrk(DWORD signum) {
+    updateConfig = (signum == CTRL_BREAK_EVENT);
 }
 
 /* Installa i gestori di eventi */
 int installDefaultSigHandlers() {
-    awakeSelect = socket(AF_INET, SOCK_DGRAM, 0);
-    if (INVALID_SOCKET == awakeSelect) {
-        return SERVER_FAILURE;
-    }
-    memset(&awakeAddr, 0, sizeof(awakeAddr));
-    awakeAddr.sin_family = AF_INET;
-    awakeAddr.sin_port = 0;
-    awakeAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    size_t awakeAddrSize = sizeof(awakeAddr);
-    if (SOCKET_ERROR == bind(awakeSelect, (struct sockaddr*)&awakeAddr, sizeof(awakeAddr))) {
-        goto ON_ERROR;
-    }
-    if (SOCKET_ERROR == getsockname(awakeSelect, (struct sockaddr*)&awakeAddr, &awakeAddrSize)) {
-        goto ON_ERROR;
-    }
-    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlC, TRUE)) {
-        goto ON_ERROR;
-    }
-    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ctrlBrk, TRUE)) {
-        goto ON_ERROR;
-    }
-    return SERVER_SUCCESS;
-ON_ERROR:
-    closesocket(awakeSelect);
-    return SERVER_FAILURE;
+    return SetConsoleCtrlHandler(ctrlC, TRUE) && SetConsoleCtrlHandler(ctrlBrk, TRUE) ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
 /* Task lanciato dal server per avviare un thread che esegue il protocollo Gopher. */
 static DWORD WINAPI serveThreadTask(LPVOID args) {
+    SetConsoleCtrlHandler(ctrlBrk, FALSE);
     server_thread_args_t gopherArgs = *(server_thread_args_t*)args;
     free(args);
     gopher(gopherArgs.sock, gopherArgs.port, gopherArgs.pLogger);
@@ -187,6 +139,10 @@ ON_ERROR:
 /*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
+
+#include <sys/time.h>
+
+#define SEL_TIMEOUT NULL
 
 void printHeading(const server_t* pServer) {
     printf("Started daemon with pid %d\n", getpid());
@@ -378,14 +334,15 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         return SERVER_FAILURE;
     }
     fd_set incomingConnections;
+    struct timeval timeOut = SEL_TIMEOUT;
     int ready = 0;
     printHeading(pServer);
     while (true) {
         do {
-            if (requestShutdown) {
-                return SERVER_SUCCESS;
-            } else if (SOCKET_ERROR == ready && EINTR != sockErr()) {
+            if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
+            } else if (requestShutdown) {
+                return SERVER_SUCCESS;
             } else if (updateConfig) {
                 printf("Updating config\n");
                 int prevMultiprocess = pServer->multiProcess;
@@ -406,8 +363,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             }
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
-            FD_SET(awakeSelect, &incomingConnections);
-        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, NULL)) < 0 || !FD_ISSET(pServer->sock, &incomingConnections));
+        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0 || !FD_ISSET(pServer->sock, &incomingConnections));
         printf("Incoming connection on port %d\n", pServer->port);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {

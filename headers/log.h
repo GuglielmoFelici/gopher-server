@@ -21,6 +21,7 @@
 #define MAIN_CLOSE_SOCKET_ERR "Errore closing socket."
 #define MAIN_ALLOC_ERR "Memory allocation failed."
 #define MAIN_SYS_ERR "System error."
+#define MAIN_CTRL_ERR "Error setting up console ctrl events handlers."
 #define MAIN_USAGE "Available options:\n-h\tshow usage help\n-p=PORT\tsets the port to PORT\n-d=DIR\tchanges cwd of the server to DIR\n-m\tactivates multiprocess mode"
 
 #define WARN "WARNING - "

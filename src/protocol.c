@@ -220,11 +220,12 @@ static void* sendFileTask(void* threadArgs) {
     }
     closeSocket(args.dest);
     inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
-    logSize = snprintf(NULL, 0, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) + 1;
+    string_t logFormat = "File: %s | Size: %db | Sent to: %s:%i\n";
+    logSize = snprintf(NULL, 0, logFormat, args.name, args.size, address, clientAddr.sin_port) + 1;
     if ((log = malloc(logSize)) == NULL) {
         return NULL;
     }
-    if (snprintf(log, logSize, "File: %s | Size: %db | Sent to: %s:%i\n", args.name, args.size, address, clientAddr.sin_port) > 0) {
+    if (snprintf(log, logSize, logFormat, args.name, args.size, address, clientAddr.sin_port) > 0) {
         logTransfer(args.pLogger, log);
     }
     free(log);
@@ -272,7 +273,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     } while (bytesRec > 0 && !strstr(selector, CRLF));
     printf("Selector: %s_\n", selector);
     if (!validateInput(selector)) {
-        sendErrorResponse(sock, BAD_SELECTOR_MSG);
+        sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
         goto ON_ERROR;
     }
     if (GOPHER_SUCCESS != normalizePath(selector)) {

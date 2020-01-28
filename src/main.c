@@ -72,7 +72,7 @@ int main(int argc, string_t* argv) {
         goto ON_ERROR;
     }
     if (SERVER_SUCCESS != installDefaultSigHandlers()) {
-        strncpy(errorMsg, MAIN_SYS_ERR, sizeof(errorMsg));
+        strncpy(errorMsg, MAIN_CTRL_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
     if (PLATFORM_SUCCESS != daemonize()) {  // TODO spostare?

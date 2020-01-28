@@ -13,7 +13,6 @@
 #define GOPHER_NOT_FOUND 0x0002
 // Messages
 #define ERROR_MSG "3Error"
-#define BAD_SELECTOR_MSG "Bad selector"
 #define RESOURCE_NOT_FOUND_MSG "Resource not found"
 #define SYS_ERR_MSG " Internal error"
 #define GOPHER_DOMAIN "localhost"

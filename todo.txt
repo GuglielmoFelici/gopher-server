@@ -17,17 +17,12 @@ Common:
     
 
 Linux:
-    SPOSTARE LINUX LOGGING IN HELPER FILE?
     Processo daemon linux:
         loggare con syslog invece di file
     LOGGING TUTTO SBAGLIATO
 
 Windows:
-    detach console del logger? (per evitare ctrl-c del padre)
-    attenzione: subthread ricevono eventi console (e.g. rilettura configurazione)
     verificare chiusura di tutti gli handle
-    Eliminare validateInput()?
-    Windows Logger
     InstallDefaultSigHandlers
         evitabile socket per awake select?
 
