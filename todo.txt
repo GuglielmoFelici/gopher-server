@@ -18,6 +18,7 @@ Common:
     
 
 Linux:
+    sig_atomic basta?
     Processo daemon linux:
         loggare con syslog invece di file
     LOGGING TUTTO SBAGLIATO
