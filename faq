@@ -3,6 +3,7 @@ Share handles in windows:
 Share socket in windows:
     https://stackoverflow.com/questions/21025120/pass-socket-to-child-process
     https://stackoverflow.com/questions/12058911/can-tcp-socket-handles-be-set-not-inheritable
+    https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-sethandleinformation
 Detachare thread in windows:
     Chiudere handle e basta, memoria thread liberata quando finiscono handle associati aperti
     https://stackoverflow.com/questions/1981459/using-threads-in-c-on-windows-simple-example

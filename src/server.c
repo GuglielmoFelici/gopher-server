@@ -29,7 +29,6 @@ void printHeading(const server_t* pServer) {
     printf("Listening on port %d (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
 }
 
-/* Inizializza la WSA */
 int initServer(server_t* pServer) {
     if (!pServer) {
         return SERVER_FAILURE;
@@ -46,7 +45,6 @@ int initServer(server_t* pServer) {
 }
 
 int destroyServer(server_t* pServer) {
-    memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
     return closesocket(pServer->sock) == 0 && CloseHandle(signalMutex) ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
@@ -150,6 +148,9 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
         goto ON_ERROR;
     }
     if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p", exec, pServer->port, client, logPipe) < cmdLineSize - 1) {
+        goto ON_ERROR;
+    }
+    if (!SetHandleInformation((HANDLE)pServer->sock, HANDLE_FLAG_INHERIT, 0)) {
         goto ON_ERROR;
     }
     if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
@@ -384,7 +385,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             } else if (checkSignal(CHECK_CONFIG)) {
                 printf("Updating config\n");
                 int prevMultiprocess = pServer->multiProcess;
-                if (readConfig(pServer, READ_PORT | READ_MULTIPROCESS) != 0) {
+                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS)) {
                     logErr(WARN MAIN_CONFIG_ERR);
                     defaultConfig(pServer, READ_PORT);
                 }
@@ -405,15 +406,18 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         printf("Incoming connection on port %d\n", pServer->port);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
-            logErr(WARN "Error serving client");
+            logErr(WARN SERVE_CLIENT_ERR);
         } else if (pServer->multiProcess) {
             // TODO controllare return value
             if (SERVER_SUCCESS != serveProc(client, pLogger, pServer)) {
-                logErr("Error serving client\n");
+                logErr(SERVE_CLIENT_ERR);
             };
-            closeSocket(client);  // TODO Questo??
+            closeSocket(client);
         } else {
-            serveThread(client, pServer->port, pLogger);
+            if (SERVER_SUCCESS != serveThread(client, pServer->port, pLogger)) {
+                logErr(SERVE_CLIENT_ERR);
+                closeSocket(client);
+            }
         }
     }
     return SERVER_SUCCESS;

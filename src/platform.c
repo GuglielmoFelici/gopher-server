@@ -372,7 +372,6 @@ int sendAll(socket_t s, cstring_t data, int length) {
     return PLATFORM_SUCCESS;
 }
 
-/* Stampa l'errore su stderr */
 void logErr(cstring_t message) {
     fprintf(stderr, "%s\n", message);
 }

@@ -59,6 +59,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
     if (LOGGER_SUCCESS != getLogger(pLogger, argv)) {
         pLogger = NULL;
     }
-    gopher(sock, port, pLogger);
-    ExitThread(0);
+    if (GOPHER_SUCCESS == gopher(sock, port, pLogger)) {
+        ExitThread(0);
+    }
 }

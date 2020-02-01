@@ -12,15 +12,16 @@ int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
     char errorMsg[MAX_ERR] = "";
+    /* Inizializzazione delle strutture di configurazione */
     if (SERVER_SUCCESS != initServer(&server)) {
         strncpy(errorMsg, MAIN_STARTUP_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
-    initLogger(&logger);
     if (PLATFORM_SUCCESS != getCwd(server.installationDir, sizeof(server.installationDir))) {
         strncpy(errorMsg, MAIN_CWD_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
+    initLogger(&logger);
     strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
     snprintf(server.configFile, sizeof(server.configFile), "%s/%s", server.installationDir, CONFIG_FILE);
     if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
@@ -54,9 +55,6 @@ int main(int argc, string_t* argv) {
                     logErr(WARN MAIN_CWD_ERR);
                 }
                 break;
-            case '?':
-                strncpy(errorMsg, MAIN_USAGE, sizeof(errorMsg));
-                goto ON_ERROR;
             default:
                 strncpy(errorMsg, MAIN_USAGE, sizeof(errorMsg));
                 goto ON_ERROR;
@@ -66,7 +64,7 @@ int main(int argc, string_t* argv) {
     if (!pLogger) {
         logErr(WARN MAIN_START_LOG_ERR);
     }
-    /* Configurazione */
+    /* Configurazione ambiente */
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
         strncpy(errorMsg, MAIN_SOCKET_ERR, sizeof(errorMsg));
         goto ON_ERROR;
@@ -79,6 +77,7 @@ int main(int argc, string_t* argv) {
         strncpy(errorMsg, MAIN_STARTUP_ERR, sizeof(errorMsg));
         goto ON_ERROR;
     }
+    /* Avvio */
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {
         strncpy(errorMsg, MAIN_STARTUP_ERR, sizeof(errorMsg));
         goto ON_ERROR;

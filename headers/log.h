@@ -23,6 +23,7 @@
 #define MAIN_SYS_ERR "System error."
 #define MAIN_CTRL_ERR "Error setting up console ctrl events handlers."
 #define MAIN_USAGE "Available options:\n-h\tshow usage help\n-p=PORT\tsets the port to PORT\n-d=DIR\tchanges cwd of the server to DIR\n-m\tactivates multiprocess mode"
+#define SERVE_CLIENT_ERR "Error serving client."
 
 #define WARN "WARNING - "
 
