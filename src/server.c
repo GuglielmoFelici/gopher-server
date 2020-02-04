@@ -182,6 +182,9 @@ void printHeading(const server_t* pServer) {
 }
 
 int initServer(server_t* pServer) {
+    if (!pServer) {
+        return SERVER_FAILURE;
+    }
     strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
     pServer->sock = INVALID_SOCKET;
     memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));

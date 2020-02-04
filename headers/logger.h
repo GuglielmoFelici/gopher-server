@@ -4,6 +4,7 @@
 #include "datatypes.h"
 
 #define LOGGER_PATH "src\\helpers\\winLogger.exe"
+#define LOG_FILE "logFile"
 #define LOG_MUTEX_NAME "logMutex"
 #define LOGGER_EVENT_NAME "logEvent"
 #define MAX_LINE_SIZE 100

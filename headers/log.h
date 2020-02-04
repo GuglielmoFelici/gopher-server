@@ -2,13 +2,14 @@
 #define LOG_H
 
 #define _GNU_SOURCE
-#include "datatypes.h"
+
+#define MAX_ERR 100
 
 #define MAIN_CONFIG_ERR "Can't read configuration file, default settings will be used."
 #define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file, multiprocess will be disabled."
 #define MAIN_PORT_CONFIG_ERR "Can't read configuration for port, default one will be used."
 #define MAIN_CWD_ERR "Can't get current working directory"
-#define MAIN_STARTUP_ERR "Errore starting up."
+#define MAIN_STARTUP_ERR "Error starting up."
 #define MAIN_SELECT_ERR "Select failed."
 #define MAIN_SOCKET_ERR "Can't initialize socket."
 #define MAIN_BIND_ERR "Can't bind socket."
@@ -24,6 +25,13 @@
 #define MAIN_CTRL_ERR "Error setting up console ctrl events handlers."
 #define MAIN_USAGE "Available options:\n-h\tshow usage help\n-p=PORT\tsets the port to PORT\n-d=DIR\tchanges cwd of the server to DIR\n-m\tactivates multiprocess mode"
 #define SERVE_CLIENT_ERR "Error serving client."
+#define LOGFILE_NAME_ERR "Log file name too long."
+#define LOGFILE_OPEN_ERR "Error opening log file."
+#define LOGFILE_WRITE_ERR "Error writing to log file"
+#define MUTEX_LOCK_ERR "Can't lock mutex."
+#define COND_WAIT_ERR "Error waiting on the condition variable."
+#define PIPE_READ_ERR "Error reading from pipe."
+#define PIPE_CLOSE_ERR "Can't close pipe."
 
 #define WARN "WARNING - "
 

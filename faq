@@ -1,13 +1,15 @@
 Share handles in windows:
     https://docs.microsoft.com/en-us/windows/win32/sysinfo/handle-inheritance
+Multiprocess mutex linux:
+    http://man7.org/linux/man-pages/man3/pthread_mutexattr_getpshared.3.html
 Share socket in windows:
+    https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-sethandleinformation
     https://stackoverflow.com/questions/21025120/pass-socket-to-child-process
     https://stackoverflow.com/questions/12058911/can-tcp-socket-handles-be-set-not-inheritable
-    https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-sethandleinformation
 Detachare thread in windows:
     Chiudere handle e basta, memoria thread liberata quando finiscono handle associati aperti
-    https://stackoverflow.com/questions/1981459/using-threads-in-c-on-windows-simple-example
     https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitthread
+    https://stackoverflow.com/questions/1981459/using-threads-in-c-on-windows-simple-example
 Daemon:
     https://stackoverflow.com/questions/17954432/creating-a-daemon-in-linux
 Malloc thread safe:

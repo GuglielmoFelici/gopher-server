@@ -5,25 +5,23 @@
 #include "../headers/server.h"
 #include "../headers/wingetopt.h"
 
-#define MAX_ERR 100
 #define CONFIG_FILE "config"
 
 int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
-    char errorMsg[MAX_ERR] = "";
     /* Inizializzazione delle strutture di configurazione */
     if (SERVER_SUCCESS != initServer(&server)) {
-        strncpy(errorMsg, MAIN_STARTUP_ERR, sizeof(errorMsg));
+        logErr(MAIN_STARTUP_ERR);
         goto ON_ERROR;
     }
     if (PLATFORM_SUCCESS != getCwd(server.installationDir, sizeof(server.installationDir))) {
-        strncpy(errorMsg, MAIN_CWD_ERR, sizeof(errorMsg));
+        logErr(MAIN_CWD_ERR);
         goto ON_ERROR;
     }
+    snprintf(server.configFile, sizeof(server.configFile), "%s/%s", server.installationDir, CONFIG_FILE);
     initLogger(&logger);
     strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
-    snprintf(server.configFile, sizeof(server.configFile), "%s/%s", server.installationDir, CONFIG_FILE);
     if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
         logErr(WARN " - " MAIN_PORT_CONFIG_ERR);
         defaultConfig(&server, READ_PORT);
@@ -37,7 +35,7 @@ int main(int argc, string_t* argv) {
     while ((opt = getopt(argc, argv, "mhp:d:")) != -1) {
         switch (opt) {
             case 'h':
-                strncpy(errorMsg, MAIN_USAGE, sizeof(errorMsg));
+                logErr(MAIN_USAGE);
                 goto ON_ERROR;
             case 'm':
                 server.multiProcess = true;
@@ -56,7 +54,7 @@ int main(int argc, string_t* argv) {
                 }
                 break;
             default:
-                strncpy(errorMsg, MAIN_USAGE, sizeof(errorMsg));
+                logErr(MAIN_USAGE);
                 goto ON_ERROR;
         }
     }
@@ -66,20 +64,20 @@ int main(int argc, string_t* argv) {
     }
     /* Configurazione ambiente */
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
-        strncpy(errorMsg, MAIN_SOCKET_ERR, sizeof(errorMsg));
+        logErr(MAIN_SOCKET_ERR);
         goto ON_ERROR;
     }
     if (SERVER_SUCCESS != installDefaultSigHandlers()) {
-        strncpy(errorMsg, MAIN_CTRL_ERR, sizeof(errorMsg));
+        logErr(MAIN_CTRL_ERR);
         goto ON_ERROR;
     }
     if (PLATFORM_SUCCESS != daemonize()) {  // TODO spostare?
-        strncpy(errorMsg, MAIN_STARTUP_ERR, sizeof(errorMsg));
+        logErr(MAIN_STARTUP_ERR);
         goto ON_ERROR;
     }
     /* Avvio */
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {
-        strncpy(errorMsg, MAIN_STARTUP_ERR, sizeof(errorMsg));
+        logErr(MAIN_STARTUP_ERR);
         goto ON_ERROR;
     }
     destroyServer(&server);
@@ -87,7 +85,6 @@ int main(int argc, string_t* argv) {
     printf("Done.\n");
     return 0;
 ON_ERROR:
-    logErr(errorMsg);
     stopLogger(&logger);
     destroyServer(&server);
     stopLogger(&logger);
