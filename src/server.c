@@ -313,8 +313,8 @@ int prepareSocket(server_t* pServer, int flags) {
     }
     return SERVER_SUCCESS;
 ON_ERROR:
-    if (pServer) {
-        closesocket(pServer->sock);
+    if (pServer && pServer->sock != INVALID_SOCKET) {
+        closeSocket(pServer->sock);
     }
     return SERVER_FAILURE;
 }
