@@ -3,9 +3,15 @@
 
 #if defined(_WIN32)
 #include <windows.h>
+#define LOG_DEBUG 0
+#define LOG_INFO 1
+#define LOG_WARNING 2
+#define LOG_ERR 3
+
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#define SOCKET_ERROR -1
 #endif
 
 #include <stdbool.h>
@@ -14,25 +20,19 @@
 
 #define PLATFORM_SUCCESS 0x0000
 #define PLATFORM_FAILURE 0x0001
-
 #define PLATFORM_FILE_ERR 0x0001
 #define PLATFORM_ISFILE 0x0002
 #define PLATFORM_ISDIR 0x0004
 #define PLATFORM_NOT_FOUND 0x0008
 #define PLATFORM_END_OF_DIR 0x0010
 
-#ifndef SOCKET_ERROR
-#define SOCKET_ERROR -1
-#endif
-
-/* Utils */
 bool endsWith(cstring_t str1, cstring_t str2);
 
 int getCwd(string_t dst, size_t size);
 
 int changeCwd(cstring_t path);
 
-void logErr(cstring_t message);
+void logMessage(cstring_t message, int level);
 
 /* Sockets */
 

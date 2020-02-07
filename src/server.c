@@ -204,7 +204,6 @@ static void hupHandler(int signum) {
 }
 /* Richiede la terminazione */
 static void intHandler(int signum) {
-    printf("ciao, sono %d\n", getpid());
     requestShutdown = true;
 }
 
@@ -275,6 +274,18 @@ static int serveProc(int client, const logger_t* pLogger, const server_t* pServe
     if (pid < 0) {
         return SERVER_FAILURE;
     } else if (pid == 0) {
+        if (
+            sigemptyset(&set) != 0 ||
+            sigaddset(&set, SIGHUP) != 0 ||
+            pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) ||
+            sigemptyset(&set) != 0 ||
+            sigaddset(&set, SIGINT) != 0 ||
+            pthread_sigmask(SIG_DFL, &set, NULL) != 0) {
+                exit(1);
+            }
+        if (close(pServer->sock) < 0) {
+            exit(1);
+        }
         gopher(client, pServer->port, pLogger);
         pthread_exit(0);
     } else {
@@ -378,47 +389,43 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     fd_set incomingConnections;
     struct timeval timeOut;
     int ready = 0;
-    printHeading(pServer);
+    printHeading(pServer);  // TODO usare syslog
     while (true) {
         do {
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
+                logMessage(SHUTDOWN_REQUESTED, LOG_INFO);
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG)) {
-                printf("Updating config\n");
-                int prevMultiprocess = pServer->multiProcess;
+                logMessage(UPDATE_REQUESTED, LOG_INFO);
                 if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS)) {
-                    logErr(WARN MAIN_CONFIG_ERR);
+                    logMessage(MAIN_CONFIG_ERR, LOG_WARNING);
                     defaultConfig(pServer, READ_PORT);
                 }
                 if (pServer->port != htons(pServer->sockAddr.sin_port)) {
                     if (SERVER_FAILURE == prepareSocket(pServer, SERVER_UPDATE)) {
                         return SERVER_FAILURE;
                     }
-                    printf("Switched to port %i\n", pServer->port);
-                }
-                if (pServer->multiProcess != prevMultiprocess) {
-                    printf("Switched to %s mode\n", pServer->multiProcess ? "multiprocess" : "multithreaded");
                 }
             }
             timeOut = SEL_TIMEOUT;
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
         } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
-        printf("Incoming connection on port %d\n", pServer->port);
+        logMessage(INCOMING_CONNECTION, LOG_INFO);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
-            logErr(WARN SERVE_CLIENT_ERR);
+            logMessage(SERVE_CLIENT_ERR, LOG_WARNING);
         } else if (pServer->multiProcess) {
             // TODO controllare return value
             if (SERVER_SUCCESS != serveProc(client, pLogger, pServer)) {
-                logErr(SERVE_CLIENT_ERR);
+                logMessage(SERVE_CLIENT_ERR, LOG_ERR);
             };
             closeSocket(client);
         } else {
             if (SERVER_SUCCESS != serveThread(client, pServer->port, pLogger)) {
-                logErr(SERVE_CLIENT_ERR);
+                logMessage(SERVE_CLIENT_ERR, LOG_ERR);
                 closeSocket(client);
             }
         }

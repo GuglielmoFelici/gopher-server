@@ -25,6 +25,20 @@ int changeCwd(LPCSTR path) {
     return SetCurrentDirectory(path) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
+void logMessage(cstring_t message, int level) {
+    string_t lvl = "";
+    if (strmcp(level, LOG_DEBUG) == 0) {
+        lvl = "DEBUG";
+    } else if (strmcp(level, LOG_INFO) == 0) {
+        lvl = "INFO";
+    } else if (strmcp(level, LOG_WARNING) == 0) {
+        lvl = "WARNING";
+    } else if (strmcp(level, LOG_ERR) == 0) {
+        lvl = "ERROR";
+    }
+    fprintf(stderr, "%s - %s\n", lvl, message);  // TODO system error
+}
+
 /********************************************** SOCKETS *************************************************************/
 
 /* Ritorna l'ultimo codice di errore relativo alle chiamate WSA */
@@ -177,6 +191,10 @@ int getCwd(char *dst, size_t size) {
 
 int changeCwd(const char *path) {
     return chdir(path) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
+void logMessage(cstring_t message, int level) {
+    syslog(level, message);
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -370,8 +388,4 @@ int sendAll(socket_t s, cstring_t data, int length) {
         length -= sent;
     }
     return PLATFORM_SUCCESS;
-}
-
-void logErr(cstring_t message) {
-    fprintf(stderr, "%s\n", message);
 }

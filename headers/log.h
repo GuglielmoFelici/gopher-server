@@ -32,7 +32,8 @@
 #define COND_WAIT_ERR "Error waiting on the condition variable."
 #define PIPE_READ_ERR "Error reading from pipe."
 #define PIPE_CLOSE_ERR "Can't close pipe."
-
-#define WARN "WARNING - "
+#define SHUTDOWN_REQUESTED "Shutdown requested."
+#define UPDATE_REQUESTED "Requested configuration update."
+#define INCOMING_CONNECTION "Incoming connection."
 
 #endif

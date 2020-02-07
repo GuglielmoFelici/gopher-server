@@ -181,30 +181,30 @@ static void loggerLoop(const logger_t* pLogger) {
     prctl(PR_SET_NAME, "gopherlogger");
     prctl(PR_SET_PDEATHSIG, SIGINT);
     if (snprintf(logFilePath, sizeof(logFilePath), "%s/" LOG_FILE, pLogger->installationDir) >= sizeof(logFilePath)) {
-        logErr(LOGFILE_NAME_ERR);
+        logMessage(LOGFILE_NAME_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     // i diritti sono giusti?
     if ((logFile = creat(logFilePath, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
-        logErr(LOGFILE_OPEN_ERR);
+        logMessage(LOGFILE_OPEN_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     if (pthread_mutex_lock(pLogger->pLogMutex) != 0) {
-        logErr(MUTEX_LOCK_ERR);
+        logMessage(MUTEX_LOCK_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     while (1) {
         size_t bytesRead;
         if (pthread_cond_wait(pLogger->pLogCond, pLogger->pLogMutex) != 0) {
-            logErr(COND_WAIT_ERR);
+            logMessage(COND_WAIT_ERR, LOG_ERR);
             goto ON_ERROR;
         }
         if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff))) < 0) {
-            logErr(PIPE_READ_ERR);
+            logMessage(PIPE_READ_ERR, LOG_ERR);
             goto ON_ERROR;
         } else {
             if (write(logFile, buff, bytesRead) != bytesRead) {
-                logErr(LOGFILE_WRITE_ERR);
+                logMessage(LOGFILE_WRITE_ERR, LOG_ERR);
                 goto ON_ERROR;
             }
         }
@@ -249,11 +249,11 @@ int startTransferLog(logger_t* pLogger) {
         goto ON_ERROR;
     }
     *pCond = cond;
+    pLogger->pLogCond = pCond;
+    pLogger->pLogMutex = pMutex;
     if (pipe(pipeFd) < 0) {
         goto ON_ERROR;
     }
-    pLogger->pLogCond = pCond;
-    pLogger->pLogMutex = pMutex;
     if ((pid = fork()) < 0) {
         goto ON_ERROR;
     } else if (pid == 0) {  // Logger
@@ -270,7 +270,7 @@ int startTransferLog(logger_t* pLogger) {
         loggerLoop(pLogger);
     } else {  // Server
         if (close(pipeFd[0]) < 0) {
-            logErr(PIPE_CLOSE_ERR);
+            logMessage(PIPE_CLOSE_ERR, LOG_WARNING);
         }
         pLogger->logPipe = pipeFd[1];
         pLogger->pid = pid;
