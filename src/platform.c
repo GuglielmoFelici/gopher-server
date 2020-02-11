@@ -318,7 +318,7 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
     if ((fd = open(path, O_RDONLY)) < 0) {
         return PLATFORM_FAILURE;
     }
-    if (flock(fd, LOCK_EX) < 0) {
+    if (flock(fd, LOCK_EX) < 0) {  // Verificare rispetto a lockf e fcntl
         return PLATFORM_FAILURE;
     }
     if (fstat(fd, &statBuf) < 0) {
