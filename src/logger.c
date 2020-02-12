@@ -15,7 +15,6 @@ int logTransfer(const logger_t* pLogger, LPCSTR log) {
     }
     WaitForSingleObject(*(pLogger->pLogMutex), INFINITE);
     if (!WriteFile(pLogger->logPipe, log, strlen(log), &written, NULL)) {
-        printf("log %d\n", GetLastError());
         return LOGGER_FAILURE;
     }
     if (!SetEvent(pLogger->logEvent)) {

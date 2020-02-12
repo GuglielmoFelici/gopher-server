@@ -271,7 +271,7 @@ static int serveProc(int client, const logger_t* pLogger, const server_t* pServe
         return SERVER_FAILURE;
     } else if (pid == 0) {
         if (
-            sigemptyset(&set) != 0 ||
+            sigemptyset(&set) != 0 ||  // TODO quale set??
             sigaddset(&set, SIGHUP) != 0 ||
             pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) ||
             sigemptyset(&set) != 0 ||
@@ -414,7 +414,6 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         if (INVALID_SOCKET == client) {
             logMessage(SERVE_CLIENT_ERR, LOG_WARNING);
         } else if (pServer->multiProcess) {
-            // TODO controllare return value
             if (SERVER_SUCCESS != serveProc(client, pLogger, pServer)) {
                 logMessage(SERVE_CLIENT_ERR, LOG_ERR);
             };

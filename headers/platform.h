@@ -69,4 +69,6 @@ int detachThread(thread_t tid);
 
 int daemonize();
 
+void debugPause(cstring_t message);
+
 #endif

@@ -139,16 +139,17 @@ static int sendErrorResponse(socket_t sock, cstring_t msg) {
 
 /* Costruisce la lista dei file e la invia al client */
 static int sendDir(cstring_t path, int sock, int port) {
+    if (!path) {
+        return GOPHER_FAILURE;
+    }
     _dir dir = NULL;
     char filePath[MAX_NAME];
     char *fileName = NULL, *line = NULL;
     size_t lineSize, filePathSize;
     int res;
     while (PLATFORM_SUCCESS == (res = iterateDir(path, &dir, filePath, sizeof(filePath)))) {
-        if (GOPHER_SUCCESS != normalizePath(filePath)) {
-            goto ON_ERROR;
-        }
-        if (NULL == (fileName = strrchr(filePath, '/'))) {
+        normalizePath(filePath);
+        if (NULL == (fileName = strrchr(filePath, '/'))) {  // Isola il nome del file (dopo l'ultimo "/"")
             fileName = filePath;
         } else {
             fileName++;
@@ -257,7 +258,6 @@ static int sendFile(cstring_t name, const file_mapping_t* map, int sock, const l
 /* Esegue il protocollo. */
 int gopher(socket_t sock, int port, const logger_t* pLogger) {
     string_t selector = NULL;
-    file_mapping_t map;
     char buf[BUFF_SIZE];
     size_t bytesRec = 0, selectorSize = 1;
     do {
@@ -271,24 +271,21 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         selectorSize += bytesRec;
         selector[selectorSize - 1] = '\0';
     } while (bytesRec > 0 && !strstr(selector, CRLF));
-    printf("Selector: %s_\n", selector);
     if (!validateInput(selector)) {
-        sendErrorResponse(sock, RESOURCE_NOT_FOUND_MSG);
+        sendErrorResponse(sock, INVALID_SELECTOR);
         goto ON_ERROR;
     }
-    if (GOPHER_SUCCESS != normalizePath(selector)) {
-        goto ON_ERROR;
-    }
-    printf("Request: _%s_\n", selector);
+    normalizePath(selector);
     int fileAttr = fileAttributes(selector);
     if (PLATFORM_FILE_ERR & fileAttr) {
         sendErrorResponse(sock, PLATFORM_NOT_FOUND & fileAttr ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
         goto ON_ERROR;
-    } else if (PLATFORM_ISDIR & fileAttr) {
+    } else if (PLATFORM_ISDIR & fileAttr) {  // Directory
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
             goto ON_ERROR;
         }
     } else {  // File
+        file_mapping_t map;
         if (
             getFileMap(selector, &map) != GOPHER_SUCCESS ||
             sendFile(selector, &map, sock, pLogger) != GOPHER_SUCCESS) {

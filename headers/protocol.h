@@ -14,6 +14,7 @@
 // Messages
 #define ERROR_MSG "3Error"
 #define RESOURCE_NOT_FOUND_MSG "Resource not found"
+#define INVALID_SELECTOR "Invalid selector"
 #define SYS_ERR_MSG " Internal error"
 #define GOPHER_DOMAIN "localhost"
 // Types

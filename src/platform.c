@@ -96,6 +96,7 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     if ((file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
         goto ON_ERROR;
     }
+    debugPause("SUB - check handles");
     if (!GetFileSizeEx(file, &fileSize)) {
         goto ON_ERROR;
     }
@@ -119,6 +120,7 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
         !CloseHandle(map)) {
         goto ON_ERROR;
     }
+    debugPause("SUB - check handles");
     mapData->view = view;
     mapData->size = fileSize.LowPart;
     return PLATFORM_SUCCESS;
@@ -392,4 +394,10 @@ int sendAll(socket_t s, cstring_t data, int length) {
         length -= sent;
     }
     return PLATFORM_SUCCESS;
+}
+
+void debugPause(cstring_t message) {
+    printf("%s\n", message);
+    while ('g' != getchar())
+        ;
 }

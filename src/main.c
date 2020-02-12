@@ -82,7 +82,7 @@ int main(int argc, string_t* argv) {
     }
     destroyServer(&server);
     stopLogger(&logger);
-    printf("Done.\n");
+    logMessage("Done.", LOG_INFO);
     return 0;
 ON_ERROR:
     stopLogger(&logger);
