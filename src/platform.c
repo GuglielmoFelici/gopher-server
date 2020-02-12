@@ -27,14 +27,18 @@ int changeCwd(LPCSTR path) {
 
 void logMessage(cstring_t message, int level) {
     string_t lvl = "";
-    if (strmcp(level, LOG_DEBUG) == 0) {
-        lvl = "DEBUG";
-    } else if (strmcp(level, LOG_INFO) == 0) {
-        lvl = "INFO";
-    } else if (strmcp(level, LOG_WARNING) == 0) {
-        lvl = "WARNING";
-    } else if (strmcp(level, LOG_ERR) == 0) {
-        lvl = "ERROR";
+    switch (level) {
+        case LOG_DEBUG:
+            lvl = "DEBUG";
+            break;
+        case LOG_INFO:
+            lvl = "INFO";
+            break;
+        case LOG_WARNING:
+            lvl = "WARNING";
+            break;
+        case LOG_ERR:
+            lvl = "ERROR";
     }
     fprintf(stderr, "%s - %s\n", lvl, message);  // TODO system error
 }

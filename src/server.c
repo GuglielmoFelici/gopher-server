@@ -23,7 +23,7 @@ static sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazio
 #define SEL_TIMEOUT \
     (struct timeval) { 1, 0 }
 
-static HANDLE signalMutex = NULL;
+static CRITICAL_SECTION criticalSection;
 
 void printHeading(const server_t* pServer) {
     printf("Listening on port %d (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
@@ -38,29 +38,26 @@ int initServer(server_t* pServer) {
     memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
-    if (WSAStartup(versionWanted, &wsaData) != 0) {
-        return SERVER_FAILURE;
-    }
-    return (signalMutex = CreateMutex(NULL, FALSE, NULL)) ? SERVER_SUCCESS : SERVER_FAILURE;
+    InitializeCriticalSection(&criticalSection);
+    return WSAStartup(versionWanted, &wsaData) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 int destroyServer(server_t* pServer) {
-    return closesocket(pServer->sock) == 0 && CloseHandle(signalMutex) ? SERVER_SUCCESS : SERVER_FAILURE;
+    return closesocket(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 /********************************************** SIGNALS *************************************************************/
 
 static BOOL WINAPI ctrlHandler(DWORD signum) {
     if (signum == CTRL_C_EVENT || signum == CTRL_BREAK_EVENT) {
-        if (WAIT_OBJECT_0 != WaitForSingleObject(signalMutex, INFINITE)) {
-            return FALSE;
-        }
+        EnterCriticalSection(&criticalSection);
         if (signum == CTRL_C_EVENT) {
             requestShutdown = true;
         } else {
             updateConfig = true;
         }
-        return ReleaseMutex(signalMutex);
+        LeaveCriticalSection(&criticalSection);
+        return TRUE;
     } else {
         return FALSE;
     }
@@ -73,16 +70,14 @@ int installDefaultSigHandlers() {
 
 static bool checkSignal(int which) {
     bool ret = false;
-    if (WAIT_OBJECT_0 != WaitForSingleObject(signalMutex, INFINITE)) {
-        return false;
-    }
-    if (which && CHECK_SHUTDOWN) {
+    EnterCriticalSection(&criticalSection);
+    if (which & CHECK_SHUTDOWN) {
         ret = requestShutdown;
-    } else if (which && CHECK_CONFIG) {
+    } else if (which & CHECK_CONFIG) {
         ret = updateConfig;
         updateConfig = false;
     }
-    ReleaseMutex(signalMutex);
+    LeaveCriticalSection(&criticalSection);
     return ret;
 }
 
@@ -193,6 +188,7 @@ int initServer(server_t* pServer) {
 
 int destroyServer(server_t* pServer) {
     memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
+    DeleteCriticalSection(&criticalSection);
     return close(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
