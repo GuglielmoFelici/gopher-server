@@ -16,6 +16,7 @@ typedef DWORD proc_id_t, sig_atomic;
 #else
 
 #include <dirent.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -28,7 +29,7 @@ typedef const char* cstring_t;
 typedef void _handlerRet;
 typedef pthread_t thread_t;
 typedef void* (*LPTHREAD_START_ROUTINE)(void*);
-typedef _sig_atomic_t sig_atomic;
+typedef sig_atomic_t sig_atomic;
 typedef DIR* _dir;
 typedef pthread_mutex_t mutex_t;
 typedef pthread_cond_t cond_t;

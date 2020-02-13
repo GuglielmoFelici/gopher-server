@@ -11,6 +11,8 @@
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <syslog.h>
+#define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #endif
 

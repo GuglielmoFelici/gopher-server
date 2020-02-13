@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "../headers/log.h"
 #include "../headers/logger.h"
 #include "../headers/platform.h"

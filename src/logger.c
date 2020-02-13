@@ -121,7 +121,6 @@ int stopLogger(logger_t* pLogger) {
 /*****************************************************************************************************************/
 
 #include <fcntl.h>
-#include <platform.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -130,7 +129,10 @@ int stopLogger(logger_t* pLogger) {
 #include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <syslog.h>
 #include <unistd.h>
+#include "../headers/log.h"
+#include "../headers/platform.h"
 
 int stopLogger(logger_t* pLogger) {
     if (!pLogger) {

@@ -181,6 +181,7 @@ int unmapMem(void *addr, size_t len) {
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <syslog.h>
 #include <unistd.h>
 
 /************************************************** UTILS ********************************************************/
@@ -198,7 +199,7 @@ int changeCwd(const char *path) {
 }
 
 void logMessage(cstring_t message, int level) {
-    syslog(level, message);
+    syslog(level, "%s", message);
 }
 
 /********************************************** SOCKETS *************************************************************/

@@ -20,8 +20,7 @@ static sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazio
 
 /*****************************************************************************************************************/
 
-#define SEL_TIMEOUT \
-    (struct timeval) { 1, 0 }
+#define SEL_TIMEOUT true
 
 static CRITICAL_SECTION criticalSection;
 
@@ -170,9 +169,14 @@ ON_ERROR:
 
 /*****************************************************************************************************************/
 
-#include <sys/time.h>
+#include <errno.h>
+#include <pthread.h>
+#include <string.h>
+#include <sys/select.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#define SEL_TIMEOUT NULL
+#define SEL_TIMEOUT false
 
 void printHeading(const server_t* pServer) {
     printf("Started daemon with pid %d\n", getpid());
@@ -243,6 +247,7 @@ static void* serveThreadTask(void* args) {
     if (
         sigemptyset(&set) < 0 ||
         sigaddset(&set, SIGHUP) < 0 ||
+        sigaddset(&set, SIGINT) < 0 ||
         pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
         exit(1);
     }
@@ -276,12 +281,10 @@ static int serveProc(int client, const logger_t* pLogger, const server_t* pServe
         if (
             sigemptyset(&set) != 0 ||
             sigaddset(&set, SIGHUP) != 0 ||
-            pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) ||
-            sigemptyset(&set) != 0 ||
             sigaddset(&set, SIGINT) != 0 ||
-            pthread_sigmask(SIG_DFL, &set, NULL) != 0) {
-                exit(1);
-            }
+            sigprocmask(SIG_BLOCK, &set, NULL) != 0) {
+            exit(1);
+        }
         if (close(pServer->sock) < 0) {
             exit(1);
         }
@@ -385,8 +388,8 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     if (!pServer) {
         return SERVER_FAILURE;
     }
+    struct timeval* timeOut;
     fd_set incomingConnections;
-    struct timeval timeOut;
     int ready = 0;
     printHeading(pServer);  // TODO usare syslog
     while (true) {
@@ -408,10 +411,10 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                     }
                 }
             }
-            timeOut = SEL_TIMEOUT;
+            timeOut = SEL_TIMEOUT ? &(struct timeval){1, 0} : NULL;
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
-        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
+        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, timeOut)) <= 0);
         logMessage(INCOMING_CONNECTION, LOG_INFO);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
