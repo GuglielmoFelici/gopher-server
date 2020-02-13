@@ -33,9 +33,8 @@ int initServer(server_t* pServer) {
     if (!pServer) {
         return SERVER_FAILURE;
     }
-    strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
+    memset(pServer, 0, sizeof(server_t));
     pServer->sock = INVALID_SOCKET;
-    memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
     InitializeCriticalSection(&criticalSection);
@@ -43,7 +42,11 @@ int initServer(server_t* pServer) {
 }
 
 int destroyServer(server_t* pServer) {
-    return closesocket(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
+    int sock = pServer->sock;
+    DeleteCriticalSection(&criticalSection);
+    memset(pServer, 0, sizeof(server_t));
+    pServer->sock = INVALID_SOCKET;
+    return closesocket(sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 /********************************************** SIGNALS *************************************************************/
@@ -180,15 +183,14 @@ int initServer(server_t* pServer) {
     if (!pServer) {
         return SERVER_FAILURE;
     }
-    strncpy(pServer->installationDir, "", sizeof(pServer->installationDir));
+    memset(pServer, 0, sizeof(server_t));
     pServer->sock = INVALID_SOCKET;
-    memset(&(pServer->sockAddr), 0, sizeof(&(pServer->sockAddr)));
     return SERVER_SUCCESS;
 }
 
 int destroyServer(server_t* pServer) {
     memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
-    DeleteCriticalSection(&criticalSection);
+    pServer->sock = INVALID_SOCKET;
     return close(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
@@ -208,7 +210,7 @@ static int installSigHandler(int sig, void (*func)(int), int flags) {
     struct sigaction sigact;
     sigact.sa_handler = func;
     sigact.sa_flags = flags;
-    if (sigemptyset(&sigact.sa_mask) != 0 ||
+    if (sigemptyset(&sigact.sa_mask) != 0 ||  // TODO rimuovere??
         sigaction(sig, &sigact, NULL) != 0) {
         return SERVER_FAILURE;
     }
@@ -270,8 +272,9 @@ static int serveProc(int client, const logger_t* pLogger, const server_t* pServe
     if (pid < 0) {
         return SERVER_FAILURE;
     } else if (pid == 0) {
+        sigset_t set;
         if (
-            sigemptyset(&set) != 0 ||  // TODO quale set??
+            sigemptyset(&set) != 0 ||
             sigaddset(&set, SIGHUP) != 0 ||
             pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) ||
             sigemptyset(&set) != 0 ||
