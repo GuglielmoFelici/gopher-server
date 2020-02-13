@@ -2,7 +2,7 @@ param(
 	[string]$port = "7070",
 	[string]$path = "./",
 	[string]$depth = "1",
-	[switch]$noComp = $false
+	[switch]$parallel = $false
 )
 $compareFile = "compare_res"
 $outDir = "out"
@@ -37,7 +37,7 @@ $result = $(Get-ChildItem -Recurse -Depth $depth -Path $path |
 			$comp = (fc.exe /b ("$path$relPath" -replace '/', '\\' ) $outDir\$out  2>&1 ) | Out-String
 			$compRes = $comp -notmatch '[A-Z\d]{8}: ([A-Z\d]{2} ?){2}' -and $comp -notmatch '[Ii]mpossibile'
 			Write-Host "$compRes $relPath"
-			if (!$noComp) {
+			if (!$parallel) {
 				Write-Output $comp | Out-File $compareFile -Append
 			}
 			return $compRes
@@ -49,6 +49,6 @@ if ($result) {
 else {
 	Write-Output "Some tests failed"
 }
-if (!$noComp) {
+if (!$parallel) {
 	Write-Output "Check comparison results in $compareFile"
 }
