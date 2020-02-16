@@ -50,6 +50,8 @@ cstring_t inetNtoa(const struct in_addr* addr, void* dst, size_t size);
 
 int fileAttributes(cstring_t path);
 
+int getFileSize(cstring_t path);
+
 int iterateDir(cstring_t path, _dir* dir, string_t name, size_t nameSize);
 
 int closeDir(_dir dir);

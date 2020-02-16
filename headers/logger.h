@@ -16,7 +16,7 @@ typedef struct {
     pipe_t logPipe;      // Pipe per il log
     mutex_t* pLogMutex;  // Puntatore al mutex per proteggere la pipe di logging
     cond_t* pLogCond;    // Puntatore alla condition variable per il risveglio del logger su Linux
-    event_t logEvent;    // Evento per lo il risveglio del logger su windows
+    event_t logEvent;    // Evento per il risveglio del logger su windows
     proc_id_t pid;
     char installationDir[MAX_NAME];
 } logger_t;

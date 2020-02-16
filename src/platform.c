@@ -290,6 +290,14 @@ int fileAttributes(cstring_t path) {
     }
 }
 
+int getFileSize(cstring_t path) {
+    struct stat statBuf;
+    if (stat(path, &statBuf) < 0) {
+        return -1;
+    }
+    return statBuf.st_size;
+}
+
 /* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
    settato se il path non è stato trovato. */
 bool isFile(const char *path, int *error) {
@@ -315,23 +323,23 @@ bool isDir(const char *path, int *error) {
 }
 
 int getFileMap(const char *path, file_mapping_t *mapData) {
-    void *map;
     int fd;
-    struct stat statBuf;
-    struct sendFileArgs *args;
-    pthread_t tid;
     if ((fd = open(path, O_RDONLY)) < 0) {
         return PLATFORM_FAILURE;
     }
-    if (flock(fd, LOCK_EX) < 0) {  // Verificare rispetto a lockf e fcntl
+    if (flock(fd, LOCK_EX) < 0) {  // TODO Verificare rispetto a lockf e fcntl
         return PLATFORM_FAILURE;
     }
+    struct stat statBuf;
     if (fstat(fd, &statBuf) < 0) {
         flock(fd, LOCK_UN);
+        close(fd);
         return PLATFORM_FAILURE;
     }
+    void *map;
     if (MAP_FAILED == (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0))) {
         flock(fd, LOCK_UN);
+        close(fd);
         return PLATFORM_FAILURE;
     }
     if (flock(fd, LOCK_UN) < 0 ||

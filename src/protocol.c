@@ -1,94 +1,16 @@
 #include "../headers/protocol.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include "../headers/datatypes.h"
+#include "../headers/log.h"
 #include "../headers/logger.h"
 #include "../headers/platform.h"
 
 #define MAX_LINE 70
 
-#if defined(_WIN32)
-
-/*****************************************************************************************************************/
-/*                                             WINDOWS FUNCTIONS                                                 */
-
-/*****************************************************************************************************************/
-
-#include <windows.h>
-
-/* Ritorna il carattere di codifica del tipo di file */
-static char gopherType(LPCSTR filePath) {
-    LPSTR ext;
-    if (fileAttributes(filePath) & PLATFORM_ISDIR) {
-        return GOPHER_DIR;
-    }
-    ext = strrchr(filePath, '.');
-    if (!ext) {
-        return GOPHER_UNKNOWN;
-    }
-    for (int i = 0; i < EXT_NO; i++) {
-        if (strcmp(ext, extensions[i]) == 0) {
-            if (CHECK_GRP(i, EXT_TXT)) {
-                return GOPHER_TEXT;
-            } else if (CHECK_GRP(i, EXT_HQX)) {
-                return GOPHER_BINHEX;
-            } else if (CHECK_GRP(i, EXT_DOS)) {
-                return GOPHER_DOS;
-            } else if (CHECK_GRP(i, EXT_BIN)) {
-                return GOPHER_BINARY;
-            } else if (CHECK_GRP(i, EXT_GIF)) {
-                return GOPHER_GIF;
-            } else if (CHECK_GRP(i, EXT_IMG)) {
-                return GOPHER_IMAGE;
-            }
-        }
-    }
-    return GOPHER_UNKNOWN;
-}
-
-#else
-
-/*****************************************************************************************************************/
-/*                                             LINUX FUNCTIONS                                                    */
-
-/*****************************************************************************************************************/
-
-#include <string.h>
-
-/* Ritorna il carattere di codifica del tipo di file */
-static char gopherType(const char* file) {
-    if (fileAttributes(file) & PLATFORM_ISDIR) {
-        return GOPHER_DIR;
-    }
-    char cmd[MAX_NAME];
-    FILE* response;
-    int bytesRead;
-    if (snprintf(cmd, sizeof(cmd), "file \"%s\"", file) < 0) {
-        return GOPHER_UNKNOWN;
-    }
-    response = popen(cmd, "r");
-    bytesRead = fread(cmd, 1, sizeof(cmd), response);
-    fclose(response);
-    if (strstr(cmd, FILE_CMD_NOT_FOUND)) {
-        return GOPHER_UNKNOWN;
-    } else if (strstr(cmd, FILE_CMD_EXEC1) || strstr(cmd, FILE_CMD_EXEC2)) {
-        return GOPHER_BINARY;
-    } else if (strstr(cmd, FILE_CMD_IMG)) {
-        return GOPHER_IMAGE;
-    } else if (strstr(cmd, FILE_CMD_GIF)) {
-        return GOPHER_GIF;
-    } else if (strstr(cmd, FILE_CMD_TXT)) {
-        return GOPHER_TEXT;
-    }
-    return GOPHER_UNKNOWN;
-}
-
-#endif
-
-/*****************************************************************************************************************/
-/*                                             COMMON                                                            */
-
-/*****************************************************************************************************************/
+/* Ritorna il carattere identificativo del tipo di file richiesto */
+static char gopherType(const char* file);
 
 /* Rimuove CRLF; se la stringa è vuota, ci scrive "."; 
    cambia tutti i backslash in forward slash; rimuove i trailing slash */
@@ -286,18 +208,103 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         }
     } else {  // File
         file_mapping_t map;
-        if (
-            getFileMap(selector, &map) != GOPHER_SUCCESS ||
-            sendFile(selector, &map, sock, pLogger) != GOPHER_SUCCESS) {
+        if (getFileSize(selector) == 0) {
+            map.size = 0;
+            map.view = "";
+        } else {
+            if (getFileMap(selector, &map) != GOPHER_SUCCESS) {
+                logMessage(FILE_MAP_ERR, LOG_ERR);
+                goto ON_ERROR;
+            }
+        }
+        if (sendFile(selector, &map, sock, pLogger) != GOPHER_SUCCESS) {
+            logMessage(FILE_SEND_ERR, LOG_ERR);
             goto ON_ERROR;
         }
     }
     free(selector);
     return GOPHER_SUCCESS;
 ON_ERROR:
+    logMessage(GOPHER_REQUEST_FAILED, LOG_ERR);
     closeSocket(sock);
     if (selector) {
         free(selector);
     }
     return GOPHER_FAILURE;
 }
+
+/*****************************************************************************************************************/
+/*                                             WINDOWS FUNCTIONS                                                 */
+
+/*****************************************************************************************************************/
+
+#if defined(_WIN32)
+
+#include <windows.h>
+
+/* Ritorna il carattere di codifica del tipo di file */
+static char gopherType(LPCSTR filePath) {
+    LPSTR ext;
+    if (fileAttributes(filePath) & PLATFORM_ISDIR) {
+        return GOPHER_DIR;
+    }
+    ext = strrchr(filePath, '.');
+    if (!ext) {
+        return GOPHER_UNKNOWN;
+    }
+    for (int i = 0; i < EXT_NO; i++) {
+        if (strcmp(ext, extensions[i]) == 0) {
+            if (CHECK_GRP(i, EXT_TXT)) {
+                return GOPHER_TEXT;
+            } else if (CHECK_GRP(i, EXT_HQX)) {
+                return GOPHER_BINHEX;
+            } else if (CHECK_GRP(i, EXT_DOS)) {
+                return GOPHER_DOS;
+            } else if (CHECK_GRP(i, EXT_BIN)) {
+                return GOPHER_BINARY;
+            } else if (CHECK_GRP(i, EXT_GIF)) {
+                return GOPHER_GIF;
+            } else if (CHECK_GRP(i, EXT_IMG)) {
+                return GOPHER_IMAGE;
+            }
+        }
+    }
+    return GOPHER_UNKNOWN;
+}
+
+#else
+
+/*****************************************************************************************************************/
+/*                                             LINUX FUNCTIONS                                                    */
+
+/*****************************************************************************************************************/
+
+/* Ritorna il carattere di codifica del tipo di file */
+static char gopherType(const char* file) {
+    if (fileAttributes(file) & PLATFORM_ISDIR) {
+        return GOPHER_DIR;
+    }
+    char cmd[MAX_NAME];
+    FILE* response;
+    int bytesRead;
+    if (snprintf(cmd, sizeof(cmd), "file \"%s\"", file) < 0) {
+        return GOPHER_UNKNOWN;
+    }
+    response = popen(cmd, "r");
+    bytesRead = fread(cmd, 1, sizeof(cmd), response);
+    fclose(response);
+    if (strstr(cmd, FILE_CMD_NOT_FOUND)) {
+        return GOPHER_UNKNOWN;
+    } else if (strstr(cmd, FILE_CMD_EXEC1) || strstr(cmd, FILE_CMD_EXEC2)) {
+        return GOPHER_BINARY;
+    } else if (strstr(cmd, FILE_CMD_IMG)) {
+        return GOPHER_IMAGE;
+    } else if (strstr(cmd, FILE_CMD_GIF)) {
+        return GOPHER_GIF;
+    } else if (strstr(cmd, FILE_CMD_TXT)) {
+        return GOPHER_TEXT;
+    }
+    return GOPHER_UNKNOWN;
+}
+
+#endif

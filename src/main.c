@@ -9,6 +9,7 @@
 #define CONFIG_FILE "config"
 
 int main(int argc, string_t* argv) {
+    logMessage("cancro", LOG_ERR);
     server_t server;
     logger_t logger;
     /* Inizializzazione delle strutture di configurazione */
@@ -83,7 +84,6 @@ int main(int argc, string_t* argv) {
     }
     destroyServer(&server);
     stopLogger(&logger);
-    logMessage("Done.", LOG_INFO);
     return 0;
 ON_ERROR:
     stopLogger(&logger);
