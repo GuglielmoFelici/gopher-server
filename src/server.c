@@ -13,12 +13,12 @@
 static sig_atomic volatile updateConfig = false;     // Controllo della modifica del file di configurazione
 static sig_atomic volatile requestShutdown = false;  // Chiusura dell'applicazione
 
-#if defined(_WIN32)
-
 /*****************************************************************************************************************/
 /*                                             WINDOWS FUNCTIONS                                                 */
 
 /*****************************************************************************************************************/
+
+#if defined(_WIN32)
 
 #define SEL_TIMEOUT true
 
@@ -161,7 +161,6 @@ ON_ERROR:
 
 /*****************************************************************************************************************/
 
-#include <errno.h>
 #include <pthread.h>
 #include <string.h>
 #include <sys/select.h>
@@ -186,28 +185,21 @@ int initServer(server_t* pServer) {
 
 /********************************************** SIGNALS *************************************************************/
 
-/* Richiede la rilettura del file di configurazione */
 static void hupHandler(int signum) {
     updateConfig = true;
 }
-/* Richiede la terminazione */
+
 static void intHandler(int signum) {
     requestShutdown = true;
 }
 
-/* Installa un gestore di segnale */
 static int installSigHandler(int sig, void (*func)(int), int flags) {
     struct sigaction sigact;
     sigact.sa_handler = func;
     sigact.sa_flags = flags;
-    if (sigemptyset(&sigact.sa_mask) != 0 ||  // TODO rimuovere??
-        sigaction(sig, &sigact, NULL) != 0) {
-        return SERVER_FAILURE;
-    }
-    return SERVER_SUCCESS;
+    return sigaction(sig, &sigact, NULL) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
-/* Installa i gestori predefiniti di segnali */
 int installDefaultSigHandlers() {
     if (SERVER_SUCCESS != installSigHandler(SIGINT, &intHandler, 0)) {
         return SERVER_FAILURE;
@@ -216,10 +208,10 @@ int installDefaultSigHandlers() {
 }
 
 static bool checkSignal(int which) {
-    if (which && CHECK_SHUTDOWN) {
+    if (which & CHECK_SHUTDOWN) {
         return requestShutdown;
     }
-    return (which && CHECK_CONFIG) ? updateConfig : false;
+    return (which & CHECK_CONFIG) ? updateConfig : false;
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/

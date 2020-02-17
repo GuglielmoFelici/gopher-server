@@ -16,6 +16,7 @@ typedef DWORD proc_id_t, sig_atomic;
 #else
 
 #include <dirent.h>
+#include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>

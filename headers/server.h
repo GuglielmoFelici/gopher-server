@@ -91,6 +91,7 @@ void printHeading(const server_t* pServer);
 /** Starts a gopher server.
  * @param pServer A server_t struct representing the server to run.
  * @param pLogger A logger_t struct representing the transfer logging process (can be NULL).
+ * @return SERVER_SUCCESS if the server is terminated by the user, SERVER_FAILURE otherwise.  
  */
 int runServer(server_t* pServer, logger_t* pLogger);
 
