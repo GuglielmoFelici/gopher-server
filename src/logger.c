@@ -257,6 +257,9 @@ int logTransfer(const logger_t* pLogger, const char* log) {
     return LOGGER_SUCCESS;
 }
 
+int destroyLogger(logger_t* pLogger) {
+}
+
 /* Prova a chiudere il processo di logging e tutte le sue risorse*/
 int stopLogger(logger_t* pLogger) {
     if (!pLogger) {
@@ -280,7 +283,7 @@ int stopLogger(logger_t* pLogger) {
             return LOGGER_FAILURE;
         }
     }
-    return initLogger(pLogger);
+    return LOGGER_SUCCESS;
 }
 
 /* Loop di logging */

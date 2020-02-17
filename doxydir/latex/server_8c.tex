@@ -1,0 +1,116 @@
+\hypertarget{server_8c}{}\section{src/server.c File Reference}
+\label{server_8c}\index{src/server.\+c@{src/server.\+c}}
+{\ttfamily \#include \char`\"{}../headers/server.\+h\char`\"{}}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}../headers/datatypes.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}../headers/log.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}../headers/logger.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}../headers/platform.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}../headers/protocol.\+h\char`\"{}}\newline
+{\ttfamily \#include $<$errno.\+h$>$}\newline
+{\ttfamily \#include $<$pthread.\+h$>$}\newline
+{\ttfamily \#include $<$string.\+h$>$}\newline
+{\ttfamily \#include $<$sys/select.\+h$>$}\newline
+{\ttfamily \#include $<$sys/types.\+h$>$}\newline
+{\ttfamily \#include $<$unistd.\+h$>$}\newline
+Include dependency graph for server.\+c\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{server_8c__incl}
+\end{center}
+\end{figure}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{server_8c_a029f0b2070adc72e1377892f3eb66672}{C\+H\+E\+C\+K\+\_\+\+C\+O\+N\+F\+IG}~0x0001
+\item 
+\#define \hyperlink{server_8c_ae57c5ac7153cbd44b2681f9055194a94}{C\+H\+E\+C\+K\+\_\+\+S\+H\+U\+T\+D\+O\+WN}~0x0002
+\item 
+\#define \hyperlink{server_8c_a549cb5f95afdf9c9d0fc109f88aace48}{S\+E\+L\+\_\+\+T\+I\+M\+E\+O\+UT}~false
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{server_8c_ad221c23be1021d3a7ed3f2a52a14c1df}{print\+Heading} (const \hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server)
+\item 
+int \hyperlink{server_8c_a6bc9ad1683710cf9592d19870c78a911}{init\+Server} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server)
+\item 
+int \hyperlink{server_8c_a6db637a291288a25af4d89d9f0f3ab31}{install\+Default\+Sig\+Handlers} ()
+\item 
+int \hyperlink{server_8c_a4c40ae864a752c34a4f237a9445db202}{prepare\+Socket} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int flags)
+\item 
+void \hyperlink{server_8c_a2cda6ac8456a82040d05596906d66acc}{default\+Config} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int which)
+\item 
+int \hyperlink{server_8c_a2e07cc3959eab913ab4c894bc6c8395d}{read\+Config} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int which)
+\item 
+int \hyperlink{server_8c_a533c9a4292e9d1106ff7c54fbf75090a}{run\+Server} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\end{DoxyCompactItemize}
+
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{server_8c_a029f0b2070adc72e1377892f3eb66672}\label{server_8c_a029f0b2070adc72e1377892f3eb66672}} 
+\index{server.\+c@{server.\+c}!C\+H\+E\+C\+K\+\_\+\+C\+O\+N\+F\+IG@{C\+H\+E\+C\+K\+\_\+\+C\+O\+N\+F\+IG}}
+\index{C\+H\+E\+C\+K\+\_\+\+C\+O\+N\+F\+IG@{C\+H\+E\+C\+K\+\_\+\+C\+O\+N\+F\+IG}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{C\+H\+E\+C\+K\+\_\+\+C\+O\+N\+F\+IG}{CHECK\_CONFIG}}
+{\footnotesize\ttfamily \#define C\+H\+E\+C\+K\+\_\+\+C\+O\+N\+F\+IG~0x0001}
+
+\mbox{\Hypertarget{server_8c_ae57c5ac7153cbd44b2681f9055194a94}\label{server_8c_ae57c5ac7153cbd44b2681f9055194a94}} 
+\index{server.\+c@{server.\+c}!C\+H\+E\+C\+K\+\_\+\+S\+H\+U\+T\+D\+O\+WN@{C\+H\+E\+C\+K\+\_\+\+S\+H\+U\+T\+D\+O\+WN}}
+\index{C\+H\+E\+C\+K\+\_\+\+S\+H\+U\+T\+D\+O\+WN@{C\+H\+E\+C\+K\+\_\+\+S\+H\+U\+T\+D\+O\+WN}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{C\+H\+E\+C\+K\+\_\+\+S\+H\+U\+T\+D\+O\+WN}{CHECK\_SHUTDOWN}}
+{\footnotesize\ttfamily \#define C\+H\+E\+C\+K\+\_\+\+S\+H\+U\+T\+D\+O\+WN~0x0002}
+
+\mbox{\Hypertarget{server_8c_a549cb5f95afdf9c9d0fc109f88aace48}\label{server_8c_a549cb5f95afdf9c9d0fc109f88aace48}} 
+\index{server.\+c@{server.\+c}!S\+E\+L\+\_\+\+T\+I\+M\+E\+O\+UT@{S\+E\+L\+\_\+\+T\+I\+M\+E\+O\+UT}}
+\index{S\+E\+L\+\_\+\+T\+I\+M\+E\+O\+UT@{S\+E\+L\+\_\+\+T\+I\+M\+E\+O\+UT}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{S\+E\+L\+\_\+\+T\+I\+M\+E\+O\+UT}{SEL\_TIMEOUT}}
+{\footnotesize\ttfamily \#define S\+E\+L\+\_\+\+T\+I\+M\+E\+O\+UT~false}
+
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{server_8c_a2cda6ac8456a82040d05596906d66acc}\label{server_8c_a2cda6ac8456a82040d05596906d66acc}} 
+\index{server.\+c@{server.\+c}!default\+Config@{default\+Config}}
+\index{default\+Config@{default\+Config}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{default\+Config()}{defaultConfig()}}
+{\footnotesize\ttfamily void default\+Config (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{which }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8c_a6bc9ad1683710cf9592d19870c78a911}\label{server_8c_a6bc9ad1683710cf9592d19870c78a911}} 
+\index{server.\+c@{server.\+c}!init\+Server@{init\+Server}}
+\index{init\+Server@{init\+Server}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{init\+Server()}{initServer()}}
+{\footnotesize\ttfamily int init\+Server (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8c_a6db637a291288a25af4d89d9f0f3ab31}\label{server_8c_a6db637a291288a25af4d89d9f0f3ab31}} 
+\index{server.\+c@{server.\+c}!install\+Default\+Sig\+Handlers@{install\+Default\+Sig\+Handlers}}
+\index{install\+Default\+Sig\+Handlers@{install\+Default\+Sig\+Handlers}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{install\+Default\+Sig\+Handlers()}{installDefaultSigHandlers()}}
+{\footnotesize\ttfamily int install\+Default\+Sig\+Handlers (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8c_a4c40ae864a752c34a4f237a9445db202}\label{server_8c_a4c40ae864a752c34a4f237a9445db202}} 
+\index{server.\+c@{server.\+c}!prepare\+Socket@{prepare\+Socket}}
+\index{prepare\+Socket@{prepare\+Socket}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{prepare\+Socket()}{prepareSocket()}}
+{\footnotesize\ttfamily int prepare\+Socket (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{flags }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8c_ad221c23be1021d3a7ed3f2a52a14c1df}\label{server_8c_ad221c23be1021d3a7ed3f2a52a14c1df}} 
+\index{server.\+c@{server.\+c}!print\+Heading@{print\+Heading}}
+\index{print\+Heading@{print\+Heading}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{print\+Heading()}{printHeading()}}
+{\footnotesize\ttfamily void print\+Heading (\begin{DoxyParamCaption}\item[{const \hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8c_a2e07cc3959eab913ab4c894bc6c8395d}\label{server_8c_a2e07cc3959eab913ab4c894bc6c8395d}} 
+\index{server.\+c@{server.\+c}!read\+Config@{read\+Config}}
+\index{read\+Config@{read\+Config}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{read\+Config()}{readConfig()}}
+{\footnotesize\ttfamily int read\+Config (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{which }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8c_a533c9a4292e9d1106ff7c54fbf75090a}\label{server_8c_a533c9a4292e9d1106ff7c54fbf75090a}} 
+\index{server.\+c@{server.\+c}!run\+Server@{run\+Server}}
+\index{run\+Server@{run\+Server}!server.\+c@{server.\+c}}
+\subsubsection{\texorpdfstring{run\+Server()}{runServer()}}
+{\footnotesize\ttfamily int run\+Server (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{\hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})}
+

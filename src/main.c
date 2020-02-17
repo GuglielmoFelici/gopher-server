@@ -9,10 +9,9 @@
 #define CONFIG_FILE "config"
 
 int main(int argc, string_t* argv) {
-    logMessage("cancro", LOG_ERR);
     server_t server;
     logger_t logger;
-    /* Inizializzazione delle strutture di configurazione */
+    // Inizializzazione delle strutture di configurazione
     if (SERVER_SUCCESS != initServer(&server)) {
         logMessage(MAIN_STARTUP_ERR, LOG_ERR);
         goto ON_ERROR;
@@ -64,7 +63,7 @@ int main(int argc, string_t* argv) {
     if (!pLogger) {
         logMessage(MAIN_START_LOG_ERR, LOG_WARNING);
     }
-    /* Configurazione ambiente */
+    // Configurazione ambiente
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
         logMessage(MAIN_SOCKET_ERR, LOG_ERR);
         goto ON_ERROR;
@@ -77,17 +76,14 @@ int main(int argc, string_t* argv) {
         logMessage(MAIN_STARTUP_ERR, LOG_ERR);
         goto ON_ERROR;
     }
-    /* Avvio */
+    // Avvio
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {
         logMessage(MAIN_STARTUP_ERR, LOG_ERR);
         goto ON_ERROR;
     }
-    destroyServer(&server);
     stopLogger(&logger);
     return 0;
 ON_ERROR:
-    stopLogger(&logger);
-    destroyServer(&server);
     stopLogger(&logger);
     return 1;
 }

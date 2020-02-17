@@ -28,6 +28,12 @@
 #define PLATFORM_NOT_FOUND 0x0008
 #define PLATFORM_END_OF_DIR 0x0010
 
+/**
+ * Returns true if the string str2 ends with the string str2.
+ * @param str1 The string to check.
+ * @return LOGGER_SUCCESS or LOGGER_FAILURE.
+ * @see logger_t
+ */
 bool endsWith(cstring_t str1, cstring_t str2);
 
 int getCwd(string_t dst, size_t size);

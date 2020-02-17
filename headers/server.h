@@ -37,9 +37,8 @@ typedef struct {
     const logger_t* pLogger;
 } server_thread_args_t;
 
+/* Initializes the pointed server_t for further usage */
 int initServer(server_t* pServer);
-
-int destroyServer(server_t* pServer);
 
 int installDefaultSigHandlers();
 

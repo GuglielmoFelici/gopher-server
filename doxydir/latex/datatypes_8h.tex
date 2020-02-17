@@ -1,0 +1,146 @@
+\hypertarget{datatypes_8h}{}\section{headers/datatypes.h File Reference}
+\label{datatypes_8h}\index{headers/datatypes.\+h@{headers/datatypes.\+h}}
+{\ttfamily \#include $<$dirent.\+h$>$}\newline
+{\ttfamily \#include $<$signal.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include $<$sys/stat.\+h$>$}\newline
+{\ttfamily \#include $<$sys/types.\+h$>$}\newline
+Include dependency graph for datatypes.\+h\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{datatypes_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{datatypes_8h__dep__incl}
+\end{center}
+\end{figure}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{datatypes_8h_ac7c0207aa5a0e10d378be03b68041350}{M\+A\+X\+\_\+\+N\+A\+ME}~F\+I\+L\+E\+N\+A\+M\+E\+\_\+\+M\+AX
+\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef int \hyperlink{datatypes_8h_a30353f381f5fccbb956eea1f3a110b6c}{socket\+\_\+t}
+\item 
+typedef int \hyperlink{datatypes_8h_aaf06dbc1f07c15cb5e2779d3ec2dcb4b}{event\+\_\+t}
+\item 
+typedef int \hyperlink{datatypes_8h_ad37b29694b7e5ee41ea19673078dc995}{pipe\+\_\+t}
+\item 
+typedef char $\ast$ \hyperlink{datatypes_8h_ab0dcbec9b4b3c60b939b1095f93cb1b9}{string\+\_\+t}
+\item 
+typedef const char $\ast$ \hyperlink{datatypes_8h_a64c80a7679fadd808852566a2af0dd52}{cstring\+\_\+t}
+\item 
+typedef void \hyperlink{datatypes_8h_aad926342f971218b81db6fed8012f78f}{\+\_\+handler\+Ret}
+\item 
+typedef pthread\+\_\+t \hyperlink{datatypes_8h_aa406fd87cfd69d7c0a93b6a241978712}{thread\+\_\+t}
+\item 
+typedef void $\ast$($\ast$ \hyperlink{datatypes_8h_a0b51ef0c937612d03100482d10a01222}{L\+P\+T\+H\+R\+E\+A\+D\+\_\+\+S\+T\+A\+R\+T\+\_\+\+R\+O\+U\+T\+I\+NE}) (void $\ast$)
+\item 
+typedef sig\+\_\+atomic\+\_\+t \hyperlink{datatypes_8h_a23ea32a60b3b734eae2c0a9e75d3397c}{sig\+\_\+atomic}
+\item 
+typedef D\+IR $\ast$ \hyperlink{datatypes_8h_ae4a73300ce565f1cf992f892f5c2d0c0}{\+\_\+dir}
+\item 
+typedef pthread\+\_\+mutex\+\_\+t \hyperlink{datatypes_8h_a6bfdd7a014fe4d4d6c392df201d822dd}{mutex\+\_\+t}
+\item 
+typedef pthread\+\_\+cond\+\_\+t \hyperlink{datatypes_8h_ab9991f7052428330da4c2fb771e0439f}{cond\+\_\+t}
+\item 
+typedef pid\+\_\+t \hyperlink{datatypes_8h_a03c58ad8bfbf8e14928e8f58a5f23f2e}{proc\+\_\+id\+\_\+t}
+\end{DoxyCompactItemize}
+
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{datatypes_8h_ac7c0207aa5a0e10d378be03b68041350}\label{datatypes_8h_ac7c0207aa5a0e10d378be03b68041350}} 
+\index{datatypes.\+h@{datatypes.\+h}!M\+A\+X\+\_\+\+N\+A\+ME@{M\+A\+X\+\_\+\+N\+A\+ME}}
+\index{M\+A\+X\+\_\+\+N\+A\+ME@{M\+A\+X\+\_\+\+N\+A\+ME}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{M\+A\+X\+\_\+\+N\+A\+ME}{MAX\_NAME}}
+{\footnotesize\ttfamily \#define M\+A\+X\+\_\+\+N\+A\+ME~F\+I\+L\+E\+N\+A\+M\+E\+\_\+\+M\+AX}
+
+
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{datatypes_8h_ae4a73300ce565f1cf992f892f5c2d0c0}\label{datatypes_8h_ae4a73300ce565f1cf992f892f5c2d0c0}} 
+\index{datatypes.\+h@{datatypes.\+h}!\+\_\+dir@{\+\_\+dir}}
+\index{\+\_\+dir@{\+\_\+dir}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{\+\_\+dir}{\_dir}}
+{\footnotesize\ttfamily typedef D\+IR$\ast$ \hyperlink{datatypes_8h_ae4a73300ce565f1cf992f892f5c2d0c0}{\+\_\+dir}}
+
+\mbox{\Hypertarget{datatypes_8h_aad926342f971218b81db6fed8012f78f}\label{datatypes_8h_aad926342f971218b81db6fed8012f78f}} 
+\index{datatypes.\+h@{datatypes.\+h}!\+\_\+handler\+Ret@{\+\_\+handler\+Ret}}
+\index{\+\_\+handler\+Ret@{\+\_\+handler\+Ret}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{\+\_\+handler\+Ret}{\_handlerRet}}
+{\footnotesize\ttfamily typedef void \hyperlink{datatypes_8h_aad926342f971218b81db6fed8012f78f}{\+\_\+handler\+Ret}}
+
+\mbox{\Hypertarget{datatypes_8h_ab9991f7052428330da4c2fb771e0439f}\label{datatypes_8h_ab9991f7052428330da4c2fb771e0439f}} 
+\index{datatypes.\+h@{datatypes.\+h}!cond\+\_\+t@{cond\+\_\+t}}
+\index{cond\+\_\+t@{cond\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{cond\+\_\+t}{cond\_t}}
+{\footnotesize\ttfamily typedef pthread\+\_\+cond\+\_\+t \hyperlink{datatypes_8h_ab9991f7052428330da4c2fb771e0439f}{cond\+\_\+t}}
+
+\mbox{\Hypertarget{datatypes_8h_a64c80a7679fadd808852566a2af0dd52}\label{datatypes_8h_a64c80a7679fadd808852566a2af0dd52}} 
+\index{datatypes.\+h@{datatypes.\+h}!cstring\+\_\+t@{cstring\+\_\+t}}
+\index{cstring\+\_\+t@{cstring\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{cstring\+\_\+t}{cstring\_t}}
+{\footnotesize\ttfamily typedef const char$\ast$ \hyperlink{datatypes_8h_a64c80a7679fadd808852566a2af0dd52}{cstring\+\_\+t}}
+
+\mbox{\Hypertarget{datatypes_8h_aaf06dbc1f07c15cb5e2779d3ec2dcb4b}\label{datatypes_8h_aaf06dbc1f07c15cb5e2779d3ec2dcb4b}} 
+\index{datatypes.\+h@{datatypes.\+h}!event\+\_\+t@{event\+\_\+t}}
+\index{event\+\_\+t@{event\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{event\+\_\+t}{event\_t}}
+{\footnotesize\ttfamily typedef int \hyperlink{datatypes_8h_aaf06dbc1f07c15cb5e2779d3ec2dcb4b}{event\+\_\+t}}
+
+\mbox{\Hypertarget{datatypes_8h_a0b51ef0c937612d03100482d10a01222}\label{datatypes_8h_a0b51ef0c937612d03100482d10a01222}} 
+\index{datatypes.\+h@{datatypes.\+h}!L\+P\+T\+H\+R\+E\+A\+D\+\_\+\+S\+T\+A\+R\+T\+\_\+\+R\+O\+U\+T\+I\+NE@{L\+P\+T\+H\+R\+E\+A\+D\+\_\+\+S\+T\+A\+R\+T\+\_\+\+R\+O\+U\+T\+I\+NE}}
+\index{L\+P\+T\+H\+R\+E\+A\+D\+\_\+\+S\+T\+A\+R\+T\+\_\+\+R\+O\+U\+T\+I\+NE@{L\+P\+T\+H\+R\+E\+A\+D\+\_\+\+S\+T\+A\+R\+T\+\_\+\+R\+O\+U\+T\+I\+NE}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{L\+P\+T\+H\+R\+E\+A\+D\+\_\+\+S\+T\+A\+R\+T\+\_\+\+R\+O\+U\+T\+I\+NE}{LPTHREAD\_START\_ROUTINE}}
+{\footnotesize\ttfamily typedef void$\ast$($\ast$ L\+P\+T\+H\+R\+E\+A\+D\+\_\+\+S\+T\+A\+R\+T\+\_\+\+R\+O\+U\+T\+I\+NE) (void $\ast$)}
+
+\mbox{\Hypertarget{datatypes_8h_a6bfdd7a014fe4d4d6c392df201d822dd}\label{datatypes_8h_a6bfdd7a014fe4d4d6c392df201d822dd}} 
+\index{datatypes.\+h@{datatypes.\+h}!mutex\+\_\+t@{mutex\+\_\+t}}
+\index{mutex\+\_\+t@{mutex\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{mutex\+\_\+t}{mutex\_t}}
+{\footnotesize\ttfamily typedef pthread\+\_\+mutex\+\_\+t \hyperlink{datatypes_8h_a6bfdd7a014fe4d4d6c392df201d822dd}{mutex\+\_\+t}}
+
+\mbox{\Hypertarget{datatypes_8h_ad37b29694b7e5ee41ea19673078dc995}\label{datatypes_8h_ad37b29694b7e5ee41ea19673078dc995}} 
+\index{datatypes.\+h@{datatypes.\+h}!pipe\+\_\+t@{pipe\+\_\+t}}
+\index{pipe\+\_\+t@{pipe\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{pipe\+\_\+t}{pipe\_t}}
+{\footnotesize\ttfamily typedef int \hyperlink{datatypes_8h_ad37b29694b7e5ee41ea19673078dc995}{pipe\+\_\+t}}
+
+\mbox{\Hypertarget{datatypes_8h_a03c58ad8bfbf8e14928e8f58a5f23f2e}\label{datatypes_8h_a03c58ad8bfbf8e14928e8f58a5f23f2e}} 
+\index{datatypes.\+h@{datatypes.\+h}!proc\+\_\+id\+\_\+t@{proc\+\_\+id\+\_\+t}}
+\index{proc\+\_\+id\+\_\+t@{proc\+\_\+id\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{proc\+\_\+id\+\_\+t}{proc\_id\_t}}
+{\footnotesize\ttfamily typedef pid\+\_\+t \hyperlink{datatypes_8h_a03c58ad8bfbf8e14928e8f58a5f23f2e}{proc\+\_\+id\+\_\+t}}
+
+\mbox{\Hypertarget{datatypes_8h_a23ea32a60b3b734eae2c0a9e75d3397c}\label{datatypes_8h_a23ea32a60b3b734eae2c0a9e75d3397c}} 
+\index{datatypes.\+h@{datatypes.\+h}!sig\+\_\+atomic@{sig\+\_\+atomic}}
+\index{sig\+\_\+atomic@{sig\+\_\+atomic}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{sig\+\_\+atomic}{sig\_atomic}}
+{\footnotesize\ttfamily typedef sig\+\_\+atomic\+\_\+t \hyperlink{datatypes_8h_a23ea32a60b3b734eae2c0a9e75d3397c}{sig\+\_\+atomic}}
+
+\mbox{\Hypertarget{datatypes_8h_a30353f381f5fccbb956eea1f3a110b6c}\label{datatypes_8h_a30353f381f5fccbb956eea1f3a110b6c}} 
+\index{datatypes.\+h@{datatypes.\+h}!socket\+\_\+t@{socket\+\_\+t}}
+\index{socket\+\_\+t@{socket\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{socket\+\_\+t}{socket\_t}}
+{\footnotesize\ttfamily typedef int \hyperlink{datatypes_8h_a30353f381f5fccbb956eea1f3a110b6c}{socket\+\_\+t}}
+
+\mbox{\Hypertarget{datatypes_8h_ab0dcbec9b4b3c60b939b1095f93cb1b9}\label{datatypes_8h_ab0dcbec9b4b3c60b939b1095f93cb1b9}} 
+\index{datatypes.\+h@{datatypes.\+h}!string\+\_\+t@{string\+\_\+t}}
+\index{string\+\_\+t@{string\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{string\+\_\+t}{string\_t}}
+{\footnotesize\ttfamily typedef char$\ast$ \hyperlink{datatypes_8h_ab0dcbec9b4b3c60b939b1095f93cb1b9}{string\+\_\+t}}
+
+\mbox{\Hypertarget{datatypes_8h_aa406fd87cfd69d7c0a93b6a241978712}\label{datatypes_8h_aa406fd87cfd69d7c0a93b6a241978712}} 
+\index{datatypes.\+h@{datatypes.\+h}!thread\+\_\+t@{thread\+\_\+t}}
+\index{thread\+\_\+t@{thread\+\_\+t}!datatypes.\+h@{datatypes.\+h}}
+\subsubsection{\texorpdfstring{thread\+\_\+t}{thread\_t}}
+{\footnotesize\ttfamily typedef pthread\+\_\+t \hyperlink{datatypes_8h_aa406fd87cfd69d7c0a93b6a241978712}{thread\+\_\+t}}
+

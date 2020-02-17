@@ -1,0 +1,105 @@
+\hypertarget{wingetopt_8c}{}\section{src/wingetopt.c File Reference}
+\label{wingetopt_8c}\index{src/wingetopt.\+c@{src/wingetopt.\+c}}
+{\ttfamily \#include \char`\"{}wingetopt.\+h\char`\"{}}\newline
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+Include dependency graph for wingetopt.\+c\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=212pt]{wingetopt_8c__incl}
+\end{center}
+\end{figure}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{wingetopt_8c_a070d2ce7b6bb7e5c05602aa8c308d0c4}{N\+U\+LL}~0
+\item 
+\#define \hyperlink{wingetopt_8c_a59adc4c82490d23754cd39c2fb99b0da}{E\+OF}~(-\/1)
+\item 
+\#define \hyperlink{wingetopt_8c_a08aea8facaf5fc0b89d12f3871c5730a}{E\+RR}(s,  c)
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \hyperlink{wingetopt_8c_ade3a0f38fad659ab1b670b3a28c328ea}{getopt} (int argc, char $\ast$$\ast$argv, char $\ast$opts)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+int \hyperlink{wingetopt_8c_ae30f05ee1e2e5652f174a35c7875d25e}{opterr} = 1
+\item 
+int \hyperlink{wingetopt_8c_ad5e1c16213bbee2d5e8cc363309f418c}{optind} = 1
+\item 
+int \hyperlink{wingetopt_8c_a475b8db98445da73e5f62a1ef6324b95}{optopt}
+\item 
+char $\ast$ \hyperlink{wingetopt_8c_adb50a0eab9fed92fc3bfc7dfa4f2c410}{optarg}
+\end{DoxyCompactItemize}
+
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{wingetopt_8c_a59adc4c82490d23754cd39c2fb99b0da}\label{wingetopt_8c_a59adc4c82490d23754cd39c2fb99b0da}} 
+\index{wingetopt.\+c@{wingetopt.\+c}!E\+OF@{E\+OF}}
+\index{E\+OF@{E\+OF}!wingetopt.\+c@{wingetopt.\+c}}
+\subsubsection{\texorpdfstring{E\+OF}{EOF}}
+{\footnotesize\ttfamily \#define E\+OF~(-\/1)}
+
+\mbox{\Hypertarget{wingetopt_8c_a08aea8facaf5fc0b89d12f3871c5730a}\label{wingetopt_8c_a08aea8facaf5fc0b89d12f3871c5730a}} 
+\index{wingetopt.\+c@{wingetopt.\+c}!E\+RR@{E\+RR}}
+\index{E\+RR@{E\+RR}!wingetopt.\+c@{wingetopt.\+c}}
+\subsubsection{\texorpdfstring{E\+RR}{ERR}}
+{\footnotesize\ttfamily \#define E\+RR(\begin{DoxyParamCaption}\item[{}]{s,  }\item[{}]{c }\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}
+\textcolor{keywordflow}{if} (\hyperlink{wingetopt_8c_ae30f05ee1e2e5652f174a35c7875d25e}{opterr}) \{               \(\backslash\)
+        char errbuf[2];         \(\backslash\)
+        errbuf[0] = c;          \(\backslash\)
+        errbuf[1] = \textcolor{charliteral}{'\(\backslash\)n'};       \(\backslash\)
+        fputs(argv[0], stderr); \(\backslash\)
+        fputs(s, stderr);       \(\backslash\)
+        fputc(c, stderr);       \(\backslash\)
+    \}
+\end{DoxyCode}
+\mbox{\Hypertarget{wingetopt_8c_a070d2ce7b6bb7e5c05602aa8c308d0c4}\label{wingetopt_8c_a070d2ce7b6bb7e5c05602aa8c308d0c4}} 
+\index{wingetopt.\+c@{wingetopt.\+c}!N\+U\+LL@{N\+U\+LL}}
+\index{N\+U\+LL@{N\+U\+LL}!wingetopt.\+c@{wingetopt.\+c}}
+\subsubsection{\texorpdfstring{N\+U\+LL}{NULL}}
+{\footnotesize\ttfamily \#define N\+U\+LL~0}
+
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{wingetopt_8c_ade3a0f38fad659ab1b670b3a28c328ea}\label{wingetopt_8c_ade3a0f38fad659ab1b670b3a28c328ea}} 
+\index{wingetopt.\+c@{wingetopt.\+c}!getopt@{getopt}}
+\index{getopt@{getopt}!wingetopt.\+c@{wingetopt.\+c}}
+\subsubsection{\texorpdfstring{getopt()}{getopt()}}
+{\footnotesize\ttfamily int getopt (\begin{DoxyParamCaption}\item[{int}]{argc,  }\item[{char $\ast$$\ast$}]{argv,  }\item[{char $\ast$}]{opts }\end{DoxyParamCaption})}
+
+
+
+\subsection{Variable Documentation}
+\mbox{\Hypertarget{wingetopt_8c_adb50a0eab9fed92fc3bfc7dfa4f2c410}\label{wingetopt_8c_adb50a0eab9fed92fc3bfc7dfa4f2c410}} 
+\index{wingetopt.\+c@{wingetopt.\+c}!optarg@{optarg}}
+\index{optarg@{optarg}!wingetopt.\+c@{wingetopt.\+c}}
+\subsubsection{\texorpdfstring{optarg}{optarg}}
+{\footnotesize\ttfamily char$\ast$ optarg}
+
+\mbox{\Hypertarget{wingetopt_8c_ae30f05ee1e2e5652f174a35c7875d25e}\label{wingetopt_8c_ae30f05ee1e2e5652f174a35c7875d25e}} 
+\index{wingetopt.\+c@{wingetopt.\+c}!opterr@{opterr}}
+\index{opterr@{opterr}!wingetopt.\+c@{wingetopt.\+c}}
+\subsubsection{\texorpdfstring{opterr}{opterr}}
+{\footnotesize\ttfamily int opterr = 1}
+
+\mbox{\Hypertarget{wingetopt_8c_ad5e1c16213bbee2d5e8cc363309f418c}\label{wingetopt_8c_ad5e1c16213bbee2d5e8cc363309f418c}} 
+\index{wingetopt.\+c@{wingetopt.\+c}!optind@{optind}}
+\index{optind@{optind}!wingetopt.\+c@{wingetopt.\+c}}
+\subsubsection{\texorpdfstring{optind}{optind}}
+{\footnotesize\ttfamily int optind = 1}
+
+\mbox{\Hypertarget{wingetopt_8c_a475b8db98445da73e5f62a1ef6324b95}\label{wingetopt_8c_a475b8db98445da73e5f62a1ef6324b95}} 
+\index{wingetopt.\+c@{wingetopt.\+c}!optopt@{optopt}}
+\index{optopt@{optopt}!wingetopt.\+c@{wingetopt.\+c}}
+\subsubsection{\texorpdfstring{optopt}{optopt}}
+{\footnotesize\ttfamily int optopt}
+

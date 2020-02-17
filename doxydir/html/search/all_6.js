@@ -1,0 +1,26 @@
+var searchData=
+[
+  ['getcwd',['getCwd',['../platform_8h.html#ab296265b5db20ab2f30dd1e985dc64aa',1,'platform.h']]],
+  ['getfilemap',['getFileMap',['../platform_8h.html#a257d48e91fab744f0f71ad79f5acfef2',1,'platform.h']]],
+  ['getfilesize',['getFileSize',['../platform_8h.html#afc7e96be2f7333bcc10813fdebcf124a',1,'platform.h']]],
+  ['getopt',['getopt',['../wingetopt_8h.html#ade3a0f38fad659ab1b670b3a28c328ea',1,'wingetopt.h']]],
+  ['gopher',['gopher',['../protocol_8h.html#a733e68cc8d5f947c30d0ca51e1b76d9b',1,'protocol.h']]],
+  ['gopher_5fbinary',['GOPHER_BINARY',['../protocol_8h.html#a8205f469b47aaeab0d02c933bc005d0c',1,'protocol.h']]],
+  ['gopher_5fbinhex',['GOPHER_BINHEX',['../protocol_8h.html#af5023bc9d462dbde085a5f43a5c07360',1,'protocol.h']]],
+  ['gopher_5fccso',['GOPHER_CCSO',['../protocol_8h.html#add3b91c59415c1da2ccc9fb5e6315c23',1,'protocol.h']]],
+  ['gopher_5fdir',['GOPHER_DIR',['../protocol_8h.html#afb655ef463dad41e0c380109963ae69f',1,'protocol.h']]],
+  ['gopher_5fdomain',['GOPHER_DOMAIN',['../protocol_8h.html#ac783ccb6583c4ec305cc29083c19f8a5',1,'protocol.h']]],
+  ['gopher_5fdos',['GOPHER_DOS',['../protocol_8h.html#a0159d2cb45bd15cc99db54c7c205e3a8',1,'protocol.h']]],
+  ['gopher_5ferr',['GOPHER_ERR',['../protocol_8h.html#adfbffd2a69184851f36cc0b69f70f632',1,'protocol.h']]],
+  ['gopher_5ffailure',['GOPHER_FAILURE',['../protocol_8h.html#a16c0c226696cacddc05b0fd68e07dd78',1,'protocol.h']]],
+  ['gopher_5ffulltxt',['GOPHER_FULLTXT',['../protocol_8h.html#a2ecb5c8fb7a75a9be6df55acbd17c954',1,'protocol.h']]],
+  ['gopher_5fgif',['GOPHER_GIF',['../protocol_8h.html#aaa959eac372a40f138d77960573f31c8',1,'protocol.h']]],
+  ['gopher_5fimage',['GOPHER_IMAGE',['../protocol_8h.html#ab7f3a0d6769cb9867f687d6ca4195fbd',1,'protocol.h']]],
+  ['gopher_5fnot_5ffound',['GOPHER_NOT_FOUND',['../protocol_8h.html#a991b538521ffb725dc2114dffca308e1',1,'protocol.h']]],
+  ['gopher_5frequest_5ffailed',['GOPHER_REQUEST_FAILED',['../log_8h.html#adf9fb1306848844ac29ed7b0ffe7366d',1,'log.h']]],
+  ['gopher_5fsuccess',['GOPHER_SUCCESS',['../protocol_8h.html#af65a8ae3482e0db82c9a30b4709bc7d2',1,'protocol.h']]],
+  ['gopher_5ftelnet',['GOPHER_TELNET',['../protocol_8h.html#a2e45d2f01991c4591b65a6309a54190f',1,'protocol.h']]],
+  ['gopher_5ftext',['GOPHER_TEXT',['../protocol_8h.html#af3bbed2d76d099f8ba8e75070055cb98',1,'protocol.h']]],
+  ['gopher_5funknown',['GOPHER_UNKNOWN',['../protocol_8h.html#a0d2400840b2980528a5e73697d0c1afe',1,'protocol.h']]],
+  ['gopher_5fuuenc',['GOPHER_UUENC',['../protocol_8h.html#ab219b365a2e89714c8be68e34e2d550e',1,'protocol.h']]]
+];

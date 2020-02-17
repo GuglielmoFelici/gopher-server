@@ -2,12 +2,29 @@
 #include <stdio.h>
 #include "../headers/protocol.h"
 
-#if defined(_WIN32)
+bool endsWith(cstring_t str1, cstring_t str2) {
+    return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
+}
+
+int sendAll(socket_t s, cstring_t data, int length) {
+    int count = 0, sent = 0;
+    while (count < length) {
+        int sent = send(s, data + count, length, 0);
+        if (sent == SOCKET_ERROR) {
+            return PLATFORM_FAILURE;
+        }
+        count += sent;
+        length -= sent;
+    }
+    return PLATFORM_SUCCESS;
+}
 
 /*****************************************************************************************************************/
 /*                                             WINDOWS FUNCTIONS                                                 */
 
 /*****************************************************************************************************************/
+
+#if defined(_WIN32)
 
 /************************************************** UTILS ********************************************************/
 
@@ -165,12 +182,12 @@ int unmapMem(void *addr, size_t len) {
     return UnmapViewOfFile(addr) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-#else
-
 /*****************************************************************************************************************/
 /*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
+
+#else
 
 #include <errno.h>
 #include <fcntl.h>
@@ -186,10 +203,6 @@ int unmapMem(void *addr, size_t len) {
 
 /************************************************** UTILS ********************************************************/
 
-void errorString(char *error, size_t size) {
-    snprintf(error, size, "%s", strerror(errno));
-}
-
 int getCwd(char *dst, size_t size) {
     return getcwd(dst, size) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
@@ -199,7 +212,21 @@ int changeCwd(const char *path) {
 }
 
 void logMessage(cstring_t message, int level) {
-    syslog(level, "%s", message);
+    char *lvl;
+    switch (level) {
+        case LOG_DEBUG:
+            lvl = "DEBUG";
+            break;
+        case LOG_INFO:
+            lvl = "INFO";
+            break;
+        case LOG_WARNING:
+            lvl = "WARNING";
+            break;
+        case LOG_ERR:
+            lvl = "ERROR";
+    }
+    syslog(level, "%s - %s\n%s", lvl, message, level == LOG_ERR ? strerror(errno) : "");
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -298,51 +325,27 @@ int getFileSize(cstring_t path) {
     return statBuf.st_size;
 }
 
-/* Ritorna PLATFORM_SUCCESS se path punta a un file regolare. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
-   settato se il path non è stato trovato. */
-bool isFile(const char *path, int *error) {
-    struct stat statbuf;
-    if (stat(path, &statbuf) != 0) {
-        if (error) {
-            *error = errno == ENOENT ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
-        }
-        return false;
-    }
-    return S_ISREG(statbuf.st_mode);
-}
-
-/* Ritorna PLATFORM_SUCCESS se path punta a una directory. Altrimenti ritorna PLATFORM_FAILURE con GOPHER_NOT FOUND
-   settato se il path non è stato trovato. */
-bool isDir(const char *path, int *error) {
-    struct stat statbuf;
-    if (stat(path, &statbuf) != 0) {
-        *error = errno == ENOENT ? PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
-        return false;
-    }
-    return S_ISDIR(statbuf.st_mode);
-}
-
 int getFileMap(const char *path, file_mapping_t *mapData) {
     int fd;
     if ((fd = open(path, O_RDONLY)) < 0) {
         return PLATFORM_FAILURE;
     }
-    if (flock(fd, LOCK_EX) < 0) {  // TODO Verificare rispetto a lockf e fcntl
+    if (lockf(fd, F_LOCK, 0) < 0) {
         return PLATFORM_FAILURE;
     }
     struct stat statBuf;
     if (fstat(fd, &statBuf) < 0) {
-        flock(fd, LOCK_UN);
+        lockf(fd, F_ULOCK, 0);
         close(fd);
         return PLATFORM_FAILURE;
     }
     void *map;
     if (MAP_FAILED == (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0))) {
-        flock(fd, LOCK_UN);
+        lockf(fd, F_ULOCK, 0);
         close(fd);
         return PLATFORM_FAILURE;
     }
-    if (flock(fd, LOCK_UN) < 0 ||
+    if (lockf(fd, F_ULOCK, 0) < 0 ||
         close(fd) < 0) {
         return PLATFORM_FAILURE;
     }
@@ -367,7 +370,9 @@ int iterateDir(const char *path, DIR **dir, char *name, size_t nameSize) {
         return errno == EBADF ? PLATFORM_FAILURE : PLATFORM_FAILURE | PLATFORM_END_OF_DIR;
     }
     bool isCurrent = strcmp(path, ".") == 0;
-    snprintf(name, nameSize, "%s%s%s", isCurrent ? "" : path, isCurrent ? "" : "/", entry->d_name);
+    if (snprintf(name, nameSize, "%s%s%s", isCurrent ? "" : path, isCurrent ? "" : "/", entry->d_name) > nameSize) {
+        return PLATFORM_FAILURE;
+    }
     return PLATFORM_SUCCESS;
 }
 
@@ -380,31 +385,3 @@ int unmapMem(void *addr, size_t len) {
 }
 
 #endif
-
-/*****************************************************************************************************************/
-/*                                             COMMON FUNCTIONS                                                 */
-
-/*****************************************************************************************************************/
-
-bool endsWith(cstring_t str1, cstring_t str2) {
-    return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
-}
-
-int sendAll(socket_t s, cstring_t data, int length) {
-    int count = 0, sent = 0;
-    while (count < length) {
-        int sent = send(s, data + count, length, 0);
-        if (sent == SOCKET_ERROR) {
-            return PLATFORM_FAILURE;
-        }
-        count += sent;
-        length -= sent;
-    }
-    return PLATFORM_SUCCESS;
-}
-
-void debugPause(cstring_t message) {
-    printf("%s\n", message);
-    while ('g' != getchar())
-        ;
-}

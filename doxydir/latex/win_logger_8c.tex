@@ -1,0 +1,65 @@
+\hypertarget{win_logger_8c}{}\section{src/helpers/win\+Logger.c File Reference}
+\label{win_logger_8c}\index{src/helpers/win\+Logger.\+c@{src/helpers/win\+Logger.\+c}}
+{\ttfamily \#include $<$locale.\+h$>$}\newline
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include $<$windows.\+h$>$}\newline
+Include dependency graph for win\+Logger.\+c\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=276pt]{win_logger_8c__incl}
+\end{center}
+\end{figure}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{win_logger_8c_a96fad55b3f5adf08c39e4c877cf185e3}{L\+O\+G\+\_\+\+E\+RR}~\char`\"{}W\+A\+R\+N\+I\+NG -\/ Logger -\/ Fatal error\textbackslash{}n\char`\"{}
+\item 
+\#define \hyperlink{win_logger_8c_a706068f562dd5c64a8b7bbd4b2298dd1}{M\+A\+X\+\_\+\+L\+I\+N\+E\+\_\+\+S\+I\+ZE}~100
+\item 
+\#define \hyperlink{win_logger_8c_ae33f3a2c0de3b839513bc7814a23ad25}{L\+O\+G\+G\+E\+R\+\_\+\+E\+V\+E\+N\+T\+\_\+\+N\+A\+ME}~\char`\"{}log\+Event\char`\"{}
+\item 
+\#define \hyperlink{win_logger_8c_a69d4676733f5e850f451942b6d901382}{L\+O\+G\+\_\+\+F\+I\+LE}~\char`\"{}log\+File\char`\"{}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+D\+W\+O\+RD \hyperlink{win_logger_8c_ac269eb5ac501399082a30708db79efbf}{main} (D\+W\+O\+RD argc, L\+P\+S\+TR $\ast$argv)
+\end{DoxyCompactItemize}
+
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{win_logger_8c_a96fad55b3f5adf08c39e4c877cf185e3}\label{win_logger_8c_a96fad55b3f5adf08c39e4c877cf185e3}} 
+\index{win\+Logger.\+c@{win\+Logger.\+c}!L\+O\+G\+\_\+\+E\+RR@{L\+O\+G\+\_\+\+E\+RR}}
+\index{L\+O\+G\+\_\+\+E\+RR@{L\+O\+G\+\_\+\+E\+RR}!win\+Logger.\+c@{win\+Logger.\+c}}
+\subsubsection{\texorpdfstring{L\+O\+G\+\_\+\+E\+RR}{LOG\_ERR}}
+{\footnotesize\ttfamily \#define L\+O\+G\+\_\+\+E\+RR~\char`\"{}W\+A\+R\+N\+I\+NG -\/ Logger -\/ Fatal error\textbackslash{}n\char`\"{}}
+
+\mbox{\Hypertarget{win_logger_8c_a69d4676733f5e850f451942b6d901382}\label{win_logger_8c_a69d4676733f5e850f451942b6d901382}} 
+\index{win\+Logger.\+c@{win\+Logger.\+c}!L\+O\+G\+\_\+\+F\+I\+LE@{L\+O\+G\+\_\+\+F\+I\+LE}}
+\index{L\+O\+G\+\_\+\+F\+I\+LE@{L\+O\+G\+\_\+\+F\+I\+LE}!win\+Logger.\+c@{win\+Logger.\+c}}
+\subsubsection{\texorpdfstring{L\+O\+G\+\_\+\+F\+I\+LE}{LOG\_FILE}}
+{\footnotesize\ttfamily \#define L\+O\+G\+\_\+\+F\+I\+LE~\char`\"{}log\+File\char`\"{}}
+
+\mbox{\Hypertarget{win_logger_8c_ae33f3a2c0de3b839513bc7814a23ad25}\label{win_logger_8c_ae33f3a2c0de3b839513bc7814a23ad25}} 
+\index{win\+Logger.\+c@{win\+Logger.\+c}!L\+O\+G\+G\+E\+R\+\_\+\+E\+V\+E\+N\+T\+\_\+\+N\+A\+ME@{L\+O\+G\+G\+E\+R\+\_\+\+E\+V\+E\+N\+T\+\_\+\+N\+A\+ME}}
+\index{L\+O\+G\+G\+E\+R\+\_\+\+E\+V\+E\+N\+T\+\_\+\+N\+A\+ME@{L\+O\+G\+G\+E\+R\+\_\+\+E\+V\+E\+N\+T\+\_\+\+N\+A\+ME}!win\+Logger.\+c@{win\+Logger.\+c}}
+\subsubsection{\texorpdfstring{L\+O\+G\+G\+E\+R\+\_\+\+E\+V\+E\+N\+T\+\_\+\+N\+A\+ME}{LOGGER\_EVENT\_NAME}}
+{\footnotesize\ttfamily \#define L\+O\+G\+G\+E\+R\+\_\+\+E\+V\+E\+N\+T\+\_\+\+N\+A\+ME~\char`\"{}log\+Event\char`\"{}}
+
+\mbox{\Hypertarget{win_logger_8c_a706068f562dd5c64a8b7bbd4b2298dd1}\label{win_logger_8c_a706068f562dd5c64a8b7bbd4b2298dd1}} 
+\index{win\+Logger.\+c@{win\+Logger.\+c}!M\+A\+X\+\_\+\+L\+I\+N\+E\+\_\+\+S\+I\+ZE@{M\+A\+X\+\_\+\+L\+I\+N\+E\+\_\+\+S\+I\+ZE}}
+\index{M\+A\+X\+\_\+\+L\+I\+N\+E\+\_\+\+S\+I\+ZE@{M\+A\+X\+\_\+\+L\+I\+N\+E\+\_\+\+S\+I\+ZE}!win\+Logger.\+c@{win\+Logger.\+c}}
+\subsubsection{\texorpdfstring{M\+A\+X\+\_\+\+L\+I\+N\+E\+\_\+\+S\+I\+ZE}{MAX\_LINE\_SIZE}}
+{\footnotesize\ttfamily \#define M\+A\+X\+\_\+\+L\+I\+N\+E\+\_\+\+S\+I\+ZE~100}
+
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{win_logger_8c_ac269eb5ac501399082a30708db79efbf}\label{win_logger_8c_ac269eb5ac501399082a30708db79efbf}} 
+\index{win\+Logger.\+c@{win\+Logger.\+c}!main@{main}}
+\index{main@{main}!win\+Logger.\+c@{win\+Logger.\+c}}
+\subsubsection{\texorpdfstring{main()}{main()}}
+{\footnotesize\ttfamily D\+W\+O\+RD main (\begin{DoxyParamCaption}\item[{D\+W\+O\+RD}]{argc,  }\item[{L\+P\+S\+TR $\ast$}]{argv }\end{DoxyParamCaption})}
+

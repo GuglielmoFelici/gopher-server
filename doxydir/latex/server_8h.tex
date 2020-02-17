@@ -1,0 +1,168 @@
+\hypertarget{server_8h}{}\section{headers/server.h File Reference}
+\label{server_8h}\index{headers/server.\+h@{headers/server.\+h}}
+{\ttfamily \#include $<$netinet/in.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}datatypes.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}logger.\+h\char`\"{}}\newline
+Include dependency graph for server.\+h\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{server_8h__incl}
+\end{center}
+\end{figure}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structserver__t}{server\+\_\+t}
+\item 
+struct \hyperlink{structserver__thread__args__t}{server\+\_\+thread\+\_\+args\+\_\+t}
+\end{DoxyCompactItemize}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{server_8h_a0c8ed88f8703f04b3f6a859ec22592dd}{H\+E\+L\+P\+E\+R\+\_\+\+P\+A\+TH}~\char`\"{}src\textbackslash{}\textbackslash{}helpers\textbackslash{}\textbackslash{}win\+Gopher\+Process.\+exe\char`\"{}
+\item 
+\#define \hyperlink{server_8h_a61f27f3175b8dcd0ef48f0ef970a85ec}{C\+O\+N\+F\+I\+G\+\_\+\+D\+E\+L\+I\+M\+I\+T\+ER}~\textquotesingle{}=\textquotesingle{}
+\item 
+\#define \hyperlink{server_8h_af582401e03d637568810a85da422f902}{D\+E\+F\+A\+U\+L\+T\+\_\+\+M\+U\+L\+T\+I\+\_\+\+P\+R\+O\+C\+E\+SS}~0
+\item 
+\#define \hyperlink{server_8h_a16b710f592bf8f7900666392adc444dc}{D\+E\+F\+A\+U\+L\+T\+\_\+\+P\+O\+RT}~7070
+\item 
+\#define \hyperlink{server_8h_a3fe273e91ed4f889df2196ef8fb4bebc}{R\+E\+A\+D\+\_\+\+P\+O\+RT}~0x0001
+\item 
+\#define \hyperlink{server_8h_a6b54c1b1438d51fe3c882605b3bbbba6}{R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS}~0x0002
+\item 
+\#define \hyperlink{server_8h_ae95a9f2a9b3524b24e078891b5d7d66a}{S\+E\+R\+V\+E\+R\+\_\+\+U\+P\+D\+A\+TE}~0
+\item 
+\#define \hyperlink{server_8h_a96095212b5702642ba49865f7e6bb11c}{S\+E\+R\+V\+E\+R\+\_\+\+I\+N\+IT}~-\/1
+\item 
+\#define \hyperlink{server_8h_a667dfaa8034821b0e94368ca50edbe02}{S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS}~0
+\item 
+\#define \hyperlink{server_8h_a4263c7b984cab277833e0dcfd0ca69e9}{S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE}~-\/1
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \hyperlink{server_8h_a6bc9ad1683710cf9592d19870c78a911}{init\+Server} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server)
+\item 
+int \hyperlink{server_8h_a6db637a291288a25af4d89d9f0f3ab31}{install\+Default\+Sig\+Handlers} ()
+\item 
+int \hyperlink{server_8h_a4c40ae864a752c34a4f237a9445db202}{prepare\+Socket} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int flags)
+\item 
+void \hyperlink{server_8h_a2cda6ac8456a82040d05596906d66acc}{default\+Config} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int which)
+\item 
+int \hyperlink{server_8h_a2e07cc3959eab913ab4c894bc6c8395d}{read\+Config} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int which)
+\item 
+void \hyperlink{server_8h_ad221c23be1021d3a7ed3f2a52a14c1df}{print\+Heading} (const \hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server)
+\item 
+int \hyperlink{server_8h_a533c9a4292e9d1106ff7c54fbf75090a}{run\+Server} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\end{DoxyCompactItemize}
+
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{server_8h_a61f27f3175b8dcd0ef48f0ef970a85ec}\label{server_8h_a61f27f3175b8dcd0ef48f0ef970a85ec}} 
+\index{server.\+h@{server.\+h}!C\+O\+N\+F\+I\+G\+\_\+\+D\+E\+L\+I\+M\+I\+T\+ER@{C\+O\+N\+F\+I\+G\+\_\+\+D\+E\+L\+I\+M\+I\+T\+ER}}
+\index{C\+O\+N\+F\+I\+G\+\_\+\+D\+E\+L\+I\+M\+I\+T\+ER@{C\+O\+N\+F\+I\+G\+\_\+\+D\+E\+L\+I\+M\+I\+T\+ER}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{C\+O\+N\+F\+I\+G\+\_\+\+D\+E\+L\+I\+M\+I\+T\+ER}{CONFIG\_DELIMITER}}
+{\footnotesize\ttfamily \#define C\+O\+N\+F\+I\+G\+\_\+\+D\+E\+L\+I\+M\+I\+T\+ER~\textquotesingle{}=\textquotesingle{}}
+
+\mbox{\Hypertarget{server_8h_af582401e03d637568810a85da422f902}\label{server_8h_af582401e03d637568810a85da422f902}} 
+\index{server.\+h@{server.\+h}!D\+E\+F\+A\+U\+L\+T\+\_\+\+M\+U\+L\+T\+I\+\_\+\+P\+R\+O\+C\+E\+SS@{D\+E\+F\+A\+U\+L\+T\+\_\+\+M\+U\+L\+T\+I\+\_\+\+P\+R\+O\+C\+E\+SS}}
+\index{D\+E\+F\+A\+U\+L\+T\+\_\+\+M\+U\+L\+T\+I\+\_\+\+P\+R\+O\+C\+E\+SS@{D\+E\+F\+A\+U\+L\+T\+\_\+\+M\+U\+L\+T\+I\+\_\+\+P\+R\+O\+C\+E\+SS}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{D\+E\+F\+A\+U\+L\+T\+\_\+\+M\+U\+L\+T\+I\+\_\+\+P\+R\+O\+C\+E\+SS}{DEFAULT\_MULTI\_PROCESS}}
+{\footnotesize\ttfamily \#define D\+E\+F\+A\+U\+L\+T\+\_\+\+M\+U\+L\+T\+I\+\_\+\+P\+R\+O\+C\+E\+SS~0}
+
+\mbox{\Hypertarget{server_8h_a16b710f592bf8f7900666392adc444dc}\label{server_8h_a16b710f592bf8f7900666392adc444dc}} 
+\index{server.\+h@{server.\+h}!D\+E\+F\+A\+U\+L\+T\+\_\+\+P\+O\+RT@{D\+E\+F\+A\+U\+L\+T\+\_\+\+P\+O\+RT}}
+\index{D\+E\+F\+A\+U\+L\+T\+\_\+\+P\+O\+RT@{D\+E\+F\+A\+U\+L\+T\+\_\+\+P\+O\+RT}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{D\+E\+F\+A\+U\+L\+T\+\_\+\+P\+O\+RT}{DEFAULT\_PORT}}
+{\footnotesize\ttfamily \#define D\+E\+F\+A\+U\+L\+T\+\_\+\+P\+O\+RT~7070}
+
+\mbox{\Hypertarget{server_8h_a0c8ed88f8703f04b3f6a859ec22592dd}\label{server_8h_a0c8ed88f8703f04b3f6a859ec22592dd}} 
+\index{server.\+h@{server.\+h}!H\+E\+L\+P\+E\+R\+\_\+\+P\+A\+TH@{H\+E\+L\+P\+E\+R\+\_\+\+P\+A\+TH}}
+\index{H\+E\+L\+P\+E\+R\+\_\+\+P\+A\+TH@{H\+E\+L\+P\+E\+R\+\_\+\+P\+A\+TH}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{H\+E\+L\+P\+E\+R\+\_\+\+P\+A\+TH}{HELPER\_PATH}}
+{\footnotesize\ttfamily \#define H\+E\+L\+P\+E\+R\+\_\+\+P\+A\+TH~\char`\"{}src\textbackslash{}\textbackslash{}helpers\textbackslash{}\textbackslash{}win\+Gopher\+Process.\+exe\char`\"{}}
+
+\mbox{\Hypertarget{server_8h_a6b54c1b1438d51fe3c882605b3bbbba6}\label{server_8h_a6b54c1b1438d51fe3c882605b3bbbba6}} 
+\index{server.\+h@{server.\+h}!R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS@{R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS}}
+\index{R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS@{R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS}{READ\_MULTIPROCESS}}
+{\footnotesize\ttfamily \#define R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS~0x0002}
+
+\mbox{\Hypertarget{server_8h_a3fe273e91ed4f889df2196ef8fb4bebc}\label{server_8h_a3fe273e91ed4f889df2196ef8fb4bebc}} 
+\index{server.\+h@{server.\+h}!R\+E\+A\+D\+\_\+\+P\+O\+RT@{R\+E\+A\+D\+\_\+\+P\+O\+RT}}
+\index{R\+E\+A\+D\+\_\+\+P\+O\+RT@{R\+E\+A\+D\+\_\+\+P\+O\+RT}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{R\+E\+A\+D\+\_\+\+P\+O\+RT}{READ\_PORT}}
+{\footnotesize\ttfamily \#define R\+E\+A\+D\+\_\+\+P\+O\+RT~0x0001}
+
+\mbox{\Hypertarget{server_8h_a4263c7b984cab277833e0dcfd0ca69e9}\label{server_8h_a4263c7b984cab277833e0dcfd0ca69e9}} 
+\index{server.\+h@{server.\+h}!S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE@{S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE}}
+\index{S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE@{S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE}{SERVER\_FAILURE}}
+{\footnotesize\ttfamily \#define S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE~-\/1}
+
+\mbox{\Hypertarget{server_8h_a96095212b5702642ba49865f7e6bb11c}\label{server_8h_a96095212b5702642ba49865f7e6bb11c}} 
+\index{server.\+h@{server.\+h}!S\+E\+R\+V\+E\+R\+\_\+\+I\+N\+IT@{S\+E\+R\+V\+E\+R\+\_\+\+I\+N\+IT}}
+\index{S\+E\+R\+V\+E\+R\+\_\+\+I\+N\+IT@{S\+E\+R\+V\+E\+R\+\_\+\+I\+N\+IT}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{S\+E\+R\+V\+E\+R\+\_\+\+I\+N\+IT}{SERVER\_INIT}}
+{\footnotesize\ttfamily \#define S\+E\+R\+V\+E\+R\+\_\+\+I\+N\+IT~-\/1}
+
+\mbox{\Hypertarget{server_8h_a667dfaa8034821b0e94368ca50edbe02}\label{server_8h_a667dfaa8034821b0e94368ca50edbe02}} 
+\index{server.\+h@{server.\+h}!S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS@{S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS}}
+\index{S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS@{S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS}{SERVER\_SUCCESS}}
+{\footnotesize\ttfamily \#define S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS~0}
+
+\mbox{\Hypertarget{server_8h_ae95a9f2a9b3524b24e078891b5d7d66a}\label{server_8h_ae95a9f2a9b3524b24e078891b5d7d66a}} 
+\index{server.\+h@{server.\+h}!S\+E\+R\+V\+E\+R\+\_\+\+U\+P\+D\+A\+TE@{S\+E\+R\+V\+E\+R\+\_\+\+U\+P\+D\+A\+TE}}
+\index{S\+E\+R\+V\+E\+R\+\_\+\+U\+P\+D\+A\+TE@{S\+E\+R\+V\+E\+R\+\_\+\+U\+P\+D\+A\+TE}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{S\+E\+R\+V\+E\+R\+\_\+\+U\+P\+D\+A\+TE}{SERVER\_UPDATE}}
+{\footnotesize\ttfamily \#define S\+E\+R\+V\+E\+R\+\_\+\+U\+P\+D\+A\+TE~0}
+
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{server_8h_a2cda6ac8456a82040d05596906d66acc}\label{server_8h_a2cda6ac8456a82040d05596906d66acc}} 
+\index{server.\+h@{server.\+h}!default\+Config@{default\+Config}}
+\index{default\+Config@{default\+Config}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{default\+Config()}{defaultConfig()}}
+{\footnotesize\ttfamily void default\+Config (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{which }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8h_a6bc9ad1683710cf9592d19870c78a911}\label{server_8h_a6bc9ad1683710cf9592d19870c78a911}} 
+\index{server.\+h@{server.\+h}!init\+Server@{init\+Server}}
+\index{init\+Server@{init\+Server}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{init\+Server()}{initServer()}}
+{\footnotesize\ttfamily int init\+Server (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8h_a6db637a291288a25af4d89d9f0f3ab31}\label{server_8h_a6db637a291288a25af4d89d9f0f3ab31}} 
+\index{server.\+h@{server.\+h}!install\+Default\+Sig\+Handlers@{install\+Default\+Sig\+Handlers}}
+\index{install\+Default\+Sig\+Handlers@{install\+Default\+Sig\+Handlers}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{install\+Default\+Sig\+Handlers()}{installDefaultSigHandlers()}}
+{\footnotesize\ttfamily int install\+Default\+Sig\+Handlers (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8h_a4c40ae864a752c34a4f237a9445db202}\label{server_8h_a4c40ae864a752c34a4f237a9445db202}} 
+\index{server.\+h@{server.\+h}!prepare\+Socket@{prepare\+Socket}}
+\index{prepare\+Socket@{prepare\+Socket}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{prepare\+Socket()}{prepareSocket()}}
+{\footnotesize\ttfamily int prepare\+Socket (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{flags }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8h_ad221c23be1021d3a7ed3f2a52a14c1df}\label{server_8h_ad221c23be1021d3a7ed3f2a52a14c1df}} 
+\index{server.\+h@{server.\+h}!print\+Heading@{print\+Heading}}
+\index{print\+Heading@{print\+Heading}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{print\+Heading()}{printHeading()}}
+{\footnotesize\ttfamily void print\+Heading (\begin{DoxyParamCaption}\item[{const \hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8h_a2e07cc3959eab913ab4c894bc6c8395d}\label{server_8h_a2e07cc3959eab913ab4c894bc6c8395d}} 
+\index{server.\+h@{server.\+h}!read\+Config@{read\+Config}}
+\index{read\+Config@{read\+Config}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{read\+Config()}{readConfig()}}
+{\footnotesize\ttfamily int read\+Config (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{which }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{server_8h_a533c9a4292e9d1106ff7c54fbf75090a}\label{server_8h_a533c9a4292e9d1106ff7c54fbf75090a}} 
+\index{server.\+h@{server.\+h}!run\+Server@{run\+Server}}
+\index{run\+Server@{run\+Server}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{run\+Server()}{runServer()}}
+{\footnotesize\ttfamily int run\+Server (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{\hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})}
+

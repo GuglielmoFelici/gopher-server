@@ -40,14 +40,6 @@ int initServer(server_t* pServer) {
     return WSAStartup(versionWanted, &wsaData) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
-int destroyServer(server_t* pServer) {
-    int sock = pServer->sock;
-    DeleteCriticalSection(&criticalSection);
-    memset(pServer, 0, sizeof(server_t));
-    pServer->sock = INVALID_SOCKET;
-    return closesocket(sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
-}
-
 /********************************************** SIGNALS *************************************************************/
 
 static BOOL WINAPI ctrlHandler(DWORD signum) {
@@ -190,12 +182,6 @@ int initServer(server_t* pServer) {
     memset(pServer, 0, sizeof(server_t));
     pServer->sock = INVALID_SOCKET;
     return SERVER_SUCCESS;
-}
-
-int destroyServer(server_t* pServer) {
-    memset(&(pServer->sockAddr), 0, sizeof(struct sockaddr_in));
-    pServer->sock = INVALID_SOCKET;
-    return close(pServer->sock) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
 /********************************************** SIGNALS *************************************************************/
@@ -398,6 +384,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
                 logMessage(SHUTDOWN_REQUESTED, LOG_INFO);
+                closeSocket(pServer->sock);
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG)) {
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
