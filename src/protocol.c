@@ -9,11 +9,12 @@
 
 #define MAX_LINE 70
 
-/* Ritorna il carattere identificativo del tipo di file richiesto */
 static char gopherType(const char* file);
 
-/* Rimuove CRLF; se la stringa è vuota, ci scrive "."; 
-   cambia tutti i backslash in forward slash; rimuove i trailing slash */
+/** Removes CRLF; if the strings is empty, writes "." to it; 
+  * maps all the backslashes to forward slashes; removes trailing slashes.
+  * @return GOPHER_SUCCESS or GOPHER_FAILURE
+*/
 static int normalizePath(string_t str) {
     if (!str) {
         return GOPHER_FAILURE;
@@ -36,6 +37,7 @@ static int normalizePath(string_t str) {
     return GOPHER_SUCCESS;
 }
 
+/** @return true if the input str represents a valid selector */
 static bool validateInput(string_t str) {
     string_t strtokptr, ret;
     ret = strtok_r(str, CRLF, &strtokptr);
@@ -43,6 +45,9 @@ static bool validateInput(string_t str) {
            !strstr(ret, "..") && !strstr(ret, ".\\") && !strstr(ret, "./") && ret[strlen(ret) - 1] != '.';
 }
 
+/** Sends the message msg to the socket sock.
+ * @return GOPHER_SUCCESS or GOPHER_FAILURE
+*/
 static int sendErrorResponse(socket_t sock, cstring_t msg) {
     if (SOCKET_ERROR == sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3)) {
         return GOPHER_FAILURE;
@@ -59,7 +64,9 @@ static int sendErrorResponse(socket_t sock, cstring_t msg) {
     return GOPHER_SUCCESS;
 }
 
-/* Costruisce la lista dei file e la invia al client */
+/** Builds the file list and sends it to the client. 
+ *  @return GOPHER_SUCCESS or GOPHER_FAILURE
+*/
 static int sendDir(cstring_t path, int sock, int port) {
     if (!path) {
         return GOPHER_FAILURE;
@@ -71,23 +78,23 @@ static int sendDir(cstring_t path, int sock, int port) {
     int res;
     while (PLATFORM_SUCCESS == (res = iterateDir(path, &dir, filePath, sizeof(filePath)))) {
         normalizePath(filePath);
-        if (NULL == (fileName = strrchr(filePath, '/'))) {  // Isola il nome del file (dopo l'ultimo "/"")
+        if (NULL == (fileName = strrchr(filePath, '/'))) {  // Isolates file name (after last "/")
             fileName = filePath;
         } else {
             fileName++;
         }
         if (strcmp(fileName, ".") == 0 || strcmp(fileName, "..") == 0) {
-            continue;  // Ignora le entry ./ e ../
+            continue;  // Ignores ./ and ../
         }
         char type = gopherType(filePath);
         lineSize = 1 + strlen(fileName) + strlen(filePath) + sizeof(GOPHER_DOMAIN) + sizeof(CRLF) + 6;
-        if (lineSize > (line ? strlen(line) : 0)) {
+        if (lineSize > (line ? strlen(line) : 0)) {  // Realloc only if necessary
             if (NULL == (line = realloc(line, lineSize))) {
                 sendErrorResponse(sock, SYS_ERR_MSG);
                 goto ON_ERROR;
             }
         }
-        if (snprintf(line, lineSize, "%c%s\t%s\t%s\t%hu" CRLF, type, fileName, filePath, GOPHER_DOMAIN, port) <= 0) {
+        if (snprintf(line, lineSize, "%c%s\t%s\t%s\t%hu" CRLF, type, fileName, filePath, GOPHER_DOMAIN, port) >= lineSize) {
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
@@ -103,9 +110,9 @@ static int sendDir(cstring_t path, int sock, int port) {
     if (send(sock, ".", 1, 0) < 1) {
         goto ON_ERROR;
     }
+    closeSocket(sock);
     free(line);
     closeDir(dir);
-    closeSocket(sock);
     return GOPHER_SUCCESS;
 ON_ERROR:
     if (line) {
@@ -117,8 +124,10 @@ ON_ERROR:
     return GOPHER_FAILURE;
 }
 
-/* Invia il file al client */
-// TODO static? per windows si
+/** Function executed by a thread to send a file to the client.
+ *  If the transfer succeeds, writes to the log. 
+ * @param threadArgs a send_args_t compatible void pointer used as argument.
+*/
 static void* sendFileTask(void* threadArgs) {
     send_args_t args;
     struct sockaddr_in clientAddr;
@@ -144,17 +153,25 @@ static void* sendFileTask(void* threadArgs) {
     closeSocket(args.dest);
     inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
     string_t logFormat = "File: %s | Size: %db | Sent to: %s:%i\n";
-    logSize = snprintf(NULL, 0, logFormat, args.name, args.size, address, clientAddr.sin_port) + 1;
-    if ((log = malloc(logSize)) == NULL) {
-        return NULL;
-    }
-    if (snprintf(log, logSize, logFormat, args.name, args.size, address, clientAddr.sin_port) > 0) {
-        logTransfer(args.pLogger, log);
+    if (args.pLogger) {
+        logSize = snprintf(NULL, 0, logFormat, args.name, args.size, address, clientAddr.sin_port) + 1;
+        if ((log = malloc(logSize)) == NULL) {
+            return NULL;
+        }
+        if (snprintf(log, logSize, logFormat, args.name, args.size, address, clientAddr.sin_port) > 0) {
+            logTransfer(args.pLogger, log);
+        }
     }
     free(log);
 }
 
-/* Avvia il worker thread di trasmissione */
+/** Starts the file transfer thread, executing sendFileTask().
+ * @param name The name of the file (used for logging). Can be NULL iff pLogger is NULL. 
+ * @param map A pointer to a file_mapping_t representing the memory mapping of the file.
+ * @param sock The client socket.
+ * @param pLogger A pointer to the logger_t representing the logging process (can be NULL).
+ * @return GOPHER_SUCCESS or GOPHER_FAILURE.
+ */
 static int sendFile(cstring_t name, const file_mapping_t* map, int sock, const logger_t* pLogger) {
     thread_t tid;
     send_args_t* args = NULL;
@@ -177,7 +194,11 @@ static int sendFile(cstring_t name, const file_mapping_t* map, int sock, const l
     return GOPHER_SUCCESS;
 }
 
-/* Esegue il protocollo. */
+/** Executes the gopher protocol.
+ *  Receives a selector and performs validateInput() and normalizePath(). If the selector points to a directory, calls sendDir().
+ *  Else, a file_mapping_t is created using getFileMap() and is sent to the client using sendFile().
+ *  @return GOPHER_SUCCESS or GOPHER_FAILURE.
+ */
 int gopher(socket_t sock, int port, const logger_t* pLogger) {
     string_t selector = NULL;
     char buf[BUFF_SIZE];
@@ -242,7 +263,7 @@ ON_ERROR:
 
 #include <windows.h>
 
-/* Ritorna il carattere di codifica del tipo di file */
+/** @return The character identifying the type of the file. */
 static char gopherType(LPCSTR filePath) {
     LPSTR ext;
     if (fileAttributes(filePath) & PLATFORM_ISDIR) {
@@ -279,7 +300,7 @@ static char gopherType(LPCSTR filePath) {
 
 /*****************************************************************************************************************/
 
-/* Ritorna il carattere di codifica del tipo di file */
+/** @return The character identifying the type of the file. */
 static char gopherType(const char* file) {
     if (fileAttributes(file) & PLATFORM_ISDIR) {
         return GOPHER_DIR;

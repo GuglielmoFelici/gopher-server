@@ -1,5 +1,6 @@
 #include "../headers/platform.h"
 #include <stdio.h>
+#include <string.h>
 #include "../headers/protocol.h"
 
 bool endsWith(cstring_t str1, cstring_t str2) {
@@ -104,7 +105,6 @@ int fileAttributes(LPCSTR path) {
     }
 }
 
-/* Mappa un file in memoria */
 int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     HANDLE file = NULL, map = NULL;
     LPVOID view = NULL;
@@ -327,7 +327,7 @@ int getFileSize(cstring_t path) {
 
 int getFileMap(const char *path, file_mapping_t *mapData) {
     int fd;
-    if ((fd = open(path, O_RDONLY)) < 0) {
+    if ((fd = open(path, O_RDWR)) < 0) {
         return PLATFORM_FAILURE;
     }
     if (lockf(fd, F_LOCK, 0) < 0) {
@@ -354,10 +354,6 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
     return PLATFORM_SUCCESS;
 }
 
-/* 
-    Legge la prossima entry nella directory e ne mette il nome in name. 
-    Se *dir è NULL, apre la directory contenuta in path. Se *dir non è NULL, path può essere NULL
-*/
 int iterateDir(const char *path, DIR **dir, char *name, size_t nameSize) {
     struct dirent *entry;
     if (*dir == NULL) {

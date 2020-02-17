@@ -1,3 +1,8 @@
+/** \file logger.h
+ * Functions to handle the logging of the gopher file transfers.
+ * @file logger.c
+ */
+
 #ifndef LOGGER_H
 #define LOGGER_H
 

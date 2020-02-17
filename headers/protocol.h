@@ -1,3 +1,8 @@
+/** \file protocol.h 
+ *  Executes the gopher protocol for a client.
+ *  @file protocol.c
+ */
+
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
