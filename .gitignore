@@ -64,6 +64,7 @@ config/config
 *test/out/*
 *test/compare_res
 logFile
+doxydir/
 
 linuxserver
 
