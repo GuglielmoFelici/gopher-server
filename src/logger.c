@@ -1,4 +1,6 @@
 #include "../headers/logger.h"
+#include <stdio.h>
+#include <string.h>
 
 /** [Linux] Starts the main logging process loop 
  *  @param pLogger A pointer to the logger_t struct representing a logging process
@@ -137,9 +139,7 @@ int stopLogger(logger_t* pLogger) {
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>

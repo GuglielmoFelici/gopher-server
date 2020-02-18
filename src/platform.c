@@ -29,14 +29,6 @@ int sendAll(socket_t s, cstring_t data, int length) {
 
 /************************************************** UTILS ********************************************************/
 
-void printLastError(LPCSTR msg) {
-    error[256];
-    strncpy(error, msg, sizeof(error));
-    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  sizeof(error), size, NULL);
-}
-
 int getCwd(LPSTR dst, size_t size) {
     return GetCurrentDirectory(size, dst) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
@@ -94,6 +86,14 @@ int daemonize() {
 }
 
 /*********************************************** FILES  ***************************************************************/
+
+int getFileSize(const char *path) {
+    WIN32_FIND_DATA data;
+    if (!GetFileAttributesEx(path, GetFileExInfoStandard, &data)) {
+        return -1;
+    }
+    return data.nFileSizeLow;
+}
 
 int fileAttributes(LPCSTR path) {
     DWORD attr = GetFileAttributes(path);
@@ -229,10 +229,6 @@ void logMessage(cstring_t message, int level) {
             lvl = "ERROR";
     }
     syslog(level, "%s - %s\n%s", lvl, message, level == LOG_ERR ? strerror(errno) : "");
-}
-
-void printLastError(const char *msg) {
-    perror(msg);
 }
 
 /********************************************** SOCKETS *************************************************************/
