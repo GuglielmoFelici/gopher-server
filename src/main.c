@@ -9,6 +9,7 @@
 int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
+    logMessage(MAIN_STARTING, LOG_INFO);
     // Inizializzazione delle strutture di configurazione
     if (SERVER_SUCCESS != initWsa()) {
         logMessage(MAIN_WSA_ERR, LOG_ERR);
@@ -66,6 +67,7 @@ int main(int argc, string_t* argv) {
         logMessage(MAIN_SOCKET_ERR, LOG_ERR);
         goto ON_ERROR;
     }
+    printf("Port %d\n", server.port);
     if (PLATFORM_SUCCESS != daemonize()) {  // TODO spostare?
         logMessage(MAIN_STARTUP_ERR, LOG_ERR);
         goto ON_ERROR;
@@ -88,6 +90,7 @@ int main(int argc, string_t* argv) {
     return 0;
 ON_ERROR:
     fprintf(stderr, "The program terminated with errors, check logs.\n");
+    logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
     stopLogger(&logger);
     return 1;
 }
