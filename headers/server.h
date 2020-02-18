@@ -22,8 +22,8 @@
 #define DEFAULT_PORT 7070
 #define READ_PORT 0x0001
 #define READ_MULTIPROCESS 0x0002
-#define SERVER_UPDATE 0
-#define SERVER_INIT -1
+#define SERVER_UPDATE 0x0001
+#define SERVER_INIT 0x0002
 // Error codes
 #define SERVER_SUCCESS 0
 #define SERVER_FAILURE -1

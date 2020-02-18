@@ -278,7 +278,7 @@ int daemonize() {
         }
         pid = fork();
         if (pid > 0) {
-            printf("%d\n", pid);
+            printf("Pid %d\n", pid);
             exit(0);
         } else {
             umask(S_IRUSR & S_IWUSR & S_IRGRP & S_IWGRP);

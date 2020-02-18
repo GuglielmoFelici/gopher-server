@@ -68,7 +68,7 @@ int main(int argc, string_t* argv) {
         goto ON_ERROR;
     }
     printf("Port %d\n", server.port);
-    if (PLATFORM_SUCCESS != daemonize()) {  // TODO spostare?
+    if (PLATFORM_SUCCESS != daemonize()) {
         logMessage(MAIN_STARTUP_ERR, LOG_ERR);
         goto ON_ERROR;
     }

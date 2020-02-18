@@ -36,6 +36,10 @@ int prepareSocket(server_t* pServer, int flags) {
         goto ON_ERROR;
     }
     if (flags & SERVER_UPDATE) {
+        logMessage("asdasd", LOG_WARNING);
+        if (shutdown(pServer->sock, SHUT_RDWR) < 0) {
+            goto ON_ERROR;
+        }
         if (PLATFORM_FAILURE == closeSocket(pServer->sock)) {
             goto ON_ERROR;
         };
@@ -330,8 +334,13 @@ int installDefaultSigHandlers() {
 static bool checkSignal(int which) {
     if (which & CHECK_SHUTDOWN) {
         return requestShutdown;
+    } else if (which & CHECK_CONFIG) {
+        if (updateConfig) {
+            updateConfig = false;
+            return true;
+        }
+        return false;
     }
-    return (which & CHECK_CONFIG) ? updateConfig : false;
 }
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
