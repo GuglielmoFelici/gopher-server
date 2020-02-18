@@ -335,6 +335,7 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
     if ((fd = open(path, O_RDWR)) < 0) {
         return PLATFORM_FAILURE;
     }
+    // TODO locking è weird
     if (fcntl(fd, F_SETLK, &lck) < 0) {
         return PLATFORM_FAILURE;
     }
