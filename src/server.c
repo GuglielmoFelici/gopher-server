@@ -7,12 +7,6 @@
 #include "../headers/platform.h"
 #include "../headers/protocol.h"
 
-#if defined(_WIN32)
-#define SEL_TIMEOUT true
-#else
-#define SEL_TIMEOUT false
-#endif
-
 #define CHECK_CONFIG 0x0001
 #define CHECK_SHUTDOWN 0x0002
 
@@ -125,14 +119,12 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     struct timeval* timeOut;
     fd_set incomingConnections;
     int ready = 0;
-    printHeading(pServer);  // TODO usare syslog
     while (true) {
         do {
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
                 logMessage(SHUTDOWN_REQUESTED, LOG_INFO);
-                closeSocket(pServer->sock);
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG)) {
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
@@ -146,7 +138,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                     }
                 }
             }
-            timeOut = SEL_TIMEOUT ? &(struct timeval){1, 0} : NULL;
+            timeOut = &(struct timeval){1, 0};
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
         } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, timeOut)) <= 0);
@@ -178,16 +170,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
 
 static CRITICAL_SECTION criticalSection;
 
-void printHeading(const server_t* pServer) {
-    printf("Listening on port %d (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
-}
-
-int initServer(server_t* pServer) {
-    if (!pServer) {
-        return SERVER_FAILURE;
-    }
-    memset(pServer, 0, sizeof(server_t));
-    pServer->sock = INVALID_SOCKET;
+int initWsa() {
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
     InitializeCriticalSection(&criticalSection);
@@ -273,7 +256,7 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     memset(&startupInfo, 0, sizeof(startupInfo));
     memset(&processInfo, 0, sizeof(processInfo));
     startupInfo.cb = sizeof(startupInfo);
-    startupInfo.dwFlags = STARTF_USESTDHANDLES;  // TODO rimuovere
+    startupInfo.dwFlags = STARTF_USESTDHANDLES;
     if (
         INVALID_HANDLE_VALUE == (startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE)) ||
         INVALID_HANDLE_VALUE == (startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE)) ||
@@ -316,17 +299,7 @@ ON_ERROR:
 #include <sys/types.h>
 #include <unistd.h>
 
-void printHeading(const server_t* pServer) {
-    printf("Started daemon with pid %d\n", getpid());
-    printf("Listening on port %i (%s mode)\n", pServer->port, pServer->multiProcess ? "multiprocess" : "multithreaded");
-}
-
-int initServer(server_t* pServer) {
-    if (!pServer) {
-        return SERVER_FAILURE;
-    }
-    memset(pServer, 0, sizeof(server_t));
-    pServer->sock = INVALID_SOCKET;
+int initWsa(server_t* pServer) {
     return SERVER_SUCCESS;
 }
 

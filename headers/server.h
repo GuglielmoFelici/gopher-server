@@ -16,6 +16,7 @@
 #include "logger.h"
 
 #define HELPER_PATH "src\\helpers\\winGopherProcess.exe"
+#define CONFIG_FILE "config"
 #define CONFIG_DELIMITER '='
 #define DEFAULT_MULTI_PROCESS 0
 #define DEFAULT_PORT 7070
@@ -40,7 +41,7 @@ typedef struct {
     /** The server main installation directory */
     char installationDir[MAX_NAME];
     /** The server configuration file name */
-    char configFile[MAX_NAME];
+    char configFile[MAX_NAME + sizeof(CONFIG_FILE)];
 } server_t;
 
 /** A struct defining the arguments required by the children threads to serve the client*/
@@ -57,7 +58,7 @@ typedef struct {
  *  @param pServer A pointer to the server_t struct to initialize.
  *  @return SERVER_SUCCESS or SERVER_FAILURE. 
  */
-int initServer(server_t* pServer);
+int initWsa();
 
 /** Installs the default signal handlers for the main process.
  * On Windows, CTRL_C interrupts the server and CTRL_BREAK requests a configuration update.
@@ -85,8 +86,6 @@ void defaultConfig(server_t* pServer, int which);
  * @return SERVER_SUCCESS or SERVER_FAILURE.  
 */
 int readConfig(server_t* pServer, int which);
-
-void printHeading(const server_t* pServer);
 
 /** Starts a gopher server.
  * @param pServer A server_t struct representing the server to run.

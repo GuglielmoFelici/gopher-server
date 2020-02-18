@@ -206,9 +206,11 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     size_t bytesRec = 0, selectorSize = 1;
     do {
         if (SOCKET_ERROR == (bytesRec = recv(sock, buf, BUFF_SIZE, 0))) {
+            logMessage(RECV_ERR, LOG_ERR);
             goto ON_ERROR;
         }
         if (NULL == (selector = realloc(selector, selectorSize + bytesRec))) {
+            logMessage(ALLOC_ERR, LOG_ERR);
             goto ON_ERROR;
         }
         memcpy(selector + selectorSize - 1, buf, bytesRec);
@@ -226,6 +228,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         goto ON_ERROR;
     } else if (PLATFORM_ISDIR & fileAttr) {  // Directory
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
+            logMessage(DIR_SEND_ERR, LOG_ERR);
             goto ON_ERROR;
         }
     } else {  // File
@@ -236,6 +239,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         } else {
             if (getFileMap(selector, &map) != GOPHER_SUCCESS) {
                 logMessage(FILE_MAP_ERR, LOG_ERR);
+                sendErrorResponse(sock, SYS_ERR_MSG);
                 goto ON_ERROR;
             }
         }

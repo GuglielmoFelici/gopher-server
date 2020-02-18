@@ -194,7 +194,7 @@ int startTransferLog(logger_t* pLogger) {
     }
     int pid;
     if ((pid = fork()) < 0) {
-        logMessage(MAIN_FORK_ERR, LOG_ERR);
+        logMessage(FORK_FAILED, LOG_ERR);
         goto ON_ERROR;
     } else if (pid == 0) {  // Logger
         struct sigaction act;
@@ -318,7 +318,7 @@ static void loggerLoop(const logger_t* pLogger) {
             lck.l_whence = SEEK_SET;
             lck.l_len = 0;
             lck.l_pid = getpid();
-            if (fcntl(logFile, F_SETLK, &lck) < 0) {
+            if (fcntl(logFile, F_SETLKW, &lck) < 0) {
                 logMessage(FILE_LOCK_ERR, LOG_ERR);
                 goto ON_ERROR;
             }
@@ -327,7 +327,8 @@ static void loggerLoop(const logger_t* pLogger) {
                 goto ON_ERROR;
             }
             int fileSize = getFileSize(logFilePath);
-            if (fcntl(logFile, F_ULOCK, &lck) < 0) {
+            lck.l_type = F_UNLCK;
+            if (fcntl(logFile, F_SETLK, &lck) < 0) {
                 logMessage(FILE_UNLOCK_ERR, LOG_ERR);
                 goto ON_ERROR;
             }

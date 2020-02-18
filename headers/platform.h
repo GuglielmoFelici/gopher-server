@@ -52,6 +52,9 @@ int changeCwd(cstring_t path);
 */
 void logMessage(cstring_t message, int level);
 
+/** Prints the last system error on stderr with the message msg. */
+void printLastError(cstring_t msg);
+
 /** @return the current system error relative to the sockets */
 int sockErr();
 

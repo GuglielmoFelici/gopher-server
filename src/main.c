@@ -6,14 +6,12 @@
 #include "../headers/server.h"
 #include "../headers/wingetopt.h"
 
-#define CONFIG_FILE "config"
-
 int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
     // Inizializzazione delle strutture di configurazione
-    if (SERVER_SUCCESS != initServer(&server)) {
-        logMessage(MAIN_STARTUP_ERR, LOG_ERR);
+    if (SERVER_SUCCESS != initWsa()) {
+        logMessage(MAIN_WSA_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     if (PLATFORM_SUCCESS != getCwd(server.installationDir, sizeof(server.installationDir))) {
@@ -63,21 +61,21 @@ int main(int argc, string_t* argv) {
                 goto ON_ERROR;
         }
     }
-    logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
-    if (!pLogger) {
-        logMessage(MAIN_START_LOG_ERR, LOG_WARNING);
-    }
     // Configurazione ambiente
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
         logMessage(MAIN_SOCKET_ERR, LOG_ERR);
         goto ON_ERROR;
     }
-    if (SERVER_SUCCESS != installDefaultSigHandlers()) {
-        logMessage(MAIN_CTRL_ERR, LOG_ERR);
-        goto ON_ERROR;
-    }
     if (PLATFORM_SUCCESS != daemonize()) {  // TODO spostare?
         logMessage(MAIN_STARTUP_ERR, LOG_ERR);
+        goto ON_ERROR;
+    }
+    logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
+    if (!pLogger) {
+        logMessage(MAIN_START_LOG_ERR, LOG_WARNING);
+    }
+    if (SERVER_SUCCESS != installDefaultSigHandlers()) {
+        logMessage(MAIN_CTRL_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     // Avvio
@@ -85,9 +83,11 @@ int main(int argc, string_t* argv) {
         logMessage(MAIN_STARTUP_ERR, LOG_ERR);
         goto ON_ERROR;
     }
+    closeSocket(server.sock);
     stopLogger(&logger);
     return 0;
 ON_ERROR:
+    fprintf(stderr, "The program terminated with errors, check logs.\n");
     stopLogger(&logger);
     return 1;
 }

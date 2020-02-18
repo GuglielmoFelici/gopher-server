@@ -29,10 +29,12 @@ int sendAll(socket_t s, cstring_t data, int length) {
 
 /************************************************** UTILS ********************************************************/
 
-void errorString(LPSTR error, size_t size) {
+void printLastError(LPCSTR msg) {
+    error[256];
+    strncpy(error, msg, sizeof(error));
     FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  error, size, NULL);
+                  sizeof(error), size, NULL);
 }
 
 int getCwd(LPSTR dst, size_t size) {
@@ -229,6 +231,10 @@ void logMessage(cstring_t message, int level) {
     syslog(level, "%s - %s\n%s", lvl, message, level == LOG_ERR ? strerror(errno) : "");
 }
 
+void printLastError(const char *msg) {
+    perror(msg);
+}
+
 /********************************************** SOCKETS *************************************************************/
 
 int sockErr() {
@@ -255,17 +261,16 @@ int startThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
 
 int daemonize() {
     int pid;
-    // pid = fork();
-    pid = 0;
+    pid = fork();
     if (pid < 0) {
         return PLATFORM_FAILURE;
     } else if (pid > 0) {
         exit(0);
     } else {
         sigset_t set;
-        // if (setsid() < 0) {
-        //     return PLATFORM_FAILURE;
-        // }
+        if (setsid() < 0) {
+            return PLATFORM_FAILURE;
+        }
         if (sigemptyset(&set) < 0) {
             return PLATFORM_FAILURE;
         }
@@ -275,11 +280,9 @@ int daemonize() {
         if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
             return PLATFORM_FAILURE;
         }
-        // pid = fork();
-        pid = 0;
-        if (pid < 0) {
-            return PLATFORM_FAILURE;
-        } else if (pid > 0) {
+        pid = fork();
+        if (pid > 0) {
+            printf("%d\n", pid);
             exit(0);
         } else {
             umask(S_IRUSR & S_IWUSR & S_IRGRP & S_IWGRP);
@@ -287,14 +290,12 @@ int daemonize() {
                 return PLATFORM_FAILURE;
             }
             int devNull;
-            // TODO eventualmente usare syslog
             if ((devNull = open("/dev/null", O_RDWR)) < 0) {
                 return PLATFORM_FAILURE;
             }
-            // if (dup2(devNull, STDIN_FILENO) < 0)
-            //     ;  //|| dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
-            // return PLATFORM_FAILURE;
-            // }
+            if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+                return PLATFORM_FAILURE;
+            }
             return close(devNull) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
         }
     }
@@ -332,11 +333,10 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
     lck.l_whence = SEEK_SET;
     lck.l_len = 0;
     lck.l_pid = getpid();
-    if ((fd = open(path, O_RDWR)) < 0) {
+    if ((fd = open(path, O_RDONLY)) < 0) {
         return PLATFORM_FAILURE;
     }
-    // TODO locking è weird
-    if (fcntl(fd, F_SETLK, &lck) < 0) {
+    if (fcntl(fd, F_SETLKW, &lck) < 0) {
         return PLATFORM_FAILURE;
     }
     struct stat statBuf;
@@ -349,7 +349,8 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
         close(fd);
         return PLATFORM_FAILURE;
     }
-    if (fcntl(fd, F_UNLCK, &lck) < 0 ||
+    lck.l_type = F_UNLCK;
+    if (fcntl(fd, F_SETLK, &lck) < 0 ||
         close(fd) < 0) {
         return PLATFORM_FAILURE;
     }
