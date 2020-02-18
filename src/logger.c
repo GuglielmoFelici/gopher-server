@@ -257,9 +257,6 @@ int logTransfer(const logger_t* pLogger, const char* log) {
     return LOGGER_SUCCESS;
 }
 
-int destroyLogger(logger_t* pLogger) {
-}
-
 int stopLogger(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
@@ -298,7 +295,7 @@ static void loggerLoop(const logger_t* pLogger) {
         logMessage(LOGFILE_NAME_ERR, LOG_ERR);
         goto ON_ERROR;
     }
-    if ((logFile = creat(logFilePath, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
+    if ((logFile = open(logFilePath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
         logMessage(LOGFILE_OPEN_ERR, LOG_ERR);
         goto ON_ERROR;
     }
@@ -316,8 +313,22 @@ static void loggerLoop(const logger_t* pLogger) {
             logMessage(PIPE_READ_ERR, LOG_ERR);
             goto ON_ERROR;
         } else {
-            if (write(logFile, buff, bytesRead) != bytesRead) {
+            struct flock lck;
+            lck.l_type = F_WRLCK;
+            lck.l_whence = SEEK_SET;
+            lck.l_len = 0;
+            lck.l_pid = getpid();
+            if (fcntl(logFile, F_SETLK, &lck) < 0) {
+                logMessage(FILE_LOCK_ERR, LOG_ERR);
+                goto ON_ERROR;
+            }
+            if (write(logFile, buff, bytesRead) < 0) {
                 logMessage(LOGFILE_WRITE_ERR, LOG_ERR);
+                goto ON_ERROR;
+            }
+            int fileSize = getFileSize(logFilePath);
+            if (fcntl(logFile, F_ULOCK, &lck) < 0) {
+                logMessage(FILE_UNLOCK_ERR, LOG_ERR);
                 goto ON_ERROR;
             }
         }

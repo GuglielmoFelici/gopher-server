@@ -41,7 +41,11 @@ int main(int argc, string_t* argv) {
             case 'm':
                 server.multiProcess = true;
                 break;
-            case 'p':;
+            case 'p':
+                if (optarg[0] == '-') {
+                    logMessage(MAIN_USAGE, LOG_INFO);
+                    goto ON_ERROR;
+                }
                 int port = strtol(optarg, NULL, 10);
                 if (port < 1 || port > 65535) {
                     logMessage(MAIN_PORT_CONFIG_ERR, LOG_WARNING);

@@ -31,6 +31,8 @@
 #define MUTEX_INIT_ERR "Error initializing mutex."
 #define MUTEX_LOCK_ERR "Can't lock mutex."
 #define MUTEX_UNLOCK_ERR "Can't unlock mutex."
+#define FILE_LOCK_ERR "Error locking file."
+#define FILE_UNLOCK_ERR "Error unlocking file."
 #define COND_INIT_ERR "Error initializing the condition variable."
 #define COND_WAIT_ERR "Error waiting on the condition variable."
 #define COND_SIGNAL_ERR "Error signaling on the condition variable."

@@ -327,25 +327,28 @@ int getFileSize(cstring_t path) {
 
 int getFileMap(const char *path, file_mapping_t *mapData) {
     int fd;
+    struct flock lck;
+    lck.l_type = F_RDLCK;
+    lck.l_whence = SEEK_SET;
+    lck.l_len = 0;
+    lck.l_pid = getpid();
     if ((fd = open(path, O_RDWR)) < 0) {
         return PLATFORM_FAILURE;
     }
-    if (lockf(fd, F_LOCK, 0) < 0) {
+    if (fcntl(fd, F_SETLK, &lck) < 0) {
         return PLATFORM_FAILURE;
     }
     struct stat statBuf;
     if (fstat(fd, &statBuf) < 0) {
-        lockf(fd, F_ULOCK, 0);
         close(fd);
         return PLATFORM_FAILURE;
     }
     void *map;
     if (MAP_FAILED == (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0))) {
-        lockf(fd, F_ULOCK, 0);
         close(fd);
         return PLATFORM_FAILURE;
     }
-    if (lockf(fd, F_ULOCK, 0) < 0 ||
+    if (fcntl(fd, F_UNLCK, &lck) < 0 ||
         close(fd) < 0) {
         return PLATFORM_FAILURE;
     }
