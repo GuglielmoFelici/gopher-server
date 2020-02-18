@@ -1,5 +1,10 @@
 #include "../headers/logger.h"
 
+/** [Linux] Starts the main logging process loop 
+ *  @param pLogger A pointer to the logger_t struct representing a logging process
+*/
+static void loggerLoop(const logger_t* pLogger);
+
 int initLogger(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
@@ -11,14 +16,13 @@ int initLogger(logger_t* pLogger) {
     return LOGGER_SUCCESS;
 }
 
-#if defined(_WIN32)
-
 /*****************************************************************************************************************/
 /*                                             WINDOWS FUNCTIONS                                                 */
 
 /*****************************************************************************************************************/
 
-/* Avvia il processo di logging dei trasferimenti. */
+#if defined(_WIN32)
+
 int startTransferLog(logger_t* pLogger) {
     char exec[MAX_NAME] = "";
     SECURITY_ATTRIBUTES attr;
@@ -123,12 +127,12 @@ int stopLogger(logger_t* pLogger) {
     return LOGGER_SUCCESS;
 }
 
-#else
-
 /*****************************************************************************************************************/
 /*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
+
+#else
 
 #include <fcntl.h>
 #include <pthread.h>
@@ -147,9 +151,6 @@ int stopLogger(logger_t* pLogger) {
 
 #define LOG_PROCESS_NAME "gopher-logger"
 
-static void loggerLoop(const logger_t*);
-
-/* Avvia il processo di logging dei trasferimenti. */
 int startTransferLog(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
@@ -233,7 +234,6 @@ ON_ERROR:
     return LOGGER_FAILURE;
 }
 
-/* Effettua una scrittura sulla pipe di logging */
 int logTransfer(const logger_t* pLogger, const char* log) {
     if (!pLogger) {
         return LOGGER_FAILURE;
@@ -260,7 +260,6 @@ int logTransfer(const logger_t* pLogger, const char* log) {
 int destroyLogger(logger_t* pLogger) {
 }
 
-/* Prova a chiudere il processo di logging e tutte le sue risorse*/
 int stopLogger(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
@@ -286,7 +285,6 @@ int stopLogger(logger_t* pLogger) {
     return LOGGER_SUCCESS;
 }
 
-/* Loop di logging */
 static void loggerLoop(const logger_t* pLogger) {
     int logFile = -1;
     char buff[MAX_LINE_SIZE];

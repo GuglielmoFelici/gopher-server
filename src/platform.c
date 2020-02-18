@@ -291,8 +291,8 @@ int daemonize() {
             if ((devNull = open("/dev/null", O_RDWR)) < 0) {
                 return PLATFORM_FAILURE;
             }
-            if (dup2(devNull, STDIN_FILENO) < 0)
-                ;  //|| dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+            // if (dup2(devNull, STDIN_FILENO) < 0)
+            //     ;  //|| dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
             // return PLATFORM_FAILURE;
             // }
             return close(devNull) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;

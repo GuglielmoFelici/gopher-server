@@ -9,6 +9,7 @@
 
 #define MAX_LINE 70
 
+/** @return The character identifying the type of the file. */
 static char gopherType(const char* file);
 
 /** Removes CRLF; if the strings is empty, writes "." to it; 
@@ -263,7 +264,6 @@ ON_ERROR:
 
 #include <windows.h>
 
-/** @return The character identifying the type of the file. */
 static char gopherType(LPCSTR filePath) {
     LPSTR ext;
     if (fileAttributes(filePath) & PLATFORM_ISDIR) {
@@ -300,7 +300,6 @@ static char gopherType(LPCSTR filePath) {
 
 /*****************************************************************************************************************/
 
-/** @return The character identifying the type of the file. */
 static char gopherType(const char* file) {
     if (fileAttributes(file) & PLATFORM_ISDIR) {
         return GOPHER_DIR;
