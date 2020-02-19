@@ -1,3 +1,7 @@
+/** \file datatypes.h
+ * Portable data types encapsulation.
+ */
+
 #ifndef DATATYPES_H
 #define DATATYPES_H
 
@@ -5,12 +9,10 @@
 #include <windows.h>
 #define EINTR WSAEINTR
 #define MAX_NAME MAX_PATH
-#define PIPE_BUF 4096
 typedef SOCKET socket_t;
 typedef LPSTR string_t;
 typedef LPCSTR cstring_t;
-typedef BOOL _handlerRet;
-typedef HANDLE thread_t, pipe_t, event_t, _map, _dir, mutex_t, cond_t;
+typedef HANDLE thread_t, pipe_t, event_t, _dir, mutex_t, cond_t;
 typedef DWORD proc_id_t, sig_atomic;
 
 #else
@@ -27,7 +29,6 @@ typedef int socket_t, event_t;
 typedef int pipe_t;
 typedef char* string_t;
 typedef const char* cstring_t;
-typedef void _handlerRet;
 typedef pthread_t thread_t;
 typedef void* (*LPTHREAD_START_ROUTINE)(void*);
 typedef sig_atomic_t sig_atomic;

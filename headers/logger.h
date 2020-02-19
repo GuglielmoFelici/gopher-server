@@ -35,23 +35,16 @@ typedef struct {
 } logger_t;
 
 /**
- * Initializes a logger_t struct for further usage. 
- * @param pLogger A pointer to the struct to initialize.
- * @return LOGGER_SUCCESS or LOGGER_FAILURE.
- * @see logger_t
- */
-int initLogger(logger_t* pLogger);
-
-/**
  * Stops a logging process.
+ * NOTE: Be sure to initialize the logger_t struct by calling startTransferLog().
  * @param pLogger A pointer to the struct representing the logger process to stop.
  * @return LOGGER_SUCCESS or LOGGER_FAILURE.
  * @see logger_t
  */
-int stopLogger(logger_t* pLogger);
+int stopTransferLog(logger_t* pLogger);
 
 /**
- * Starts a logging process represented by a logger_t struct.
+ * Starts a logging process and writes its information in a logger_t struct.
  * @param pLogger The struct containing the information needed to start the process.
  * @return LOGGER_SUCCESS or LOGGER_FAILURE.
  * @see initLogger()

@@ -1,9 +1,11 @@
+/** \file log.h
+ * Contains constant messages for logging.
+ */
+
 #ifndef LOG_H
 #define LOG_H
 
-#define _GNU_SOURCE
-
-#define MAX_ERR 100
+#define _GNU_SOURCE  // TODO rimuovere
 
 #define MAIN_CONFIG_ERR "Can't read configuration file, default settings will be used."
 #define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file, multiprocess will be disabled."

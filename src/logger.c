@@ -38,6 +38,7 @@ int startTransferLog(logger_t* pLogger) {
     if (!pLogger) {
         goto ON_ERROR;
     }
+    pLogger->pid = -1;
     snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, pLogger->installationDir);
     if (!CreatePipe(&readPipe, &writePipe, &attr, 0)) {
         goto ON_ERROR;
@@ -107,7 +108,7 @@ int logTransfer(const logger_t* pLogger, LPCSTR log) {
     return LOGGER_SUCCESS;
 }
 
-int stopLogger(logger_t* pLogger) {
+int stopTransferLog(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
@@ -155,6 +156,7 @@ int startTransferLog(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
+    pLogger->pid = -1;
     int pipeFd[2] = {-1, -1};
     pthread_mutex_t* pMutex = NULL;
     pthread_cond_t* pCond = NULL;
@@ -268,11 +270,11 @@ int logTransfer(const logger_t* pLogger, const char* log) {
     return LOGGER_SUCCESS;
 }
 
-int stopLogger(logger_t* pLogger) {
+int stopTransferLog(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
-    if (pLogger->pid >= 0 && kill(pLogger->pid, 0) == 0) {
+    if (pLogger->pid > 0 && kill(pLogger->pid, 0) == 0) {
         if (kill(pLogger->pid, SIGINT) != 0) {
             pLogger->pid = -1;
         }

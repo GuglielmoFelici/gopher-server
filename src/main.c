@@ -19,8 +19,8 @@ int main(int argc, string_t* argv) {
         goto ON_ERROR;
     }
     snprintf(server.configFile, sizeof(server.configFile), "%s/%s", server.installationDir, CONFIG_FILE);
-    initLogger(&logger);
     strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
+    logger.pid = -1;
     if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
         logMessage(MAIN_PORT_CONFIG_ERR, LOG_WARNING);
         defaultConfig(&server, READ_PORT);
@@ -84,11 +84,11 @@ int main(int argc, string_t* argv) {
         goto ON_ERROR;
     }
     closeSocket(server.sock);
-    stopLogger(&logger);
+    stopTransferLog(&logger);
     return 0;
 ON_ERROR:
     fprintf(stderr, "The program terminated with errors, check logs.\n");
     logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
-    stopLogger(&logger);
+    stopTransferLog(&logger);
     return 1;
 }
