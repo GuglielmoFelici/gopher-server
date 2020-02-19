@@ -192,6 +192,16 @@ int startTransferLog(logger_t* pLogger) {
     if (pipe(pipeFd) < 0) {
         goto ON_ERROR;
     }
+    sigset_t set;
+    if (sigemptyset(&set) < 0) {
+        return LOGGER_FAILURE;
+    }
+    if (sigaddset(&set, SIGHUP) < 0) {
+        return LOGGER_FAILURE;
+    }
+    if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+        return LOGGER_FAILURE;
+    }
     int pid;
     if ((pid = fork()) < 0) {
         logMessage(FORK_FAILED, LOG_ERR);
@@ -209,6 +219,7 @@ int startTransferLog(logger_t* pLogger) {
         pLogger->logPipe = pipeFd[0];
         loggerLoop(pLogger);
     } else {  // Server
+        sigprocmask(SIG_UNBLOCK, &set, NULL);
         if (close(pipeFd[0]) < 0) {
             logMessage(PIPE_CLOSE_ERR, LOG_WARNING);
         }

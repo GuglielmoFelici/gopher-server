@@ -1,6 +1,7 @@
 #include "../headers/server.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include "../headers/datatypes.h"
 #include "../headers/log.h"
 #include "../headers/logger.h"

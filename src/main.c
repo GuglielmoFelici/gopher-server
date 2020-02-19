@@ -61,18 +61,18 @@ int main(int argc, string_t* argv) {
                 goto ON_ERROR;
         }
     }
+    printf("Port %d\n", server.port);
+    logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
+    if (!pLogger) {
+        logMessage(MAIN_START_LOG_ERR, LOG_WARNING);
+    }
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
         logMessage(MAIN_SOCKET_ERR, LOG_ERR);
         goto ON_ERROR;
     }
-    printf("Port %d\n", server.port);
     if (PLATFORM_SUCCESS != daemonize()) {
         logMessage(MAIN_STARTUP_ERR, LOG_ERR);
         goto ON_ERROR;
-    }
-    logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
-    if (!pLogger) {
-        logMessage(MAIN_START_LOG_ERR, LOG_WARNING);
     }
     if (SERVER_SUCCESS != installDefaultSigHandlers()) {
         logMessage(MAIN_CTRL_ERR, LOG_ERR);
