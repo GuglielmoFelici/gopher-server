@@ -25,13 +25,12 @@
 #include <stdlib.h>
 #include "datatypes.h"
 
-#define PLATFORM_SUCCESS 0x0000
-#define PLATFORM_FAILURE 0x0001
-#define PLATFORM_FILE_ERR 0x0001
-#define PLATFORM_ISFILE 0x0002
-#define PLATFORM_ISDIR 0x0004
-#define PLATFORM_NOT_FOUND 0x0008
-#define PLATFORM_END_OF_DIR 0x0010
+#define PLATFORM_SUCCESS 0x0001
+#define PLATFORM_FAILURE 0x0002
+#define PLATFORM_ISFILE 0x0004
+#define PLATFORM_ISDIR 0x0008
+#define PLATFORM_NOT_FOUND 0x0010
+#define PLATFORM_END_OF_DIR 0x0020
 
 /** @return true if the string str2 ends with the string str2. */
 bool endsWith(cstring_t str1, cstring_t str2);
@@ -71,7 +70,7 @@ int sendAll(socket_t s, cstring_t data, int length);
 cstring_t inetNtoa(const struct in_addr* addr, void* dst, size_t size);
 
 /** Retrieves the attributes of a file.
- * @return PLATFORM_ISFILE or PLATFORM_ISDIR. Upon error returns PLATFORM_FILE_ERR, or-ed with PLATFORM_NOT_FOUND if the file was not found.
+ * @return PLATFORM_ISFILE or PLATFORM_ISDIR. Upon error returns PLATFORM_FAILURE, or-ed with PLATFORM_NOT_FOUND if the file was not found.
 */
 int fileAttributes(cstring_t path);
 

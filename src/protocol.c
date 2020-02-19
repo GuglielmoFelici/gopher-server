@@ -223,7 +223,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     }
     normalizePath(selector);
     int fileAttr = fileAttributes(selector);
-    if (PLATFORM_FILE_ERR & fileAttr) {
+    if (PLATFORM_FAILURE & fileAttr) {
         sendErrorResponse(sock, PLATFORM_NOT_FOUND & fileAttr ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
         goto ON_ERROR;
     } else if (PLATFORM_ISDIR & fileAttr) {  // Directory
@@ -237,13 +237,13 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
             map.size = 0;
             map.view = "";
         } else {
-            if (getFileMap(selector, &map) != GOPHER_SUCCESS) {
+            if (PLATFORM_SUCCESS != getFileMap(selector, &map)) {
                 logMessage(FILE_MAP_ERR, LOG_ERR);
                 sendErrorResponse(sock, SYS_ERR_MSG);
                 goto ON_ERROR;
             }
         }
-        if (sendFile(selector, &map, sock, pLogger) != GOPHER_SUCCESS) {
+        if (GOPHER_SUCCESS != sendFile(selector, &map, sock, pLogger)) {
             logMessage(FILE_SEND_ERR, LOG_ERR);
             goto ON_ERROR;
         }

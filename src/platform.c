@@ -98,7 +98,7 @@ int getFileSize(const char *path) {
 int fileAttributes(LPCSTR path) {
     DWORD attr = GetFileAttributes(path);
     if (INVALID_FILE_ATTRIBUTES == attr) {
-        return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FILE_ERR | PLATFORM_NOT_FOUND : PLATFORM_FILE_ERR;
+        return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
     }
     if (attr & FILE_ATTRIBUTE_DIRECTORY) {
         return PLATFORM_ISDIR;
@@ -307,7 +307,7 @@ int daemonize() {
 int fileAttributes(cstring_t path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0) {
-        return errno == ENOENT ? PLATFORM_FILE_ERR | PLATFORM_NOT_FOUND : PLATFORM_FILE_ERR;
+        return errno == ENOENT ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
         ;
     }
     if (S_ISREG(statbuf.st_mode)) {
@@ -315,7 +315,7 @@ int fileAttributes(cstring_t path) {
     } else if (S_ISDIR(statbuf.st_mode)) {
         return PLATFORM_ISDIR;
     } else {
-        return PLATFORM_FILE_ERR;
+        return PLATFORM_FAILURE;
     }
 }
 
