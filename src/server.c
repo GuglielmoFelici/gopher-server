@@ -369,7 +369,8 @@ static int serveThread(int sock, int port, logger_t* pLogger) {
     tArgs->port = port;
     tArgs->pLogger = pLogger;
     pthread_t tid;
-    if (pthread_create(&tid, NULL, serveThreadTask, tArgs)) {
+    if (pthread_create(&tid, NULL, serveThreadTask, tArgs) != 0) {
+        free(tArgs);
         return SERVER_FAILURE;
     }
     pthread_detach(tid);

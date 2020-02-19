@@ -156,14 +156,14 @@ static void* sendFileTask(void* threadArgs) {
     string_t logFormat = "File: %s | Size: %db | Sent to: %s:%i\n";
     if (args.pLogger) {
         logSize = snprintf(NULL, 0, logFormat, args.name, args.size, address, clientAddr.sin_port) + 1;
-        if ((log = malloc(logSize)) == NULL) {
+        if (NULL == (log = malloc(logSize))) {
             return NULL;
         }
         if (snprintf(log, logSize, logFormat, args.name, args.size, address, clientAddr.sin_port) > 0) {
             logTransfer(args.pLogger, log);
         }
+        free(log);
     }
-    free(log);
 }
 
 /** Starts the file transfer thread, executing sendFileTask().
