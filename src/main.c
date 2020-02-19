@@ -83,12 +83,10 @@ int main(int argc, string_t* argv) {
         logMessage(MAIN_LOOP_ERR, LOG_ERR);
         goto ON_ERROR;
     }
-    printf("bella\n");
     closeSocket(server.sock);
     stopLogger(&logger);
     return 0;
 ON_ERROR:
-    printf("bella\n");
     fprintf(stderr, "The program terminated with errors, check logs.\n");
     logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
     stopLogger(&logger);

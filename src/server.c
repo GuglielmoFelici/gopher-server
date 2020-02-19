@@ -36,7 +36,6 @@ int prepareSocket(server_t* pServer, int flags) {
     if (!pServer) {
         goto ON_ERROR;
     }
-    printf("pisipisi\n");
     if (flags & SERVER_UPDATE) {
         if (PLATFORM_FAILURE == closeSocket(pServer->sock)) {
             goto ON_ERROR;
@@ -124,15 +123,12 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     int ready = 0;
     while (true) {
         do {
-            printf("1\n");
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
-                printf("2\n");
                 logMessage(SHUTDOWN_REQUESTED, LOG_INFO);
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG)) {
-                printf("3\n");
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
                 if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS)) {
                     logMessage(MAIN_CONFIG_ERR, LOG_WARNING);
@@ -144,11 +140,9 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                     }
                 }
             }
-            printf("4\n");
             // memcpy(&timeOut, &dfltTimeval, sizeof(struct timeval));
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
-            printf("4.5\n");
         } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, NULL)) <= 0);
         logMessage(INCOMING_CONNECTION, LOG_INFO);
         socket_t client = accept(pServer->sock, NULL, NULL);
@@ -160,12 +154,10 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             };
             closeSocket(client);
         } else {
-            printf("5\n");
             if (SERVER_SUCCESS != serveThread(client, pServer->port, pLogger)) {
                 logMessage(SERVE_CLIENT_ERR, LOG_ERR);
                 closeSocket(client);
             }
-            printf("6\n");
         }
     }
     return SERVER_SUCCESS;
