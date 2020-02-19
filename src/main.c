@@ -63,7 +63,7 @@ int main(int argc, string_t* argv) {
     }
     printf("Port %d\n", server.port);
     if (PLATFORM_SUCCESS != daemonize()) {
-        logMessage(MAIN_STARTUP_ERR, LOG_ERR);
+        logMessage(MAIN_DAEMON_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);

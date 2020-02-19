@@ -251,7 +251,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     free(selector);
     return GOPHER_SUCCESS;
 ON_ERROR:
-    logMessage(GOPHER_REQUEST_FAILED, LOG_ERR);
+    logMessage(GOPHER_REQUEST_FAILED, LOG_WARNING);
     closeSocket(sock);
     if (selector) {
         free(selector);

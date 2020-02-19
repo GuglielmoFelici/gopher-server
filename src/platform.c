@@ -52,7 +52,7 @@ void logMessage(cstring_t message, int level) {
         case LOG_ERR:
             lvl = "ERROR";
     }
-    fprintf(stderr, "%s - %s\n", lvl, message);  // TODO system error
+    fprintf(stderr, "%s - %s\n", lvl, message);
 }
 
 /********************************************** SOCKETS *************************************************************/
