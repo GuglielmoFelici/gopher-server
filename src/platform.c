@@ -3,6 +3,8 @@
 #include <string.h>
 #include "../headers/protocol.h"
 
+bool enableLogging = true;
+
 bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
@@ -38,6 +40,9 @@ int changeCwd(LPCSTR path) {
 }
 
 void logMessage(cstring_t message, int level) {
+    if (!enableLogging) {
+        return;
+    }
     string_t lvl = "";
     switch (level) {
         case LOG_DEBUG:
@@ -217,6 +222,9 @@ int changeCwd(const char *path) {
 }
 
 void logMessage(cstring_t message, int level) {
+    if (!enableLogging) {
+        return;
+    }
     string_t lvl = "";
     switch (level) {
         case LOG_DEBUG:
