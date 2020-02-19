@@ -62,16 +62,16 @@ int main(int argc, string_t* argv) {
         }
     }
     printf("Port %d\n", server.port);
+    if (PLATFORM_SUCCESS != daemonize()) {
+        logMessage(MAIN_STARTUP_ERR, LOG_ERR);
+        goto ON_ERROR;
+    }
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
         logMessage(MAIN_START_LOG_ERR, LOG_WARNING);
     }
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
         logMessage(MAIN_SOCKET_ERR, LOG_ERR);
-        goto ON_ERROR;
-    }
-    if (PLATFORM_SUCCESS != daemonize()) {
-        logMessage(MAIN_STARTUP_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     if (SERVER_SUCCESS != installDefaultSigHandlers()) {
@@ -83,10 +83,12 @@ int main(int argc, string_t* argv) {
         logMessage(MAIN_LOOP_ERR, LOG_ERR);
         goto ON_ERROR;
     }
+    printf("bella\n");
     closeSocket(server.sock);
     stopLogger(&logger);
     return 0;
 ON_ERROR:
+    printf("bella\n");
     fprintf(stderr, "The program terminated with errors, check logs.\n");
     logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
     stopLogger(&logger);

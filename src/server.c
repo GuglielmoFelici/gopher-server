@@ -36,6 +36,7 @@ int prepareSocket(server_t* pServer, int flags) {
     if (!pServer) {
         goto ON_ERROR;
     }
+    printf("pisipisi\n");
     if (flags & SERVER_UPDATE) {
         if (PLATFORM_FAILURE == closeSocket(pServer->sock)) {
             goto ON_ERROR;
@@ -117,18 +118,21 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     if (!pServer) {
         return SERVER_FAILURE;
     }
-    struct timeval dfltTimeval = {1, 0};
-    struct timeval timeOut;
+    // struct timeval dfltTimeval = {1, 0};
+    // struct timeval timeOut;
     fd_set incomingConnections;
     int ready = 0;
     while (true) {
         do {
+            printf("1\n");
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
+                printf("2\n");
                 logMessage(SHUTDOWN_REQUESTED, LOG_INFO);
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG)) {
+                printf("3\n");
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
                 if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS)) {
                     logMessage(MAIN_CONFIG_ERR, LOG_WARNING);
@@ -140,10 +144,12 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                     }
                 }
             }
-            memcpy(&timeOut, &dfltTimeval, sizeof(struct timeval));
+            printf("4\n");
+            // memcpy(&timeOut, &dfltTimeval, sizeof(struct timeval));
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
-        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
+            printf("4.5\n");
+        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, NULL)) <= 0);
         logMessage(INCOMING_CONNECTION, LOG_INFO);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
@@ -154,10 +160,12 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             };
             closeSocket(client);
         } else {
+            printf("5\n");
             if (SERVER_SUCCESS != serveThread(client, pServer->port, pLogger)) {
                 logMessage(SERVE_CLIENT_ERR, LOG_ERR);
                 closeSocket(client);
             }
+            printf("6\n");
         }
     }
     return SERVER_SUCCESS;
@@ -348,19 +356,20 @@ static void* serveThreadTask(void* args) {
     sigset_t set;
     server_thread_args_t tArgs = *(server_thread_args_t*)args;
     free(args);
-    if (
-        sigemptyset(&set) < 0 ||
-        sigaddset(&set, SIGHUP) < 0 ||
-        sigaddset(&set, SIGINT) < 0 ||
-        pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-        exit(1);
-    }
+    // if (
+    //     sigemptyset(&set) < 0 ||
+    //     sigaddset(&set, SIGHUP) < 0 ||
+    //     sigaddset(&set, SIGINT) < 0 ||
+    //     pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
+    //     return NULL;
+    // }
     gopher(tArgs.sock, tArgs.port, tArgs.pLogger);
 }
 
 static int serveThread(int sock, int port, logger_t* pLogger) {
     server_thread_args_t* tArgs = malloc(sizeof(server_thread_args_t));
     if (NULL == tArgs) {
+        logMessage(ARGS_ERR, LOG_ERR);
         return SERVER_FAILURE;
     }
     tArgs->sock = sock;

@@ -44,6 +44,7 @@
 #define FILE_MAP_ERR "Error mapping file."
 #define FILE_SEND_ERR "Error sending requested file."
 #define DIR_SEND_ERR "Error sending requested directory."
+#define ARGS_ERR "Wrong arguments in function call."
 #define RECV_ERR "Error receiving the selector"
 #define GOPHER_REQUEST_FAILED "Serving gopher request failed."
 #define SHUTDOWN_REQUESTED "Shutdown requested."

@@ -1,2 +1,2 @@
 port=7070
-multiProcess=1
+multiProcess=0

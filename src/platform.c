@@ -214,7 +214,7 @@ int changeCwd(const char *path) {
 }
 
 void logMessage(cstring_t message, int level) {
-    char *lvl;
+    string_t lvl = "";
     switch (level) {
         case LOG_DEBUG:
             lvl = "DEBUG";
@@ -280,6 +280,8 @@ int daemonize() {
         if (pid > 0) {
             printf("Pid %d\n", pid);
             exit(0);
+        } else if (pid < 0) {
+            return PLATFORM_FAILURE;
         } else {
             umask(S_IRUSR & S_IWUSR & S_IRGRP & S_IWGRP);
             if (sigprocmask(SIG_UNBLOCK, &set, NULL) < 0) {
@@ -289,9 +291,9 @@ int daemonize() {
             if ((devNull = open("/dev/null", O_RDWR)) < 0) {
                 return PLATFORM_FAILURE;
             }
-            if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
-                return PLATFORM_FAILURE;
-            }
+            // if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+            //     return PLATFORM_FAILURE;
+            // }
             return close(devNull) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
         }
     }
