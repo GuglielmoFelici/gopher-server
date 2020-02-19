@@ -64,8 +64,8 @@ int main(int argc, string_t* argv) {
     }
     if (enableLogging) {
         printf("Port %d\n", server.port);
+        logMessage(MAIN_STARTING, LOG_INFO);
     }
-    logMessage(MAIN_STARTING, LOG_INFO);
     if (PLATFORM_SUCCESS != daemonize()) {
         logMessage(MAIN_DAEMON_ERR, LOG_ERR);
         goto ON_ERROR;
@@ -91,8 +91,10 @@ int main(int argc, string_t* argv) {
     stopTransferLog(&logger);
     return 0;
 ON_ERROR:
-    fprintf(stderr, "The program terminated with errors, check logs.\n");
-    logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
+    if (enableLogging) {
+        fprintf(stderr, "The program terminated with errors, check logs.\n");
+        logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
+    }
     stopTransferLog(&logger);
     return 1;
 }
