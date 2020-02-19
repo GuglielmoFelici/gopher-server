@@ -10,7 +10,6 @@ int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
     logMessage(MAIN_STARTING, LOG_INFO);
-    // Inizializzazione delle strutture di configurazione
     if (SERVER_SUCCESS != initWsa()) {
         logMessage(MAIN_WSA_ERR, LOG_ERR);
         goto ON_ERROR;
@@ -30,7 +29,7 @@ int main(int argc, string_t* argv) {
         logMessage(MAIN_MULTIPROCESS_CONFIG_ERR, LOG_WARNING);
         defaultConfig(&server, READ_MULTIPROCESS);
     }
-    /* Parsing opzioni */
+    /* Options parsing */
     int opt, opterr = 0;
     while ((opt = getopt(argc, argv, "mhp:d:")) != -1) {
         switch (opt) {
@@ -62,7 +61,6 @@ int main(int argc, string_t* argv) {
                 goto ON_ERROR;
         }
     }
-    // Configurazione ambiente
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
         logMessage(MAIN_SOCKET_ERR, LOG_ERR);
         goto ON_ERROR;
@@ -82,7 +80,7 @@ int main(int argc, string_t* argv) {
     }
     // Avvio
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {
-        logMessage(MAIN_STARTUP_ERR, LOG_ERR);
+        logMessage(MAIN_LOOP_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     closeSocket(server.sock);

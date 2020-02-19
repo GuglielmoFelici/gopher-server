@@ -10,6 +10,7 @@
 #define MAIN_PORT_CONFIG_ERR "Can't read configuration for port, default one will be used."
 #define MAIN_CWD_ERR "Can't get current working directory"
 #define MAIN_STARTUP_ERR "Error starting up."
+#define MAIN_LOOP_ERR "Server error."
 #define MAIN_SELECT_ERR "Select failed."
 #define MAIN_SOCKET_ERR "Error initializing server socket."
 #define MAIN_LISTEN_ERR "Socket - listen failed."

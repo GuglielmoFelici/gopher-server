@@ -36,13 +36,9 @@ int prepareSocket(server_t* pServer, int flags) {
         goto ON_ERROR;
     }
     if (flags & SERVER_UPDATE) {
-        logMessage("asdasd", LOG_WARNING);
-        if (shutdown(pServer->sock, SHUT_RDWR) < 0) {
-            goto ON_ERROR;
-        }
         if (PLATFORM_FAILURE == closeSocket(pServer->sock)) {
             goto ON_ERROR;
-        };
+        }
     }
     if (INVALID_SOCKET == (pServer->sock = socket(AF_INET, SOCK_STREAM, 0))) {
         goto ON_ERROR;
@@ -58,9 +54,9 @@ int prepareSocket(server_t* pServer, int flags) {
     }
     return SERVER_SUCCESS;
 ON_ERROR:
-    if (pServer && pServer->sock != INVALID_SOCKET) {
-        closeSocket(pServer->sock);
-    }
+    // if (pServer && pServer->sock != INVALID_SOCKET) {
+    //     closeSocket(pServer->sock);
+    // }
     return SERVER_FAILURE;
 }
 
@@ -120,7 +116,8 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     if (!pServer) {
         return SERVER_FAILURE;
     }
-    struct timeval* timeOut;
+    struct timeval dfltTimeval = {1, 0};
+    struct timeval timeOut;
     fd_set incomingConnections;
     int ready = 0;
     while (true) {
@@ -142,10 +139,10 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                     }
                 }
             }
-            timeOut = &(struct timeval){1, 0};
+            memcpy(&timeOut, &dfltTimeval, sizeof(struct timeval));
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
-        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, timeOut)) <= 0);
+        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
         logMessage(INCOMING_CONNECTION, LOG_INFO);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
