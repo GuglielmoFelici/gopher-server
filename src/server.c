@@ -117,8 +117,8 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     if (!pServer) {
         return SERVER_FAILURE;
     }
-    // struct timeval dfltTimeval = {1, 0};
-    // struct timeval timeOut;
+    struct timeval dfltTimeval = {1, 0};
+    struct timeval timeOut;
     fd_set incomingConnections;
     int ready = 0;
     while (true) {
@@ -140,10 +140,10 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                     }
                 }
             }
-            // memcpy(&timeOut, &dfltTimeval, sizeof(struct timeval));
+            memcpy(&timeOut, &dfltTimeval, sizeof(struct timeval));
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
-        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, NULL)) <= 0);
+        } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
         logMessage(INCOMING_CONNECTION, LOG_INFO);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
@@ -229,6 +229,7 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
     args->sock = sock;
     args->port = port;
     args->pLogger = pLogger;
+    ReleaseMutex(*(pLogger->pLogMutex));
     if (NULL == (thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL))) {
         free(args);
         return SERVER_FAILURE;

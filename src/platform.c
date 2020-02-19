@@ -181,7 +181,10 @@ int closeDir(HANDLE dir) {
 }
 
 int unmapMem(void *addr, size_t len) {
-    return UnmapViewOfFile(addr) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    if (len > 0) {
+        return UnmapViewOfFile(addr) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    }
+    return PLATFORM_SUCCESS;
 }
 
 /*****************************************************************************************************************/
@@ -291,9 +294,9 @@ int daemonize() {
             if ((devNull = open("/dev/null", O_RDWR)) < 0) {
                 return PLATFORM_FAILURE;
             }
-            // if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
-            //     return PLATFORM_FAILURE;
-            // }
+            if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+                return PLATFORM_FAILURE;
+            }
             return close(devNull) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
         }
     }
@@ -380,7 +383,10 @@ int closeDir(DIR *dir) {
 }
 
 int unmapMem(void *addr, size_t len) {
-    return munmap(addr, len) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    if (len > 0) {
+        return munmap(addr, len) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    }
+    return PLATFORM_SUCCESS;
 }
 
 #endif

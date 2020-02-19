@@ -3,36 +3,31 @@
 #include "../../headers/logger.h"
 #include "../../headers/protocol.h"
 
-static int getLogger(logger_t* logger, LPSTR* argv) {
-    mutex_t* pMutex = NULL;
-    logger_t* pLogger = NULL;
+static int getLogger(logger_t* pLogger, LPSTR* argv) {
+    HANDLE mutex = NULL;
     HANDLE logEvent = NULL;
     HANDLE logPipe = NULL;
-    sscanf(argv[3], "%p", &(logPipe));
-    pMutex = malloc(sizeof(mutex_t));
-    if (NULL == pMutex) {
+    if (NULL == pLogger) {
         return LOGGER_FAILURE;
     }
-    *pMutex = OpenMutex(SYNCHRONIZE, FALSE, LOG_MUTEX_NAME);
+    sscanf(argv[3], "%p", &(logPipe));
+    mutex = OpenMutex(SYNCHRONIZE, FALSE, LOG_MUTEX_NAME);
     logEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, LOGGER_EVENT_NAME);
-    if (!(*pMutex && !logEvent && !logPipe)) {
+    if (!(mutex && logEvent && logPipe)) {
         return LOGGER_FAILURE;
     } else {
-        pLogger = malloc(sizeof(logger_t));
-        if (NULL == pLogger) {
+        pLogger->logPipe = logPipe;
+        pLogger->logEvent = logEvent;
+        pLogger->pLogMutex = malloc(sizeof(HANDLE));
+        if (NULL == pLogger->pLogMutex) {
             return LOGGER_FAILURE;
         }
-        pLogger->logEvent = logEvent;
-        pLogger->logPipe = logPipe;
-        pLogger->pLogMutex = *pMutex;
+        *(pLogger->pLogMutex) = mutex;
     }
     return LOGGER_SUCCESS;
 ON_ERROR:
-    if (pMutex) {
-        free(pMutex);
-    }
-    if (pLogger) {
-        free(pLogger);
+    if (pLogger && pLogger->pLogMutex) {
+        free(pLogger->pLogMutex);
     }
     if (logEvent) {
         CloseHandle(logEvent);
@@ -47,7 +42,7 @@ ON_ERROR:
 DWORD main(DWORD argc, LPSTR* argv) {
     SOCKET sock = INVALID_SOCKET;
     int port = -1;
-    logger_t* pLogger;
+    logger_t* pLogger = NULL;
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
     int step = 0;
@@ -56,6 +51,10 @@ DWORD main(DWORD argc, LPSTR* argv) {
     }
     sscanf(argv[1], "%hu", &port);
     sscanf(argv[2], "%p", &sock);
+    pLogger = malloc(sizeof(logger_t));
+    if (pLogger == NULL) {
+        return 1;
+    }
     if (LOGGER_SUCCESS != getLogger(pLogger, argv)) {
         pLogger = NULL;
     }

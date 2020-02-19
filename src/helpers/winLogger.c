@@ -47,7 +47,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
             if (!WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL)) {
                 fprintf(stderr, LOG_ERR);
             }
-            if (!UnlockFile(logFile, 0, 0, fileSize.LowPart, fileSize.HighPart)) {
+            if (!UnlockFileEx(logFile, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
                 fprintf(stderr, LOG_ERR);
             }
         } else {
