@@ -136,7 +136,12 @@ int startThread(thread_t* tid, LPTHREAD_START_ROUTINE routine, void* args);
 */
 int detachThread(thread_t tid);
 
-/** Transforms the current process into a daemon process. 
+/** [Linux] Tries to wait for all the children to finish, but doesn't block.
+ * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
+int waitChildren();
+
+/** [Linux] Transforms the current process into a daemon process. 
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
 int daemonize();

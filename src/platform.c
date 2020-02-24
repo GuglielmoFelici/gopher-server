@@ -86,6 +86,10 @@ int startThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return tid ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
+int waitChildren() {
+    return PLATFORM_SUCCESS;
+}
+
 int daemonize() {
     return PLATFORM_SUCCESS;
 }
@@ -208,6 +212,7 @@ int unmapMem(void *addr, size_t len) {
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -264,6 +269,16 @@ int detachThread(pthread_t tid) {
 
 int startThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return pthread_create(tid, NULL, routine, args) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
+int waitChildren() {
+    int ret;
+    while ((ret = waitpid(-1, NULL, WNOHANG)) > 0)
+        ;
+    if (ret < 0 && errno != ECHILD) {
+        return PLATFORM_FAILURE;
+    }
+    return PLATFORM_SUCCESS;
 }
 
 int daemonize() {

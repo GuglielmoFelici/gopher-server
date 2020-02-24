@@ -1,0 +1,132 @@
+\hypertarget{server_8h}{}\section{headers/server.h File Reference}
+\label{server_8h}\index{headers/server.\+h@{headers/server.\+h}}
+{\ttfamily \#include $<$netinet/in.\+h$>$}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}datatypes.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}logger.\+h\char`\"{}}\newline
+Include dependency graph for server.\+h\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{server_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=169pt]{server_8h__dep__incl}
+\end{center}
+\end{figure}
+\subsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structserver__t}{server\+\_\+t}
+\item 
+struct \hyperlink{structserver__thread__args__t}{server\+\_\+thread\+\_\+args\+\_\+t}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \hyperlink{server_8h_ac6c8652ff4c2d582d1793c14bafd5756}{init\+Wsa} ()
+\item 
+int \hyperlink{server_8h_a6db637a291288a25af4d89d9f0f3ab31}{install\+Default\+Sig\+Handlers} ()
+\item 
+int \hyperlink{server_8h_a4c40ae864a752c34a4f237a9445db202}{prepare\+Socket} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int flags)
+\item 
+void \hyperlink{server_8h_a2cda6ac8456a82040d05596906d66acc}{default\+Config} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int which)
+\item 
+int \hyperlink{server_8h_a2e07cc3959eab913ab4c894bc6c8395d}{read\+Config} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, int which)
+\item 
+int \hyperlink{server_8h_a533c9a4292e9d1106ff7c54fbf75090a}{run\+Server} (\hyperlink{structserver__t}{server\+\_\+t} $\ast$p\+Server, \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Functions to manage the main server. 
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{server_8h_a2cda6ac8456a82040d05596906d66acc}\label{server_8h_a2cda6ac8456a82040d05596906d66acc}} 
+\index{server.\+h@{server.\+h}!default\+Config@{default\+Config}}
+\index{default\+Config@{default\+Config}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{default\+Config()}{defaultConfig()}}
+{\footnotesize\ttfamily void default\+Config (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{which }\end{DoxyParamCaption})}
+
+Sets the default options. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Server} & The \hyperlink{structserver__t}{server\+\_\+t} struct representing the server where the options will be stored. \\
+\hline
+{\em which} & A flag stating the option to default. Can be R\+E\+A\+D\+\_\+\+P\+O\+RT, R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS or both or-\/ed. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{server_8h_ac6c8652ff4c2d582d1793c14bafd5756}\label{server_8h_ac6c8652ff4c2d582d1793c14bafd5756}} 
+\index{server.\+h@{server.\+h}!init\+Wsa@{init\+Wsa}}
+\index{init\+Wsa@{init\+Wsa}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{init\+Wsa()}{initWsa()}}
+{\footnotesize\ttfamily int init\+Wsa (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Initializes a \hyperlink{structserver__t}{server\+\_\+t} struct for further usage. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Server} & A pointer to the \hyperlink{structserver__t}{server\+\_\+t} struct to initialize. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{server_8h_a6db637a291288a25af4d89d9f0f3ab31}\label{server_8h_a6db637a291288a25af4d89d9f0f3ab31}} 
+\index{server.\+h@{server.\+h}!install\+Default\+Sig\+Handlers@{install\+Default\+Sig\+Handlers}}
+\index{install\+Default\+Sig\+Handlers@{install\+Default\+Sig\+Handlers}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{install\+Default\+Sig\+Handlers()}{installDefaultSigHandlers()}}
+{\footnotesize\ttfamily int install\+Default\+Sig\+Handlers (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Installs the default signal handlers for the main process. On Windows, C\+T\+R\+L\+\_\+C interrupts the server and C\+T\+R\+L\+\_\+\+B\+R\+E\+AK requests a configuration update. On Linux, S\+I\+G\+I\+NT interrupts the server and S\+I\+G\+H\+UP requests a configuration update. \begin{DoxyReturn}{Returns}
+S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{server_8h_a4c40ae864a752c34a4f237a9445db202}\label{server_8h_a4c40ae864a752c34a4f237a9445db202}} 
+\index{server.\+h@{server.\+h}!prepare\+Socket@{prepare\+Socket}}
+\index{prepare\+Socket@{prepare\+Socket}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{prepare\+Socket()}{prepareSocket()}}
+{\footnotesize\ttfamily int prepare\+Socket (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{flags }\end{DoxyParamCaption})}
+
+Initializes a server socket and sets it to listening. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Server} & The \hyperlink{structserver__t}{server\+\_\+t} struct representing the server \\
+\hline
+{\em flags} & Can be S\+E\+R\+V\+E\+R\+\_\+\+U\+P\+D\+A\+TE if a change of port was requested, or S\+E\+R\+V\+E\+R\+\_\+\+I\+N\+IT if the socket must be initialized from scratch. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{server_8h_a2e07cc3959eab913ab4c894bc6c8395d}\label{server_8h_a2e07cc3959eab913ab4c894bc6c8395d}} 
+\index{server.\+h@{server.\+h}!read\+Config@{read\+Config}}
+\index{read\+Config@{read\+Config}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{read\+Config()}{readConfig()}}
+{\footnotesize\ttfamily int read\+Config (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{int}]{which }\end{DoxyParamCaption})}
+
+Reads the options from a configuration file. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Server} & The \hyperlink{structserver__t}{server\+\_\+t} struct representing the server where the options will be stored. \\
+\hline
+{\em which} & A flag stating the option to default. Can be R\+E\+A\+D\+\_\+\+P\+O\+RT, R\+E\+A\+D\+\_\+\+M\+U\+L\+T\+I\+P\+R\+O\+C\+E\+SS or both or-\/ed. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{server_8h_a533c9a4292e9d1106ff7c54fbf75090a}\label{server_8h_a533c9a4292e9d1106ff7c54fbf75090a}} 
+\index{server.\+h@{server.\+h}!run\+Server@{run\+Server}}
+\index{run\+Server@{run\+Server}!server.\+h@{server.\+h}}
+\subsubsection{\texorpdfstring{run\+Server()}{runServer()}}
+{\footnotesize\ttfamily int run\+Server (\begin{DoxyParamCaption}\item[{\hyperlink{structserver__t}{server\+\_\+t} $\ast$}]{p\+Server,  }\item[{\hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})}
+
+Starts a gopher server. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Server} & A \hyperlink{structserver__t}{server\+\_\+t} struct representing the server to run. \\
+\hline
+{\em p\+Logger} & A \hyperlink{structlogger__t}{logger\+\_\+t} struct representing the transfer logging process (can be N\+U\+LL). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+S\+E\+R\+V\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS if the server is terminated by the user, S\+E\+R\+V\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE otherwise. 
+\end{DoxyReturn}

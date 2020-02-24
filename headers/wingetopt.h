@@ -1,4 +1,4 @@
-/*
+/** \file wingetopt.h
 POSIX getopt for Windows
 
 AT&T Public License

@@ -1,0 +1,124 @@
+\hypertarget{protocol_8c}{}\section{src/protocol.c File Reference}
+\label{protocol_8c}\index{src/protocol.\+c@{src/protocol.\+c}}
+{\ttfamily \#include \char`\"{}../headers/protocol.\+h\char`\"{}}\newline
+{\ttfamily \#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include $<$string.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}../headers/datatypes.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}../headers/log.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}../headers/logger.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}../headers/platform.\+h\char`\"{}}\newline
+Include dependency graph for protocol.\+c\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{protocol_8c__incl}
+\end{center}
+\end{figure}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+static char \hyperlink{protocol_8c_a163d081cf2f015a95ccbba5737df0c78}{gopher\+Type} (const char $\ast$file)
+\item 
+static int \hyperlink{protocol_8c_a891da6c8490e699fdf4c10e1275dcf3c}{normalize\+Path} (string\+\_\+t str)
+\item 
+static bool \hyperlink{protocol_8c_ab628d8ba2c399efb50f6133a3e860c3b}{validate\+Input} (string\+\_\+t str)
+\item 
+static int \hyperlink{protocol_8c_a8f7b263d9ed0a65edaaf02132b905cf3}{send\+Error\+Response} (socket\+\_\+t sock, cstring\+\_\+t msg)
+\item 
+static int \hyperlink{protocol_8c_a57c2a0511da777c6dbcd9f8684308576}{send\+Dir} (cstring\+\_\+t path, int sock, int port)
+\item 
+static void $\ast$ \hyperlink{protocol_8c_a37a9c4794f32c48d41066ddc33a8b3c0}{send\+File\+Task} (void $\ast$thread\+Args)
+\item 
+static int \hyperlink{protocol_8c_ae2ef8fc6326f2f545caffbbf8eca0795}{send\+File} (cstring\+\_\+t name, const \hyperlink{structfile__mapping__t}{file\+\_\+mapping\+\_\+t} $\ast$map, int sock, const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\item 
+int \hyperlink{protocol_8c_a733e68cc8d5f947c30d0ca51e1b76d9b}{gopher} (socket\+\_\+t sock, int port, const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\end{DoxyCompactItemize}
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{protocol_8c_a733e68cc8d5f947c30d0ca51e1b76d9b}\label{protocol_8c_a733e68cc8d5f947c30d0ca51e1b76d9b}} 
+\index{protocol.\+c@{protocol.\+c}!gopher@{gopher}}
+\index{gopher@{gopher}!protocol.\+c@{protocol.\+c}}
+\subsubsection{\texorpdfstring{gopher()}{gopher()}}
+{\footnotesize\ttfamily int gopher (\begin{DoxyParamCaption}\item[{socket\+\_\+t}]{sock,  }\item[{int}]{port,  }\item[{const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})}
+
+Executes the gopher protocol. Receives a selector and performs \hyperlink{protocol_8c_ab628d8ba2c399efb50f6133a3e860c3b}{validate\+Input()} and \hyperlink{protocol_8c_a891da6c8490e699fdf4c10e1275dcf3c}{normalize\+Path()}. If the selector points to a directory, calls \hyperlink{protocol_8c_a57c2a0511da777c6dbcd9f8684308576}{send\+Dir()}. Else, a \hyperlink{structfile__mapping__t}{file\+\_\+mapping\+\_\+t} is created using \hyperlink{platform_8h_a257d48e91fab744f0f71ad79f5acfef2}{get\+File\+Map()} and is sent to the client using \hyperlink{protocol_8c_ae2ef8fc6326f2f545caffbbf8eca0795}{send\+File()}. \begin{DoxyReturn}{Returns}
+G\+O\+P\+H\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or G\+O\+P\+H\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{protocol_8c_a163d081cf2f015a95ccbba5737df0c78}\label{protocol_8c_a163d081cf2f015a95ccbba5737df0c78}} 
+\index{protocol.\+c@{protocol.\+c}!gopher\+Type@{gopher\+Type}}
+\index{gopher\+Type@{gopher\+Type}!protocol.\+c@{protocol.\+c}}
+\subsubsection{\texorpdfstring{gopher\+Type()}{gopherType()}}
+{\footnotesize\ttfamily static char gopher\+Type (\begin{DoxyParamCaption}\item[{const char $\ast$}]{file }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\begin{DoxyReturn}{Returns}
+The character identifying the type of the file. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{protocol_8c_a891da6c8490e699fdf4c10e1275dcf3c}\label{protocol_8c_a891da6c8490e699fdf4c10e1275dcf3c}} 
+\index{protocol.\+c@{protocol.\+c}!normalize\+Path@{normalize\+Path}}
+\index{normalize\+Path@{normalize\+Path}!protocol.\+c@{protocol.\+c}}
+\subsubsection{\texorpdfstring{normalize\+Path()}{normalizePath()}}
+{\footnotesize\ttfamily static int normalize\+Path (\begin{DoxyParamCaption}\item[{string\+\_\+t}]{str }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+Removes C\+R\+LF; if the strings is empty, writes \char`\"{}.\char`\"{} to it; maps all the backslashes to forward slashes; removes trailing slashes. \begin{DoxyReturn}{Returns}
+G\+O\+P\+H\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or G\+O\+P\+H\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE 
+\end{DoxyReturn}
+\mbox{\Hypertarget{protocol_8c_a57c2a0511da777c6dbcd9f8684308576}\label{protocol_8c_a57c2a0511da777c6dbcd9f8684308576}} 
+\index{protocol.\+c@{protocol.\+c}!send\+Dir@{send\+Dir}}
+\index{send\+Dir@{send\+Dir}!protocol.\+c@{protocol.\+c}}
+\subsubsection{\texorpdfstring{send\+Dir()}{sendDir()}}
+{\footnotesize\ttfamily static int send\+Dir (\begin{DoxyParamCaption}\item[{cstring\+\_\+t}]{path,  }\item[{int}]{sock,  }\item[{int}]{port }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+Builds the file list and sends it to the client. \begin{DoxyReturn}{Returns}
+G\+O\+P\+H\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or G\+O\+P\+H\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE 
+\end{DoxyReturn}
+\mbox{\Hypertarget{protocol_8c_a8f7b263d9ed0a65edaaf02132b905cf3}\label{protocol_8c_a8f7b263d9ed0a65edaaf02132b905cf3}} 
+\index{protocol.\+c@{protocol.\+c}!send\+Error\+Response@{send\+Error\+Response}}
+\index{send\+Error\+Response@{send\+Error\+Response}!protocol.\+c@{protocol.\+c}}
+\subsubsection{\texorpdfstring{send\+Error\+Response()}{sendErrorResponse()}}
+{\footnotesize\ttfamily static int send\+Error\+Response (\begin{DoxyParamCaption}\item[{socket\+\_\+t}]{sock,  }\item[{cstring\+\_\+t}]{msg }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+Sends the message msg to the socket sock. \begin{DoxyReturn}{Returns}
+G\+O\+P\+H\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or G\+O\+P\+H\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE 
+\end{DoxyReturn}
+\mbox{\Hypertarget{protocol_8c_ae2ef8fc6326f2f545caffbbf8eca0795}\label{protocol_8c_ae2ef8fc6326f2f545caffbbf8eca0795}} 
+\index{protocol.\+c@{protocol.\+c}!send\+File@{send\+File}}
+\index{send\+File@{send\+File}!protocol.\+c@{protocol.\+c}}
+\subsubsection{\texorpdfstring{send\+File()}{sendFile()}}
+{\footnotesize\ttfamily static int send\+File (\begin{DoxyParamCaption}\item[{cstring\+\_\+t}]{name,  }\item[{const \hyperlink{structfile__mapping__t}{file\+\_\+mapping\+\_\+t} $\ast$}]{map,  }\item[{int}]{sock,  }\item[{const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+Starts the file transfer thread, executing \hyperlink{protocol_8c_a37a9c4794f32c48d41066ddc33a8b3c0}{send\+File\+Task()}. 
+\begin{DoxyParams}{Parameters}
+{\em name} & The name of the file (used for logging). Can be N\+U\+LL iff p\+Logger is N\+U\+LL. \\
+\hline
+{\em map} & A pointer to a \hyperlink{structfile__mapping__t}{file\+\_\+mapping\+\_\+t} representing the memory mapping of the file. \\
+\hline
+{\em sock} & The client socket. \\
+\hline
+{\em p\+Logger} & A pointer to the \hyperlink{structlogger__t}{logger\+\_\+t} representing the logging process (can be N\+U\+LL). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+G\+O\+P\+H\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or G\+O\+P\+H\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{protocol_8c_a37a9c4794f32c48d41066ddc33a8b3c0}\label{protocol_8c_a37a9c4794f32c48d41066ddc33a8b3c0}} 
+\index{protocol.\+c@{protocol.\+c}!send\+File\+Task@{send\+File\+Task}}
+\index{send\+File\+Task@{send\+File\+Task}!protocol.\+c@{protocol.\+c}}
+\subsubsection{\texorpdfstring{send\+File\+Task()}{sendFileTask()}}
+{\footnotesize\ttfamily static void$\ast$ send\+File\+Task (\begin{DoxyParamCaption}\item[{void $\ast$}]{thread\+Args }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+Function executed by a thread to send a file to the client. If the transfer succeeds, writes to the log. 
+\begin{DoxyParams}{Parameters}
+{\em thread\+Args} & a send\+\_\+args\+\_\+t compatible void pointer used as argument. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{protocol_8c_ab628d8ba2c399efb50f6133a3e860c3b}\label{protocol_8c_ab628d8ba2c399efb50f6133a3e860c3b}} 
+\index{protocol.\+c@{protocol.\+c}!validate\+Input@{validate\+Input}}
+\index{validate\+Input@{validate\+Input}!protocol.\+c@{protocol.\+c}}
+\subsubsection{\texorpdfstring{validate\+Input()}{validateInput()}}
+{\footnotesize\ttfamily static bool validate\+Input (\begin{DoxyParamCaption}\item[{string\+\_\+t}]{str }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\begin{DoxyReturn}{Returns}
+true if the input str represents a valid selector 
+\end{DoxyReturn}

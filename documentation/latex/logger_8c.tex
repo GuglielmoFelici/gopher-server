@@ -1,0 +1,102 @@
+\hypertarget{logger_8c}{}\section{src/logger.c File Reference}
+\label{logger_8c}\index{src/logger.\+c@{src/logger.\+c}}
+{\ttfamily \#include \char`\"{}../headers/logger.\+h\char`\"{}}\newline
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include $<$string.\+h$>$}\newline
+{\ttfamily \#include $<$fcntl.\+h$>$}\newline
+{\ttfamily \#include $<$pthread.\+h$>$}\newline
+{\ttfamily \#include $<$signal.\+h$>$}\newline
+{\ttfamily \#include $<$stdlib.\+h$>$}\newline
+{\ttfamily \#include $<$sys/mman.\+h$>$}\newline
+{\ttfamily \#include $<$sys/prctl.\+h$>$}\newline
+{\ttfamily \#include $<$sys/stat.\+h$>$}\newline
+{\ttfamily \#include $<$sys/types.\+h$>$}\newline
+{\ttfamily \#include $<$syslog.\+h$>$}\newline
+{\ttfamily \#include $<$unistd.\+h$>$}\newline
+{\ttfamily \#include \char`\"{}../headers/log.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}../headers/platform.\+h\char`\"{}}\newline
+Include dependency graph for logger.\+c\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{logger_8c__incl}
+\end{center}
+\end{figure}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+static void \hyperlink{logger_8c_a27125c21f8cde1856449d4e02e42f156}{logger\+Loop} (const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\item 
+int \hyperlink{logger_8c_a568bb98500e52ddc98667703cdc46927}{start\+Transfer\+Log} (\hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\item 
+int \hyperlink{logger_8c_a7d4a9a5bacd7404955557ba85aa7e70f}{log\+Transfer} (const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger, const char $\ast$log)
+\item 
+int \hyperlink{logger_8c_a5a3ad1e6309f96bc43ab8e56ea8ffd39}{stop\+Transfer\+Log} (\hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\end{DoxyCompactItemize}
+
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{logger_8c_a27125c21f8cde1856449d4e02e42f156}\label{logger_8c_a27125c21f8cde1856449d4e02e42f156}} 
+\index{logger.\+c@{logger.\+c}!logger\+Loop@{logger\+Loop}}
+\index{logger\+Loop@{logger\+Loop}!logger.\+c@{logger.\+c}}
+\subsubsection{\texorpdfstring{logger\+Loop()}{loggerLoop()}}
+{\footnotesize\ttfamily static void logger\+Loop (\begin{DoxyParamCaption}\item[{const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{[}Linux\mbox{]} Starts the main logging process loop 
+\begin{DoxyParams}{Parameters}
+{\em p\+Logger} & A pointer to the \hyperlink{structlogger__t}{logger\+\_\+t} struct representing a logging process \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{logger_8c_a7d4a9a5bacd7404955557ba85aa7e70f}\label{logger_8c_a7d4a9a5bacd7404955557ba85aa7e70f}} 
+\index{logger.\+c@{logger.\+c}!log\+Transfer@{log\+Transfer}}
+\index{log\+Transfer@{log\+Transfer}!logger.\+c@{logger.\+c}}
+\subsubsection{\texorpdfstring{log\+Transfer()}{logTransfer()}}
+{\footnotesize\ttfamily int log\+Transfer (\begin{DoxyParamCaption}\item[{const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger,  }\item[{cstring\+\_\+t}]{log }\end{DoxyParamCaption})}
+
+Passes a message to a logging process. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Logger} & The struct representing the logging process. \\
+\hline
+{\em log} & The message to log. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+L\+O\+G\+G\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or L\+O\+G\+G\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\hyperlink{structlogger__t}{logger\+\_\+t} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{logger_8c_a568bb98500e52ddc98667703cdc46927}\label{logger_8c_a568bb98500e52ddc98667703cdc46927}} 
+\index{logger.\+c@{logger.\+c}!start\+Transfer\+Log@{start\+Transfer\+Log}}
+\index{start\+Transfer\+Log@{start\+Transfer\+Log}!logger.\+c@{logger.\+c}}
+\subsubsection{\texorpdfstring{start\+Transfer\+Log()}{startTransferLog()}}
+{\footnotesize\ttfamily int start\+Transfer\+Log (\begin{DoxyParamCaption}\item[{\hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})}
+
+Starts a logging process and writes its information in a \hyperlink{structlogger__t}{logger\+\_\+t} struct. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Logger} & The struct that will contain information about the logger. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+L\+O\+G\+G\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or L\+O\+G\+G\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\hyperlink{structlogger__t}{logger\+\_\+t} 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{logger_8c_a5a3ad1e6309f96bc43ab8e56ea8ffd39}\label{logger_8c_a5a3ad1e6309f96bc43ab8e56ea8ffd39}} 
+\index{logger.\+c@{logger.\+c}!stop\+Transfer\+Log@{stop\+Transfer\+Log}}
+\index{stop\+Transfer\+Log@{stop\+Transfer\+Log}!logger.\+c@{logger.\+c}}
+\subsubsection{\texorpdfstring{stop\+Transfer\+Log()}{stopTransferLog()}}
+{\footnotesize\ttfamily int stop\+Transfer\+Log (\begin{DoxyParamCaption}\item[{\hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})}
+
+Stops a logging process. N\+O\+TE\+: Be sure to initialize the \hyperlink{structlogger__t}{logger\+\_\+t} struct by calling \hyperlink{logger_8h_a568bb98500e52ddc98667703cdc46927}{start\+Transfer\+Log()}. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Logger} & A pointer to the struct representing the logger process to stop. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+L\+O\+G\+G\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or L\+O\+G\+G\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
+\begin{DoxySeeAlso}{See also}
+\hyperlink{structlogger__t}{logger\+\_\+t} 
+\end{DoxySeeAlso}

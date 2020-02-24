@@ -123,6 +123,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     int ready = 0;
     while (true) {
         do {
+            waitChildren();
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {

@@ -1,5 +1,20 @@
 /** \file datatypes.h
- * Portable data types encapsulation.
+ * Portable data types encapsulation. 
+ * Includes:\n 
+ * socket_t\n 
+ * string_t\n 
+ * cstring_t - Constant string\n 
+ * thread_t\n 
+ * pipe_t\n 
+ * event_t\n 
+ * _dir - Directory object.\n 
+ * mutex_t\n 
+ * cond_t - Condition variable type\n 
+ * proc_id_t - Process id type\n 
+ * sig_atomic - [Linux] Variable signal-wise atomic
+ * @see startThread()
+ * @see logger_t
+ * @see iterateDir()
  */
 
 #ifndef DATATYPES_H
@@ -9,6 +24,7 @@
 #include <windows.h>
 #define EINTR WSAEINTR
 #define MAX_NAME MAX_PATH
+
 typedef SOCKET socket_t;
 typedef LPSTR string_t;
 typedef LPCSTR cstring_t;

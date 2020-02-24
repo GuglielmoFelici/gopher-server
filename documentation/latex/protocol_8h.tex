@@ -1,0 +1,38 @@
+\hypertarget{protocol_8h}{}\section{headers/protocol.h File Reference}
+\label{protocol_8h}\index{headers/protocol.\+h@{headers/protocol.\+h}}
+{\ttfamily \#include \char`\"{}datatypes.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}logger.\+h\char`\"{}}\newline
+Include dependency graph for protocol.\+h\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{protocol_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=338pt]{protocol_8h__dep__incl}
+\end{center}
+\end{figure}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \hyperlink{protocol_8h_a733e68cc8d5f947c30d0ca51e1b76d9b}{gopher} (socket\+\_\+t sock, int port, const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$p\+Logger)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Executes the gopher protocol for a client. 
+
+\subsection{Function Documentation}
+\mbox{\Hypertarget{protocol_8h_a733e68cc8d5f947c30d0ca51e1b76d9b}\label{protocol_8h_a733e68cc8d5f947c30d0ca51e1b76d9b}} 
+\index{protocol.\+h@{protocol.\+h}!gopher@{gopher}}
+\index{gopher@{gopher}!protocol.\+h@{protocol.\+h}}
+\subsubsection{\texorpdfstring{gopher()}{gopher()}}
+{\footnotesize\ttfamily int gopher (\begin{DoxyParamCaption}\item[{socket\+\_\+t}]{sock,  }\item[{int}]{port,  }\item[{const \hyperlink{structlogger__t}{logger\+\_\+t} $\ast$}]{p\+Logger }\end{DoxyParamCaption})}
+
+Executes the gopher protocol. Receives a selector and performs \hyperlink{protocol_8c_ab628d8ba2c399efb50f6133a3e860c3b}{validate\+Input()} and \hyperlink{protocol_8c_a891da6c8490e699fdf4c10e1275dcf3c}{normalize\+Path()}. If the selector points to a directory, calls \hyperlink{protocol_8c_a57c2a0511da777c6dbcd9f8684308576}{send\+Dir()}. Else, a \hyperlink{structfile__mapping__t}{file\+\_\+mapping\+\_\+t} is created using \hyperlink{platform_8h_a257d48e91fab744f0f71ad79f5acfef2}{get\+File\+Map()} and is sent to the client using \hyperlink{protocol_8c_ae2ef8fc6326f2f545caffbbf8eca0795}{send\+File()}. \begin{DoxyReturn}{Returns}
+G\+O\+P\+H\+E\+R\+\_\+\+S\+U\+C\+C\+E\+SS or G\+O\+P\+H\+E\+R\+\_\+\+F\+A\+I\+L\+U\+RE. 
+\end{DoxyReturn}
