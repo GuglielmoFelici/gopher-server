@@ -38,12 +38,16 @@ static int normalizePath(string_t str) {
     return GOPHER_SUCCESS;
 }
 
+// TODO
 /** @return true if the input str represents a valid selector */
-static bool validateInput(string_t str) {
-    string_t strtokptr, ret;
-    ret = strtok_r(str, CRLF, &strtokptr);
-    return ret == NULL ||
-           !strstr(ret, "..") && !strstr(ret, ".\\") && !strstr(ret, "./") && ret[strlen(ret) - 1] != '.';
+static bool validateInput(cstring_t str) {
+    if (!str) {
+        return false;
+    } else if (strcmp(str, CRLF)) {
+        return true;
+    } else {
+        return !strstr(str, "..") && !strstr(str, ".\\") && !strstr(str, "./") && str[strlen(str) - 1] != '.';
+    }
 }
 
 /** Sends the message msg to the socket sock.
@@ -216,7 +220,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         memcpy(selector + selectorSize - 1, buf, bytesRec);
         selectorSize += bytesRec;
         selector[selectorSize - 1] = '\0';
-    } while (bytesRec > 0 && !strstr(selector, CRLF));
+    } while (bytesRec > 0 && !strstr(selector, CRLF));  // TODO
     if (!validateInput(selector)) {
         sendErrorResponse(sock, INVALID_SELECTOR);
         goto ON_ERROR;
