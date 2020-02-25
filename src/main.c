@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <string.h>
+#include "../headers/globals.h"
 #include "../headers/log.h"
 #include "../headers/logger.h"
 #include "../headers/platform.h"
 #include "../headers/server.h"
 #include "../headers/wingetopt.h"
+
+char installDir[MAX_NAME];
 
 int main(int argc, string_t* argv) {
     server_t server;
@@ -13,12 +16,10 @@ int main(int argc, string_t* argv) {
         logMessage(MAIN_WSA_ERR, LOG_ERR);
         goto ON_ERROR;
     }
-    if (PLATFORM_SUCCESS != getCwd(server.installationDir, sizeof(server.installationDir))) {
+    if (PLATFORM_SUCCESS != getCwd(installDir, sizeof(installDir))) {
         logMessage(MAIN_CWD_ERR, LOG_ERR);
         goto ON_ERROR;
     }
-    snprintf(server.configFile, sizeof(server.configFile), "%s/%s", server.installationDir, CONFIG_FILE);
-    strncpy(logger.installationDir, server.installationDir, sizeof(logger.installationDir));
     logger.pid = -1;
     if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
         logMessage(MAIN_PORT_CONFIG_ERR, LOG_WARNING);

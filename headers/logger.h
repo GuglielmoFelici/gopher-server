@@ -7,12 +7,9 @@
 #define LOGGER_H
 
 #include "datatypes.h"
+#include "globals.h"
 
-#define LOGGER_PATH "src\\helpers\\winLogger.exe"
-#define LOG_FILE "logFile"
-#define LOG_MUTEX_NAME "logMutex"
-#define LOGGER_EVENT_NAME "logEvent"
-#define MAX_LINE_SIZE 100
+#define MAX_LINE_SIZE 100  // TODO Spostare in .c
 #define LOGGER_SUCCESS 0
 #define LOGGER_FAILURE -1
 
@@ -30,8 +27,6 @@ typedef struct {
     event_t logEvent;
     /** The pid of the log process */
     proc_id_t pid;
-    /** The base installation directory of the logger */
-    char installationDir[MAX_NAME];
 } logger_t;
 
 /**

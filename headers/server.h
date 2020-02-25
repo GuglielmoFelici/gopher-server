@@ -13,13 +13,9 @@
 
 #include <stdbool.h>
 #include "datatypes.h"
+#include "globals.h"
 #include "logger.h"
 
-#define HELPER_PATH "src\\helpers\\winGopherProcess.exe"
-#define CONFIG_FILE "config"
-#define CONFIG_DELIMITER '='
-#define DEFAULT_MULTI_PROCESS 0
-#define DEFAULT_PORT 7070
 #define READ_PORT 0x0001
 #define READ_MULTIPROCESS 0x0002
 #define SERVER_UPDATE 0x0001
@@ -38,10 +34,6 @@ typedef struct {
     unsigned short port;
     /** A flag stating whether the server should spawn a process or a thread per request */
     bool multiProcess;
-    /** The server main installation directory */
-    char installationDir[MAX_NAME];
-    /** The server configuration file name */
-    char configFile[MAX_NAME + sizeof(CONFIG_FILE)];
 } server_t;
 
 /** A struct defining the arguments required by the children threads to serve the client*/

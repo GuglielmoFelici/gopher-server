@@ -17,8 +17,6 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <syslog.h>
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
 #endif
 
 #include <stdbool.h>
@@ -31,9 +29,6 @@
 #define PLATFORM_ISDIR 0x0008
 #define PLATFORM_NOT_FOUND 0x0010
 #define PLATFORM_END_OF_DIR 0x0020
-
-/** Turn off with option -s (silent) to disable server logging. */
-extern bool enableLogging;
 
 /** @return true if the string str2 ends with the string str2. */
 bool endsWith(cstring_t str1, cstring_t str2);

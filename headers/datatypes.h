@@ -22,8 +22,6 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#define EINTR WSAEINTR
-#define MAX_NAME MAX_PATH
 
 typedef SOCKET socket_t;
 typedef LPSTR string_t;
@@ -40,7 +38,6 @@ typedef DWORD proc_id_t, sig_atomic;
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#define MAX_NAME FILENAME_MAX
 typedef int socket_t, event_t;
 typedef int pipe_t;
 typedef char* string_t;

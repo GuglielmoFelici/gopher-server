@@ -1,6 +1,7 @@
 #include "../headers/logger.h"
 #include <stdio.h>
 #include <string.h>
+#include "../headers/globals.h"
 
 /** [Linux] Starts the main logging process loop 
  *  @param pLogger A pointer to the logger_t struct representing a logging process
@@ -14,7 +15,6 @@ int initLogger(logger_t* pLogger) {
     pLogger->pid = -1;
     pLogger->pLogCond = NULL;
     pLogger->pLogMutex = NULL;
-    *pLogger->installationDir = '\0';
     return LOGGER_SUCCESS;
 }
 
@@ -39,7 +39,7 @@ int startTransferLog(logger_t* pLogger) {
         goto ON_ERROR;
     }
     pLogger->pid = -1;
-    snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, pLogger->installationDir);
+    snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, installDir);
     if (!CreatePipe(&readPipe, &writePipe, &attr, 0)) {
         goto ON_ERROR;
     }
@@ -68,7 +68,7 @@ int startTransferLog(logger_t* pLogger) {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, pLogger->installationDir, &startupInfo, &processInfo)) {
+    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installDir, &startupInfo, &processInfo)) {
         goto ON_ERROR;
     }
     pLogger->pid = processInfo.dwProcessId;
@@ -304,7 +304,7 @@ static void loggerLoop(const logger_t* pLogger) {
     }
     prctl(PR_SET_NAME, LOG_PROCESS_NAME);
     prctl(PR_SET_PDEATHSIG, SIGINT);
-    if (snprintf(logFilePath, sizeof(logFilePath), "%s/" LOG_FILE, pLogger->installationDir) >= sizeof(logFilePath)) {
+    if (snprintf(logFilePath, sizeof(logFilePath), "%s/" LOG_FILE, installDir) >= sizeof(logFilePath)) {
         logMessage(LOGFILE_NAME_ERR, LOG_ERR);
         goto ON_ERROR;
     }

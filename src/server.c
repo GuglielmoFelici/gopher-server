@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../headers/datatypes.h"
+#include "../headers/globals.h"
 #include "../headers/log.h"
 #include "../headers/logger.h"
 #include "../headers/platform.h"
@@ -72,9 +73,14 @@ void defaultConfig(server_t* pServer, int which) {
 
 int readConfig(server_t* pServer, int which) {
     FILE* configFile = NULL;
-    if (NULL == (configFile = fopen(pServer->configFile, "r"))) {
+    char* configFilePath = NULL;
+    if (NULL == (configFilePath = malloc(strlen(installDir) + sizeof(CONFIG_FILE) + 1))) {
         goto ON_ERROR;
     }
+    if (NULL == (configFile = fopen(configFilePath, "r"))) {
+        goto ON_ERROR;
+    }
+    free(configFilePath);
     char portBuff[6], multiProcess[2];
     char c;
     do {
@@ -109,6 +115,9 @@ int readConfig(server_t* pServer, int which) {
 ON_ERROR:
     if (configFile) {
         fclose(configFile);
+    }
+    if (configFilePath) {
+        free(configFilePath);
     }
     return SERVER_FAILURE;
 }
@@ -252,7 +261,7 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
         logPipe = pLogger->logPipe;
     }
     char exec[MAX_NAME];
-    if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, pServer->installationDir) < strlen(pServer->installationDir) + strlen(HELPER_PATH) + 1) {
+    if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, installDir) < strlen(installDir) + strlen(HELPER_PATH) + 1) {
         goto ON_ERROR;
     }
     STARTUPINFO startupInfo;
