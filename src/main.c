@@ -1,6 +1,6 @@
+#include "../headers/globals.h"
 #include <stdio.h>
 #include <string.h>
-#include "../headers/globals.h"
 #include "../headers/log.h"
 #include "../headers/logger.h"
 #include "../headers/platform.h"

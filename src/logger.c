@@ -1,7 +1,8 @@
+#include "../headers/globals.h"
 #include "../headers/logger.h"
 #include <stdio.h>
 #include <string.h>
-#include "../headers/globals.h"
+
 
 /** [Linux] Starts the main logging process loop 
  *  @param pLogger A pointer to the logger_t struct representing a logging process
