@@ -21,12 +21,13 @@ int main(int argc, string_t* argv) {
         goto ON_ERROR;
     }
     logger.pid = -1;
+    bool portOk = true, mpOk = true;
     if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
-        logMessage(MAIN_PORT_CONFIG_ERR, LOG_WARNING);
+        portOk = false;
         defaultConfig(&server, READ_PORT);
     }
     if (SERVER_SUCCESS != readConfig(&server, READ_MULTIPROCESS)) {
-        logMessage(MAIN_MULTIPROCESS_CONFIG_ERR, LOG_WARNING);
+        mpOk = false;
         defaultConfig(&server, READ_MULTIPROCESS);
     }
     /* Options parsing */
@@ -39,16 +40,18 @@ int main(int argc, string_t* argv) {
             case 's':
                 enableLogging = false;
             case 'm':
+                mpOk = true;
                 server.multiProcess = true;
                 break;
             case 'p':
+                portOk = true;
                 if (optarg[0] == '-') {
                     logMessage(MAIN_USAGE, LOG_INFO);
                     goto ON_ERROR;
                 }
                 int port = strtol(optarg, NULL, 10);
                 if (port < 1 || port > 65535) {
-                    logMessage(MAIN_PORT_CONFIG_ERR, LOG_WARNING);
+                    logMessage(MAIN_PORT_ERR, LOG_WARNING);
                 } else {
                     server.port = port;
                 }
@@ -62,6 +65,12 @@ int main(int argc, string_t* argv) {
                 logMessage(MAIN_USAGE, LOG_INFO);
                 goto ON_ERROR;
         }
+    }
+    if (!portOk) {
+        logMessage(MAIN_PORT_CONFIG_ERR, LOG_WARNING);
+    }
+    if (!mpOk) {
+        logMessage(MAIN_MULTIPROCESS_CONFIG_ERR, LOG_WARNING);
     }
     if (enableLogging) {
         printf("Port %d\n", server.port);

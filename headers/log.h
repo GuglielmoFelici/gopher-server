@@ -7,9 +7,10 @@
 
 #define _GNU_SOURCE  // TODO rimuovere
 
-#define MAIN_CONFIG_ERR "Can't read configuration file, default settings will be used."
-#define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file, multiprocess will be disabled."
-#define MAIN_PORT_CONFIG_ERR "Can't read configuration for port, default one will be used."
+#define MAIN_CONFIG_ERR "Can't read configuration file."
+#define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file and no option provided, multiprocess will be disabled."
+#define MAIN_PORT_CONFIG_ERR "Can't read configuration file and no option provided for port, default one will be used."
+#define MAIN_PORT_ERR "Invalid port number, default one will be used."
 #define MAIN_CWD_ERR "Can't get current working directory"
 #define MAIN_STARTUP_ERR "Error starting up."
 #define MAIN_LOOP_ERR "Server error."

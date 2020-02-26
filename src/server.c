@@ -74,9 +74,11 @@ void defaultConfig(server_t* pServer, int which) {
 int readConfig(server_t* pServer, int which) {
     FILE* configFile = NULL;
     char* configFilePath = NULL;
-    if (NULL == (configFilePath = malloc(strlen(installDir) + sizeof(CONFIG_FILE) + 1))) {
+    int configFilePathSize = strlen(installDir) + sizeof(CONFIG_FILE) + 2;
+    if (NULL == (configFilePath = malloc(configFilePathSize))) {
         goto ON_ERROR;
     }
+    snprintf(configFilePath, configFilePathSize, "%s/%s", installDir, CONFIG_FILE);
     if (NULL == (configFile = fopen(configFilePath, "r"))) {
         goto ON_ERROR;
     }

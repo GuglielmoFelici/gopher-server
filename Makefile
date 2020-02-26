@@ -1,7 +1,7 @@
 objects = src/main.o src/platform.o src/protocol.o src/server.o src/logger.o src/wingetopt.o
 winHelperObjects = src/helpers/winGopherProcess.o src/platform.o src/protocol.o src/logger.o
 winLoggerObjects = src/helpers/winLogger.o
-CC=gcc
+CC = gcc
 
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
 	target = winserver.exe
@@ -13,22 +13,25 @@ else
 endif
 
 $(target) : $(objects) $(helpers)
-	$(CC) -o $@ $(objects) -$(lib)
+	$(CC) $(CFLAGS) -o $@ $(objects) -$(lib)
 
+debug : CFLAGS += -g 
+debug : $(objects) $(helpers) $(target)
+	
 src/helpers/winGopherProcess.exe : $(winHelperObjects)
-	$(CC) -o $@ $(winHelperObjects) -$(lib)
+	$(CC) $(CFLAGS) -o $@ $(winHelperObjects) -$(lib)
 
 src/helpers/winLogger.exe : $(winLoggerObjects)
-	$(CC) -o $@ $(winLoggerObjects)
+	$(CC) $(CFLAGS) -o $@ $(winLoggerObjects)
 
-main.o : headers/log.h headers/logger.h headers/platform.h headers/server.h headers/wingetopt.h    
-logger.o : headers/logger.h
-platform.o : headers/protocol.h headers/platform.h  
-protocol.o : headers/datatypes.h headers/log.h headers/logger.h headers/platform.h 
-server.o : headers/datatypes.h headers/log.h headers/logger.h headers/platform.h headers/protocol.h headers/server.h 
-wingetopt.o : headers/wingetopt.h
-winGopherProcess.o : headers/logger.h headers/protocol.h
-winLogger.o :
+src/main.o : headers/globals.h headers/log.h headers/logger.h headers/platform.h headers/server.h headers/wingetopt.h
+src/logger.o : headers/globals.h headers/logger.h
+src/platform.o : headers/globals.h headers/protocol.h headers/platform.h  
+src/protocol.o : headers/globals.h headers/datatypes.h headers/log.h headers/logger.h headers/platform.h
+src/server.o : headers/globals.h headers/datatypes.h headers/log.h headers/logger.h headers/platform.h headers/protocol.h headers/server.h 
+src/wingetopt.o : headers/globals.h headers/wingetopt.h
+src/helpers/winGopherProcess.o : headers/logger.h headers/protocol.h
+src/helpers/winLogger.o :
 
 
 .PHONY : clean
