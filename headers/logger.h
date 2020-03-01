@@ -9,7 +9,6 @@
 #include "datatypes.h"
 #include "globals.h"
 
-#define MAX_LINE_SIZE 100  // TODO Spostare in .c
 #define LOGGER_SUCCESS 0
 #define LOGGER_FAILURE -1
 

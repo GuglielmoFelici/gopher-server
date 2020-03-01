@@ -1,8 +1,7 @@
-#include "../headers/globals.h"
 #include "../headers/logger.h"
 #include <stdio.h>
 #include <string.h>
-
+#include "../headers/globals.h"
 
 /** [Linux] Starts the main logging process loop 
  *  @param pLogger A pointer to the logger_t struct representing a logging process
@@ -298,6 +297,7 @@ int stopTransferLog(logger_t* pLogger) {
 
 static void loggerLoop(const logger_t* pLogger) {
     int logFile = -1;
+    const int MAX_LINE_SIZE = 100;
     char buff[MAX_LINE_SIZE];
     char logFilePath[MAX_NAME];
     if (!pLogger) {
