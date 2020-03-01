@@ -49,6 +49,8 @@
 #define DIR_SEND_ERR "Error sending requested directory."
 #define ARGS_ERR "Wrong arguments in function call."
 #define RECV_ERR "Error receiving the selector"
+#define SEND_ERR "Error while sending the data."
+#define CONN_CLOS_ERR "The peer has closed the connection."
 #define GOPHER_REQUEST_FAILED "Serving gopher request failed."
 #define SHUTDOWN_REQUESTED "Shutdown requested."
 #define UPDATE_REQUESTED "Requested configuration update."

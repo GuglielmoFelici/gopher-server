@@ -54,13 +54,13 @@ static bool validateInput(cstring_t str) {
  * @return GOPHER_SUCCESS or GOPHER_FAILURE
 */
 static int sendErrorResponse(socket_t sock, cstring_t msg) {
-    if (SOCKET_ERROR == sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 3)) {
+    if (PLATFORM_FAILURE == sendAll(sock, ERROR_MSG " - ", sizeof(ERROR_MSG) + 2)) {
         return GOPHER_FAILURE;
     }
-    if (SOCKET_ERROR == sendAll(sock, msg, strlen(msg))) {
+    if (PLATFORM_FAILURE == sendAll(sock, msg, strlen(msg))) {
         return GOPHER_FAILURE;
     }
-    if (SOCKET_ERROR == sendAll(sock, CRLF ".", 3)) {
+    if (PLATFORM_FAILURE == sendAll(sock, CRLF ".", 3)) {
         return GOPHER_FAILURE;
     }
     if (PLATFORM_FAILURE == closeSocket(sock)) {
@@ -103,7 +103,7 @@ static int sendDir(cstring_t path, int sock, int port) {
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
-        if (SOCKET_ERROR == sendAll(sock, line, strlen(line))) {
+        if (PLATFORM_FAILURE == sendAll(sock, line, strlen(line))) {
             goto ON_ERROR;
         }
     }
@@ -143,8 +143,9 @@ static void* sendFileTask(void* threadArgs) {
     args = *(send_args_t*)threadArgs;
     free(threadArgs);
     if (
-        sendAll(args.dest, args.src, args.size) == SOCKET_ERROR ||
-        sendAll(args.dest, CRLF ".", 3) == SOCKET_ERROR) {
+        PLATFORM_FAILURE == sendAll(args.dest, args.src, args.size) ||
+        PLATFORM_FAILURE == sendAll(args.dest, CRLF ".", 3)) {
+        logMessage(SEND_ERR, LOG_ERR);
         closeSocket(args.dest);
         return NULL;
     }
@@ -209,8 +210,8 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     char buf[BUFF_SIZE];
     size_t bytesRec = 0, selectorSize = 1;
     do {
-        if (SOCKET_ERROR == (bytesRec = recv(sock, buf, BUFF_SIZE, 0))) {
-            logMessage(RECV_ERR, LOG_ERR);
+        if ((bytesRec = recv(sock, buf, BUFF_SIZE, 0)) <= 0) {
+            logMessage(bytesRec == 0 ? CONN_CLOS_ERR : RECV_ERR, bytesRec == 0 ? LOG_WARNING : LOG_ERR);
             goto ON_ERROR;
         }
         if (NULL == (selector = realloc(selector, selectorSize + bytesRec))) {
@@ -221,6 +222,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         selectorSize += bytesRec;
         selector[selectorSize - 1] = '\0';
     } while (bytesRec > 0 && !strstr(selector, CRLF));  // TODO
+    logMessage(selector, LOG_INFO);
     if (!validateInput(selector)) {
         sendErrorResponse(sock, INVALID_SELECTOR);
         goto ON_ERROR;

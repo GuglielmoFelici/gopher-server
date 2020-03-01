@@ -65,7 +65,7 @@ config/config
 *test/compare_res
 logFile
 documentation/
-
+testfile
 linuxserver
-
+testClient
 *cppcheck*
