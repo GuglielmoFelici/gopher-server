@@ -25,7 +25,7 @@ int startTransferLog(logger_t* pLogger) {
         goto ON_ERROR;
     }
     pLogger->pid = -1;
-    char exec[MAX_NAME] = "";
+    char exec[MAX_NAME];
     int bytesWritten = snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, installDir);
     if (bytesWritten < 0 || bytesWritten >= sizeof(exec)) {
         goto ON_ERROR;
@@ -296,7 +296,7 @@ static void loggerLoop(const logger_t* pLogger) {
     if (!pLogger) {
         goto ON_ERROR;
     }
-    prctl(PR_SET_NAME, LOG_PROCESS_NAME); // TODO rimuovere?
+    prctl(PR_SET_NAME, LOG_PROCESS_NAME);  // TODO rimuovere?
     prctl(PR_SET_PDEATHSIG, SIGINT);
     int bytesWritten = snprintf(logFilePath, sizeof(logFilePath), "%s/" LOG_FILE, installDir);
     if (bytesWritten < 0 || bytesWritten >= sizeof(logFilePath)) {
