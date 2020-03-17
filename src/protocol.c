@@ -1,7 +1,9 @@
 #include "../headers/protocol.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "../headers/datatypes.h"
 #include "../headers/log.h"
 #include "../headers/logger.h"
@@ -12,9 +14,9 @@
 /** @return The character identifying the type of the file. */
 static char gopherType(const char* file);
 
-/** Removes CRLF; if the strings is empty, writes "." to it; 
+/** Removes CRLF; if str is empty, writes "." to it; 
   * maps all the backslashes to forward slashes; removes trailing slashes.
-  * @return GOPHER_SUCCESS or GOPHER_FAILURE
+  * @return GOPHER_SUCCESS or GOPHER_FAILURE if str is NULL
 */
 static int normalizePath(string_t str) {
     if (!str) {
