@@ -1,6 +1,8 @@
 #include "../headers/platform.h"
+
 #include <stdio.h>
 #include <string.h>
+
 #include "../headers/protocol.h"
 
 bool enableLogging = true;
@@ -163,10 +165,6 @@ ON_ERROR:
     return PLATFORM_FAILURE;
 }
 
-/* 
-    Legge la prossima entry nella directory. 
-    Se *dir è NULL, apre la directory contenuta in path. Se *dir non è NULL, path può essere NULL 
-*/
 int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
     WIN32_FIND_DATA data;
     if (*dir == NULL) {

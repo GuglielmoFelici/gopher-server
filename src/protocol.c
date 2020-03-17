@@ -42,7 +42,7 @@ static int normalizePath(string_t str) {
 }
 
 // TODO
-/** @return true if the input str represents a valid selector */
+/** @return true if str represents a valid gopher selector */
 static bool validateInput(cstring_t str) {
     if (!str) {
         return false;
@@ -53,7 +53,7 @@ static bool validateInput(cstring_t str) {
     }
 }
 
-/** Sends the message msg to the socket sock.
+/** Sends the error message msg to the socket sock.
  * @return GOPHER_SUCCESS or GOPHER_FAILURE
 */
 static int sendErrorResponse(socket_t sock, cstring_t msg) {
@@ -81,7 +81,8 @@ static int sendDir(cstring_t path, int sock, int port) {
     }
     _dir dir = NULL;
     char filePath[MAX_NAME];
-    char *fileName = NULL, *line = NULL;
+    char* fileName = NULL;
+    char* line = NULL;
     size_t lineSize, filePathSize;
     int res;
     while (PLATFORM_SUCCESS == (res = iterateDir(path, &dir, filePath, sizeof(filePath)))) {

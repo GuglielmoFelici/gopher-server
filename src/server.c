@@ -1,7 +1,9 @@
 #include "../headers/server.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "../headers/datatypes.h"
 #include "../headers/globals.h"
 #include "../headers/log.h"
@@ -15,9 +17,9 @@
 static sig_atomic volatile updateConfig = false;
 static sig_atomic volatile requestShutdown = false;
 
-/** Atomically checks if a config update or a shutdown have been requested.
+/** Atomically checks if a config update or a shutdown has been requested.
  * @param which Can be CHECK_CONFIG or CHECK_SHUTDOWN, depending on the check to perform.
- * @return true if the requested request have been 
+ * @return true if the specified request has been issued 
  */
 static bool checkSignal(int which);
 
@@ -361,13 +363,6 @@ static void* serveThreadTask(void* args) {
     sigset_t set;
     server_thread_args_t tArgs = *(server_thread_args_t*)args;
     free(args);
-    // if (
-    //     sigemptyset(&set) < 0 ||
-    //     sigaddset(&set, SIGHUP) < 0 ||
-    //     sigaddset(&set, SIGINT) < 0 ||
-    //     pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-    //     return NULL;
-    // }
     gopher(tArgs.sock, tArgs.port, tArgs.pLogger);
 }
 
