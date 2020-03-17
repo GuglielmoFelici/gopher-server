@@ -14,7 +14,7 @@ static BOOL sigHandler(DWORD signum) {
 /* Quando viene segnalato l'evento logEvent, legge dallo stdInput (estremo in lettura della pipe di log) */
 DWORD main(DWORD argc, LPSTR* argv) {
     const int MAX_LINE_SIZE = 100;
-    char buff[MAX_LINE_SIZE] = "";
+    char buff[MAX_LINE_SIZE];
     HANDLE logEvent;
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE)) {
         exit(1);

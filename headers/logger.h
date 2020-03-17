@@ -31,7 +31,8 @@ typedef struct {
 /**
  * Starts a logging process and writes its information in a logger_t struct.
  * @param pLogger The struct that will contain information about the logger.
- * @return LOGGER_SUCCESS or LOGGER_FAILURE.
+ * @return LOGGER_SUCCESS if the process was started correctly,
+ * LOGGER_FAILURE if pLogger is NULL or a system error occurs.
  * @see logger_t
  */
 int startTransferLog(logger_t* pLogger);

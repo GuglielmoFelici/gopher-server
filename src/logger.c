@@ -3,20 +3,12 @@
 #include <string.h>
 #include "../headers/globals.h"
 
-/** [Linux] Starts the main logging process loop 
- *  @param pLogger A pointer to the logger_t struct representing a logging process
+/** [Linux] Starts the main logging process loop.
+ *  If pLogger is NULL or a system error occurs, the function logs and terminates the process with exit code 1
+ *  @param pLogger A pointer to the logger_t struct representing a logging process.
+ *  @see logMessage 
 */
 static void loggerLoop(const logger_t* pLogger);
-
-int initLogger(logger_t* pLogger) {
-    if (!pLogger) {
-        return LOGGER_FAILURE;
-    }
-    pLogger->pid = -1;
-    pLogger->pLogCond = NULL;
-    pLogger->pLogMutex = NULL;
-    return LOGGER_SUCCESS;
-}
 
 /*****************************************************************************************************************/
 /*                                             WINDOWS FUNCTIONS                                                 */
@@ -26,12 +18,6 @@ int initLogger(logger_t* pLogger) {
 #if defined(_WIN32)
 
 int startTransferLog(logger_t* pLogger) {
-    char exec[MAX_NAME] = "";
-    SECURITY_ATTRIBUTES attr;
-    memset(&attr, 0, sizeof(attr));
-    attr.bInheritHandle = TRUE;
-    attr.nLength = sizeof(attr);
-    attr.lpSecurityDescriptor = NULL;
     HANDLE readPipe = NULL;
     HANDLE writePipe = NULL;
     HANDLE* pLogMutex = NULL;
@@ -39,7 +25,16 @@ int startTransferLog(logger_t* pLogger) {
         goto ON_ERROR;
     }
     pLogger->pid = -1;
-    snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, installDir);
+    char exec[MAX_NAME];
+    int bytesWritten = snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, installDir);
+    if (bytesWritten < 0 || bytesWritten >= sizeof(exec)) {
+        goto ON_ERROR;
+    }
+    SECURITY_ATTRIBUTES attr;
+    memset(&attr, 0, sizeof(attr));
+    attr.bInheritHandle = TRUE;
+    attr.nLength = sizeof(attr);
+    attr.lpSecurityDescriptor = NULL;
     if (!CreatePipe(&readPipe, &writePipe, &attr, 0)) {
         goto ON_ERROR;
     }
@@ -47,13 +42,11 @@ int startTransferLog(logger_t* pLogger) {
     if (NULL == (pLogMutex = malloc(sizeof(HANDLE)))) {
         goto ON_ERROR;
     }
-    // Mutex per proteggere le scritture sulla pipe
     *pLogMutex = CreateMutex(&attr, FALSE, LOG_MUTEX_NAME);
     if (NULL == *pLogMutex) {
         goto ON_ERROR;
     }
     pLogger->pLogMutex = pLogMutex;
-    // Evento per notificare al logger che ci sono dati da leggere sulla pipe
     HANDLE logEvent = CreateEvent(&attr, FALSE, FALSE, LOGGER_EVENT_NAME);
     if (NULL == logEvent) {
         goto ON_ERROR;
@@ -303,9 +296,10 @@ static void loggerLoop(const logger_t* pLogger) {
     if (!pLogger) {
         goto ON_ERROR;
     }
-    prctl(PR_SET_NAME, LOG_PROCESS_NAME);
+    prctl(PR_SET_NAME, LOG_PROCESS_NAME);  // TODO rimuovere?
     prctl(PR_SET_PDEATHSIG, SIGINT);
-    if (snprintf(logFilePath, sizeof(logFilePath), "%s/" LOG_FILE, installDir) >= sizeof(logFilePath)) {
+    int bytesWritten = snprintf(logFilePath, sizeof(logFilePath), "%s/" LOG_FILE, installDir);
+    if (bytesWritten < 0 || bytesWritten >= sizeof(logFilePath)) {
         logMessage(LOGFILE_NAME_ERR, LOG_ERR);
         goto ON_ERROR;
     }
@@ -340,7 +334,6 @@ static void loggerLoop(const logger_t* pLogger) {
                 logMessage(LOGFILE_WRITE_ERR, LOG_ERR);
                 goto ON_ERROR;
             }
-            int fileSize = getFileSize(logFilePath);
             lck.l_type = F_UNLCK;
             if (fcntl(logFile, F_SETLK, &lck) < 0) {
                 logMessage(FILE_UNLOCK_ERR, LOG_ERR);

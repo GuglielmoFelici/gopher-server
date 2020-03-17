@@ -11,7 +11,7 @@
 
 #define MAX_LINE 70
 
-/** @return The character identifying the type of the file. */
+/** @return The character identifying the type of the file, X if the type is unknown or an error occurs. */
 static char gopherType(const char* file);
 
 /** Removes CRLF; if str is empty, writes "." to it; 
@@ -28,13 +28,14 @@ static int normalizePath(string_t str) {
         string_t strtokptr;
         strtok_r(str, CRLF, &strtokptr);
         int len = strlen(str);
+        while (str[len - 1] == '/' || str[len - 1] == '\\') {
+            str[len - 1] = '\0';
+            len--;
+        }
         for (int i = 0; i < len; i++) {
             if (str[i] == '\\') {
                 str[i] = '/';
             }
-        }
-        if (str[len - 1] == '/') {
-            str[len - 1] = '\0';
         }
     }
     return GOPHER_SUCCESS;
