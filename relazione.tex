@@ -1,11 +1,38 @@
 \documentclass{article}
 
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=C,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
 \begin{document}
 
 \tableofcontents
 %newpage
 
 \section{Utilizzo del software}
+
+\newpage
 
 \section{Struttura del progetto}
 
@@ -37,8 +64,6 @@ e passare il socket connesso al modulo Protocollo.
 Il modulo Server espone un'interfaccia composta da una struttura dati (server\_t) e le 
 varie funzioni per inizializzare il socket, leggere le configurazioni, installare i 
 gestori di segnali di default e mettere in ascolto il server.  
-Il modulo Server è implementato dall'header server.h e dal file server.c, e 
-dal file winGopherProcess.c nel caso di Windows.
 
 \subsection{Protocollo}
 Il modulo Protocollo riceve in input un socket connesso.
@@ -67,16 +92,53 @@ dai moduli che lo richiedano. Le funzioni si articolano in:
     \item parsing di opzioni da riga di comando.
 \end{itemize}
 Il modulo Portabilità è implementato dagli header platform.h, datatypes.h, log.h e wingetopt.h, e dai 
-sorgenti platform.c e wingetopt.c \\( http://note.sonots.com/Comp/CompLang/cpp/getopt.html ). 
+sorgenti platform.c e \href{http://note.sonots.com/Comp/CompLang/cpp/getopt.html}{wingetopt.c}. 
 \newpage
 
 
 \section{Scelte implementative}
 
-Per quanto il progetto sia stato impostato con una struttura modulare per trarre tutti i vantaggi che 
-questo comporta in fase di sviluppo, le sue componenti sono comunque interconnesse e progettate per coesistere 
-in un'unica applicazione. Da qui la scelta di creare il file header "globals.h", che contiene
-costanti di configurazione comuni a tutti moduli e path relativi che assumono la struttura 
-di file e directory.
+Per quanto il progetto sia stato impostato con una struttura modulare per trarre tutti i vantaggi della
+separation of concerns in fase di sviluppo, le sue componenti sono comunque interconnesse e progettate per coesistere 
+in un'unica applicazione. Da qui la scelta di rendere globali diverse costanti di configurazione 
+e di usare path relativi che assumono la struttura di file e directory.\\
+
+Per realizzare l'aspetto modulare ogni file espone, tramite il proprio header, funzioni utili a espletare
+i compiti previsti dal modulo a cui il file fa riferimento (logicamente, poiché non c'è nessuna organizzazione
+che rifletta la suddivisione dei moduli a livello di directory). Le funzioni di ogni modulo
+utilizzano come valore di ritorno delle costanti per indicare il successo o il fallimento dell'operazione (a volte
+messe in OR con altre costanti per fornire ulteriori informazioni sull'esito dell'operazione).
+\\Le funzioni esposte utilizzano i tipi definiti in datatypes.h, per astrarre dai tipi specifici utilizzati
+dalla libreria Win32 o dalle funzioni POSIX. La realizzazione interna delle funzioni invece
+ utilizza i tipi specifici della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte da Portabilità,
+ di un'implementazione ad hoc per Windows e una per GNU/Linux, demandando la scelta dell'implementazione
+da utilizzare al preprocessore tramite la direttiva 
+\begin{lstlisting} 
+#if defined(_WIN32) 
+\end{lstlisting}
+Una documentazione approfondita su ogni file, funzione e struttura, generata con Doxygen a partire dalla 
+documentazione sul codice sorgente, è disponibile \href{html/index.html}{qui}. 
+
+\subsection{Server}
+Il modulo Server è implementato dall'header server.h, dal file server.c e dal file winGopherProcess.c 
+nel caso in cui si compili su Windows.\\
+L'header dichiara la struttura server\_t, utilizzata come interfaccia per il modulo:
+\begin{lstlisting}
+/** A struct representing an instance of a gopher server */
+typedef struct {
+    /** The socket of the server */
+    socket_t sock;
+    /** The socket address */
+    struct sockaddr_in sockAddr;
+    /** The port where the server is listening */
+    unsigned short port;
+    /** A flag indicating whether the server should spawn a process or a thread per request */
+    bool multiProcess;
+} server_t;
+\end{lstlisting}
+La maggior parte delle funzioni dichiarate dall'header richiede un puntatore a una struttura server\_t in input,
+dalla quale leggere o sulla quale scrivere informazioni.
+
+\subsection{Lettura della configurazione}
 
 \end{document}

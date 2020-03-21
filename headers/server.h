@@ -38,7 +38,8 @@ typedef struct {
 } server_t;
 
 /** Initializes a server socket and sets it to listening.
- * @param pServer The server_t struct representing the server
+ *  Places the socket in pServer->sock. If flags is SERVER_UPDATE, the original socket in pServer->sock is closed.
+ * @param pServer The server_t struct where the socket information will be stored.
  * @param flags Can be SERVER_UPDATE if a change of port was requested, or SERVER_INIT if the socket must be initialized from scratch.
  * @return SERVER_SUCCESS or SERVER_FAILURE.  
  */
@@ -57,20 +58,20 @@ int installDefaultSigHandlers();
 int initWsa();
 
 /** Sets the default options. 
- * @param pServer The server_t struct representing the server where the options will be stored.
+ * @param pServer The server_t struct where the options will be stored.
  * @param which A flag stating the option to default. Can be READ_PORT, READ_MULTIPROCESS or both or-ed.
 */
 void defaultConfig(server_t* pServer, int which);
 
 /** Reads the options from a configuration file. 
- * @param pServer The server_t struct representing the server where the options will be stored.
+ * @param pServer The server_t struct where the options will be stored.
  * @param which A flag stating the option to default. Can be READ_PORT, READ_MULTIPROCESS or both or-ed.
  * @return SERVER_SUCCESS or SERVER_FAILURE.  
 */
 int readConfig(server_t* pServer, int which);
 
 /** Starts a gopher server.
- * @param pServer A server_t struct representing the server to run.
+ * @param pServer A fully populated server_t struct representing the server to run.
  * @param pLogger A logger_t struct representing the transfer logging process (can be NULL).
  * @return SERVER_SUCCESS if the server is terminated by the user, SERVER_FAILURE otherwise.  
  */
