@@ -12,6 +12,7 @@
 #endif
 
 #include <stdbool.h>
+
 #include "datatypes.h"
 #include "globals.h"
 #include "logger.h"
@@ -52,7 +53,7 @@ typedef struct {
  */
 int initWsa();
 
-/** Installs the default signal handlers for the main process.
+/** Installs the default signal handlers for the server process.
  * On Windows, CTRL_C interrupts the server and CTRL_BREAK requests a configuration update.
  * On Linux, SIGINT interrupts the server and SIGHUP requests a configuration update.
  * @return SERVER_SUCCESS or SERVER_FAILURE. 

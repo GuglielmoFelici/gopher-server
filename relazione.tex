@@ -2,6 +2,25 @@
 
 \begin{document}
 
-\tableofcontent
+\tableofcontents
+%newpage
+
+\section{Struttura del progetto}
+
+Il progetto è strutturato con un approccio modulare. 
+Seppure interconnessi tra loro, ogni modulo modella uno specifico compito all'interno dell'applicazione:
+\begin{itemize}
+    \item Server - Riceve le richieste di connessione dei client e crea nuovi thread 
+    o processi per inviare le risposte. Si occupa inoltre della lettura dei file di configurazione e 
+    della gestione dei segnali.
+    \item Logger - Gestisce il processo di logging, che ha il compito di registrare le operazioni di invio
+    di file.
+    \item Protocol - Legge le richieste dei client e costruisce la risposta secondo lo standard del
+    protocollo Gopher.
+\end{itemize} 
+
+%subsections dei moduli
+
+\section{Scelte implementative}
 
 \end{document}
