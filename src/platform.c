@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../headers/protocol.h"
+#include "../headers/globals.h"
 
 bool enableLogging = true;
 

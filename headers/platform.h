@@ -31,6 +31,8 @@
 #define PLATFORM_NOT_FOUND 0x0010
 #define PLATFORM_END_OF_DIR 0x0020
 
+/************************************************** UTILS ********************************************************/
+
 /** @return true if the string str2 ends with the string str2. */
 bool endsWith(cstring_t str1, cstring_t str2);
 
@@ -50,6 +52,8 @@ int changeCwd(cstring_t path);
 */
 void logMessage(cstring_t message, int level);
 
+/********************************************** SOCKETS *************************************************************/
+
 /** @return the current system error relative to the sockets */
 int sockErr();
 
@@ -67,6 +71,33 @@ int sendAll(socket_t s, cstring_t data, int length);
  *  @see inet_ntop [Linux]
 */
 cstring_t inetNtoa(const struct in_addr* addr, void* dst, size_t size);
+
+/*********************************************** THREADS & PROCESSES ***************************************************************/
+
+/** Starts a new thread.
+ * @param tid A pointer to a location where the thread id of the spawned thread will be written.
+ * @param routine A pointer to the function to be executed by the new thread.
+ * @param args A pointer to data used as arguments.
+ * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
+int startThread(thread_t* tid, LPTHREAD_START_ROUTINE routine, void* args);
+
+/** Detaches the thread tid. 
+ * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
+int detachThread(thread_t tid);
+
+/** [Linux] Tries to wait for all the children to finish, but doesn't block.
+ * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
+int waitChildren();
+
+/** [Linux] Transforms the current process into a daemon process. 
+ * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
+int daemonize();
+
+/*********************************************** FILES  ***************************************************************/
 
 /** Retrieves the attributes of a file.
  * @return PLATFORM_ISFILE or PLATFORM_ISDIR. Upon error returns PLATFORM_FAILURE, or-ed with PLATFORM_NOT_FOUND if the file was not found.
@@ -118,28 +149,5 @@ int getFileMap(cstring_t path, file_mapping_t* mapData);
  *  @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
 int unmapMem(void* addr, size_t len);
-
-/** Starts a new thread.
- * @param tid A pointer to a location where the thread id of the spawned thread will be written.
- * @param routine A pointer to the function to be executed by the new thread.
- * @param args A pointer to data used as arguments.
- * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
-*/
-int startThread(thread_t* tid, LPTHREAD_START_ROUTINE routine, void* args);
-
-/** Detaches the thread tid. 
- * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
-*/
-int detachThread(thread_t tid);
-
-/** [Linux] Tries to wait for all the children to finish, but doesn't block.
- * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
-*/
-int waitChildren();
-
-/** [Linux] Transforms the current process into a daemon process. 
- * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
-*/
-int daemonize();
 
 #endif

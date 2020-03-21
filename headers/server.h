@@ -37,21 +37,12 @@ typedef struct {
     bool multiProcess;
 } server_t;
 
-/** A struct defining the arguments required by the children threads to serve the client*/
-typedef struct {
-    /** The socket of the client */
-    socket_t sock;
-    /** The port of the server where the request is being served */
-    int port;
-    /** A pointer to a logger_t representing a logger process */
-    const logger_t* pLogger;
-} server_thread_args_t;
-
-/** Initializes a server_t struct for further usage.
- *  @param pServer A pointer to the server_t struct to initialize.
- *  @return SERVER_SUCCESS or SERVER_FAILURE. 
+/** Initializes a server socket and sets it to listening.
+ * @param pServer The server_t struct representing the server
+ * @param flags Can be SERVER_UPDATE if a change of port was requested, or SERVER_INIT if the socket must be initialized from scratch.
+ * @return SERVER_SUCCESS or SERVER_FAILURE.  
  */
-int initWsa();
+int prepareSocket(server_t* pServer, int flags);
 
 /** Installs the default signal handlers for the server process.
  * On Windows, CTRL_C interrupts the server and CTRL_BREAK requests a configuration update.
@@ -60,12 +51,10 @@ int initWsa();
 */
 int installDefaultSigHandlers();
 
-/** Initializes a server socket and sets it to listening.
- * @param pServer The server_t struct representing the server
- * @param flags Can be SERVER_UPDATE if a change of port was requested, or SERVER_INIT if the socket must be initialized from scratch.
- * @return SERVER_SUCCESS or SERVER_FAILURE.  
+/** [Windows only] Initializes the Winsock DLL and the critical section for console signals.
+ *  @return SERVER_SUCCESS or SERVER_FAILURE. 
  */
-int prepareSocket(server_t* pServer, int flags);
+int initWsa();
 
 /** Sets the default options. 
  * @param pServer The server_t struct representing the server where the options will be stored.

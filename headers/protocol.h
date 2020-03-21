@@ -62,12 +62,4 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
 
 int gopher(socket_t sock, int port, const logger_t* pLogger);
 
-typedef struct {
-    void* src;
-    int size;
-    socket_t dest;
-    char name[MAX_NAME];
-    const logger_t* pLogger;
-} send_args_t;
-
 #endif

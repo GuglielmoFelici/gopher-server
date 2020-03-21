@@ -33,6 +33,13 @@ src/wingetopt.o : headers/globals.h headers/wingetopt.h
 src/helpers/winGopherProcess.o : headers/logger.h headers/protocol.h
 src/helpers/winLogger.o :
 
+docs : doxy tex
+
+tex : relazione.tex
+	pdflatex -output-directory=documentation relazione.tex
+
+doxy : Doxyfile
+	doxygen
 
 .PHONY : clean
 clean :

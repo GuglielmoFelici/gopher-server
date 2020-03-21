@@ -5,22 +5,78 @@
 \tableofcontents
 %newpage
 
+\section{Utilizzo del software}
+
 \section{Struttura del progetto}
 
-Il progetto è strutturato con un approccio modulare. 
-Seppure interconnessi tra loro, ogni modulo modella uno specifico compito all'interno dell'applicazione:
+Il progetto è strutturato con un approccio modulare gerarchico. 
+Ogni modulo esegue uno specifico compito all'interno dell'applicazione, servendosi delle funzionalità
+dei livelli inferiori ed esponendo funzionalità ai livelli superiori.
+A livello implementativo, a ogni modulo corrisponde uno o più header e uno o più file sorgente.
+I quattro moduli sono:
 \begin{itemize}
     \item Server - Riceve le richieste di connessione dei client e crea nuovi thread 
     o processi per inviare le risposte. Si occupa inoltre della lettura dei file di configurazione e 
     della gestione dei segnali.
+    \item Protocollo - Legge la richieste di un client e costruisce la risposta secondo lo standard del
+    protocollo Gopher. In questo modulo avviene la lettura del file system e l'eventuale mapping 
+    in memoria dei file.
     \item Logger - Gestisce il processo di logging, che ha il compito di registrare le operazioni di invio
     di file.
-    \item Protocol - Legge le richieste dei client e costruisce la risposta secondo lo standard del
-    protocollo Gopher.
+    \item Portabilità - API minimale che offre diverse funzioni di supporto portabili. Espone wrapper
+    di varie chiamate di sistema e altre operazioni comuni non portabili, nonché wrapper di tipi di dato.
 \end{itemize} 
+Di seguito vengono esaminati in astratto i moduli nel dettaglio.
 
-%subsections dei moduli
+\subsection{Server}
+Il modulo Server si occupa di leggere il file di configurazione, di inizializzare la Winsock DLL 
+(caso Windows), di amministrare le connessioni tramite socket e di gestire i 
+segnali per l'interazione con l'utente.
+Quando riceve una richiesta di connessione, il modulo si occupa di generare un nuovo thread o un nuovo processo
+e passare il socket connesso al modulo Protocollo.
+Il modulo Server espone un'interfaccia composta da una struttura dati (server\_t) e le 
+varie funzioni per inizializzare il socket, leggere le configurazioni, installare i 
+gestori di segnali di default e mettere in ascolto il server.  
+Il modulo Server è implementato dall'header server.h e dal file server.c, e 
+dal file winGopherProcess.c nel caso di Windows.
+
+\subsection{Protocollo}
+Il modulo Protocollo riceve in input un socket connesso.
+Esso si occupa di leggere, validare, interpretare e soddisfare la richiesta del client.
+Nel caso in cui venga inviato un file, il modulo Protocollo richiede al modulo Logger di registrare 
+l'avvenuto trasferimento.
+E' implementato dall'header protocol.h e dal sorgente protocol.c.
+
+\subsection{Logger}
+Il modulo Logger si interfaccia con i moduli superiori attraverso una struttura dati (logger\_t) che
+contiene le informazioni sul processo di logging, e le funzioni per avviare o interrompere il processo
+e loggare un trasferimento.
+E' implementato dall'header logger.h e dal file logger.c, nonché dal file winLogger.c nel caso di Windows. 
+
+
+\subsection{Portabilità}
+Il modulo portabilità offre numerose funzionalità implementate in modo portabile per essere riutilizzate
+dai moduli che lo richiedano. Le funzioni si articolano in:
+\begin{itemize}
+    \item utilità generiche (operazioni sulla working directory, logging...)
+    \item operazioni sui socket
+    \item operazioni su thread e processi
+    \item operazioni sul file system
+    \item wrapper per tipi di dato
+    \item messaggi di log e debug uniformi
+    \item parsing di opzioni da riga di comando.
+\end{itemize}
+Il modulo Portabilità è implementato dagli header platform.h, datatypes.h, log.h e wingetopt.h, e dai 
+sorgenti platform.c e wingetopt.c \\( http://note.sonots.com/Comp/CompLang/cpp/getopt.html ). 
+\newpage
+
 
 \section{Scelte implementative}
+
+Per quanto il progetto sia stato impostato con una struttura modulare per trarre tutti i vantaggi che 
+questo comporta in fase di sviluppo, le sue componenti sono comunque interconnesse e progettate per coesistere 
+in un'unica applicazione. Da qui la scelta di creare il file header "globals.h", che contiene
+costanti di configurazione comuni a tutti moduli e path relativi che assumono la struttura 
+di file e directory.
 
 \end{document}

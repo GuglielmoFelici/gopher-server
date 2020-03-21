@@ -17,6 +17,16 @@
 static sig_atomic volatile updateConfig = false;
 static sig_atomic volatile requestShutdown = false;
 
+/** A struct defining the arguments required by the children threads to serve the client*/
+typedef struct {
+    /** The socket of the client */
+    socket_t sock;
+    /** The port of the server where the request is being served */
+    int port;
+    /** A pointer to a logger_t representing a logger process */
+    const logger_t* pLogger;
+} server_thread_args_t;
+
 /** Atomically checks if a config update or a shutdown has been requested.
  * @param which Can be CHECK_CONFIG or CHECK_SHUTDOWN, depending on the check to perform.
  * @return true if the specified request has been issued 
@@ -189,7 +199,6 @@ static CRITICAL_SECTION criticalSection;
 int initWsa() {
     WSADATA wsaData;
     WORD versionWanted = MAKEWORD(1, 1);
-    InitializeCriticalSection(&criticalSection);
     return WSAStartup(versionWanted, &wsaData) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
@@ -211,6 +220,7 @@ static BOOL WINAPI ctrlHandler(DWORD signum) {
 }
 
 int installDefaultSigHandlers() {
+    InitializeCriticalSection(&criticalSection);
     return SetConsoleCtrlHandler(ctrlHandler, TRUE) ? SERVER_SUCCESS : SERVER_FAILURE;
 }
 
@@ -244,7 +254,7 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
     args->port = port;
     args->pLogger = pLogger;
     ReleaseMutex(*(pLogger->pLogMutex));
-    if (NULL == (thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL))) {
+    if (NULL == (thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL))) {  // TODO startThread?
         free(args);
         return SERVER_FAILURE;
     }
@@ -316,7 +326,7 @@ ON_ERROR:
 #include <sys/types.h>
 #include <unistd.h>
 
-int initWsa(server_t* pServer) {
+int initWsa() {
     return SERVER_SUCCESS;
 }
 

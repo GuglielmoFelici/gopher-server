@@ -11,6 +11,14 @@
 
 #define MAX_LINE 70
 
+typedef struct {
+    void* src;
+    int size;
+    socket_t dest;
+    char name[MAX_NAME];
+    const logger_t* pLogger;
+} send_args_t;
+
 /** @return The character identifying the type of the file, X if the type is unknown or an error occurs. */
 static char gopherType(const char* file);
 
