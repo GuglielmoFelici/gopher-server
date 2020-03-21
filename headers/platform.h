@@ -21,6 +21,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+
 #include "datatypes.h"
 
 #define PLATFORM_SUCCESS 0x0001
@@ -76,9 +77,9 @@ int fileAttributes(cstring_t path);
 */
 int getFileSize(cstring_t path);
 
-/** Reads the next files of a directory and copies its relative path in name.
+/** Reads the next file of a directory and copies its relative path in name.
  *  If dir is NULL, opens the directory path and initializes dir for further calls.
- *  If dir is non-NULL, path is ignored (thus can be NULL), and the scan continues from the previouse iterateDir() call.
+ *  If dir is non-NULL, path is ignored (thus can be NULL), and the scan continues from the previouse iterateDir(dir) call.
  *  NOTE: dir must be closed using closeDir() when done.
  *  @param path The path to a directory to open. Ignored if dir is non-NULL.
  *  @param dir An object representing a directory. Used after the first call to iterateDir() for subsequent calls.
