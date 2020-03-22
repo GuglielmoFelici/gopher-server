@@ -9,8 +9,6 @@
 #include "../headers/logger.h"
 #include "../headers/platform.h"
 
-#define MAX_LINE 70
-
 typedef struct {
     void* src;
     int size;
@@ -233,7 +231,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         memcpy(selector + selectorSize - 1, buf, bytesRec);
         selectorSize += bytesRec;
         selector[selectorSize - 1] = '\0';
-    } while (bytesRec > 0 && !strstr(selector, CRLF));  // TODO
+    } while (bytesRec > 0 && !strstr(selector, CRLF));
     logMessage(selector, LOG_INFO);
     if (!validateInput(selector)) {
         sendErrorResponse(sock, INVALID_SELECTOR);

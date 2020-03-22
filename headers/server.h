@@ -58,7 +58,7 @@ int installDefaultSigHandlers();
 int initWsa();
 
 /** Sets the default options. 
- * @param pServer The server_t struct where the options will be stored.
+ * @param pServer A pointer to the server_t struct where the options will be stored.
  * @param which A flag stating the option to default. Can be READ_PORT, READ_MULTIPROCESS or both or-ed.
 */
 void defaultConfig(server_t* pServer, int which);

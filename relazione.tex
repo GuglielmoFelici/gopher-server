@@ -61,7 +61,7 @@ Il modulo Server si occupa di leggere il file di configurazione, di inizializzar
 segnali per l'interazione con l'utente.
 Quando riceve una richiesta di connessione, il modulo si occupa di generare un nuovo thread o un nuovo processo
 e passare il socket connesso al modulo Protocollo.
-Il modulo Server espone un'interfaccia composta da una struttura dati (server\_t) e le 
+Il modulo Server espone un'interfaccia composta da una struttura dati (server\_t) e
 varie funzioni per inizializzare il socket, leggere le configurazioni, installare i 
 gestori di segnali di default e mettere in ascolto il server.  
 
@@ -70,7 +70,6 @@ Il modulo Protocollo riceve in input un socket connesso.
 Esso si occupa di leggere, validare, interpretare e soddisfare la richiesta del client.
 Nel caso in cui venga inviato un file, il modulo Protocollo richiede al modulo Logger di registrare 
 l'avvenuto trasferimento.
-E' implementato dall'header protocol.h e dal sorgente protocol.c.
 
 \subsection{Logger}
 Il modulo Logger si interfaccia con i moduli superiori attraverso una struttura dati (logger\_t) che
@@ -107,7 +106,7 @@ Per realizzare l'aspetto modulare ogni file espone, tramite il proprio header, f
 i compiti previsti dal modulo a cui il file fa riferimento (logicamente, poiché non c'è nessuna organizzazione
 che rifletta la suddivisione dei moduli a livello di directory). Le funzioni di ogni modulo
 utilizzano come valore di ritorno delle costanti per indicare il successo o il fallimento dell'operazione (a volte
-messe in OR con altre costanti per fornire ulteriori informazioni sull'esito dell'operazione).
+messe in OR con altre costanti per fornire ulteriori informazioni sull'esito).
 \\Le funzioni esposte utilizzano i tipi definiti in datatypes.h, per astrarre dai tipi specifici utilizzati
 dalla libreria Win32 o dalle funzioni POSIX. La realizzazione interna delle funzioni invece
  utilizza i tipi specifici della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte da Portabilità,
@@ -136,9 +135,55 @@ typedef struct {
     bool multiProcess;
 } server_t;
 \end{lstlisting}
-La maggior parte delle funzioni dichiarate dall'header richiede un puntatore a una struttura server\_t in input,
-dalla quale leggere o sulla quale scrivere informazioni.
+La maggior parte delle funzioni dichiarate dall'header richiede in input
+un puntatore a una struttura server\_t, dalla quale leggere o sulla quale scrivere informazioni.
 
-\subsection{Lettura della configurazione}
+\subsubsection{Lettura della configurazione}
+
+La lettura dei file di configurazione avviene tramite la funzione \href{html/server_8c.html#a2e07cc3959eab913ab4c894bc6c8395d}
+{readConfig}, che legge (usando le funzioni della libreria standard) il file identificato 
+dal path \href{html/globals_8h_source.html}{CONFIG\_FILE} e scrive le configurazioni nella struttura server\_t ricevuta in input.
+Il file è una sequenze di righe del tipo CHIAVE=VALORE.
+La funzione readConfig() viene chiamata nel main all'avvio dell'applicazione, e ogniqualvolta
+venga ricevuto il segnale SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a}
+{main loop} del server.\\
+I gestori dei segnali utilizzano le variabili booleane globali
+\begin{lstlisting}
+    static sig_atomic volatile updateConfig = false;
+    static sig_atomic volatile requestShutdown = false;
+\end{lstlisting}
+che vengono lette periodicamente nel loop del server. L'accesso a queste variabili è protetto da una 
+CRITICAL\_SECTION nel caso Windows e dall'uso del tipo sig\_atomic\_t (wrappato in sig\_atomic per comodità)
+nel caso Linux, che assicura l'accesso atomico alla variabile anche in presenza di interrupt asincroni.
+Nel caso in cui la lettura delle configurazioni fallisse, la funzione \href{html/server_8h.html#a2cda6ac8456a82040d05596906d66acc}{defaultConfig}
+legge le impostazioni di default, salvate in globals.h.
+
+\subsubsection{Preparazione del socket}
+
+La funzione \href{html/server_8h.html#a4c40ae864a752c34a4f237a9445db202}{prepareSocket} si occupa
+di inizializzare un socket e metterlo in stato di listening.\\
+Quando è richiesto un cambio nel numero di porta, la funzione viene chiamata con il flag SERVER\_UPDATE,
+che chiude il socket su cui era in ascolto in server e ne inizializza uno nuovo.
+
+\subsubsection{Avvio del server}
+
+Il server viene avviato con la funzione \href{html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a}{runServer},
+che prende in input un puntatore a una struttura server\_t inizializzata con le funzioni precedenti.
+La funzione attende con una select una richiesta di connessione, controllando periodicamente la ricezione
+di segnali. Questa scelta è motivata dal fatto che i segnali da console di Windows non interrompono la select.
+Quando il server riceve una richiesta di connessione, genera un nuovo thread o processo a seconda della (modalità
+utilizzata), il quale esegue il protocollo tramite la funzione \href{html/protocol_8h.html#a733e68cc8d5f947c30d0ca51e1b76d9b}{gopher}.
+Quando il server riceve un segnale SIGINT, la funzione runServer ritorna SERVER\_SUCCESS. Il modulo Server
+non si occupa di liberare le risorse.
+
+\section{Protocollo}
+Il modulo Protocollo è implementato dall'header protocol.h e dal file protocol.c.
+L'header espone all'esterno, oltre a diverse costanti, una singola funzione \href{html/protocol_8h.html#a733e68cc8d5f947c30d0ca51e1b76d9b}{gopher}.
+La funzione legge l'input dal socket ricevuto fin quando non legge un CRLF, come da protocollo.
+Se la connessione viene chiusa o si verifica un errore, la funzione ritorna GOPHER\_FAILURE.
+L'input letto viene poi validato (poiché il selettore viene utilizzato per recuperare la risorsa
+richiesta, non può contenere costrutti per la navigazione di directory, quali ./ ../ etc) e normalizzato
+(il selettore deve contenere solo forward slash e non backslash, e non può terminare con uno o più slash).
+
 
 \end{document}
