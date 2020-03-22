@@ -142,48 +142,59 @@ un puntatore a una struttura server\_t, dalla quale leggere o sulla quale scrive
 
 La lettura dei file di configurazione avviene tramite la funzione \href{html/server_8c.html#a2e07cc3959eab913ab4c894bc6c8395d}
 {readConfig}, che legge (usando le funzioni della libreria standard) il file identificato 
-dal path \href{html/globals_8h_source.html}{CONFIG\_FILE} e scrive le configurazioni nella struttura server\_t ricevuta in input.
+dal path \href{}{CONFIG\_FILE} e scrive le configurazioni nella struttura server\_t ricevuta in input.
 Il file è una sequenze di righe del tipo CHIAVE=VALORE.
-La funzione readConfig() viene chiamata nel main all'avvio dell'applicazione, e ogniqualvolta
-venga ricevuto il segnale SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a}
+La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
+SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a}
 {main loop} del server.\\
 I gestori dei segnali utilizzano le variabili booleane globali
 \begin{lstlisting}
     static sig_atomic volatile updateConfig = false;
     static sig_atomic volatile requestShutdown = false;
 \end{lstlisting}
-che vengono lette periodicamente nel loop del server. L'accesso a queste variabili è protetto da una 
-CRITICAL\_SECTION nel caso Windows e dall'uso del tipo sig\_atomic\_t (wrappato in sig\_atomic per comodità)
-nel caso Linux, che assicura l'accesso atomico alla variabile anche in presenza di interrupt asincroni.
-Nel caso in cui la lettura delle configurazioni fallisse, la funzione \href{html/server_8h.html#a2cda6ac8456a82040d05596906d66acc}{defaultConfig}
-legge le impostazioni di default, salvate in globals.h.
-
-\subsubsection{Preparazione del socket}
-
-La funzione \href{html/server_8h.html#a4c40ae864a752c34a4f237a9445db202}{prepareSocket} si occupa
-di inizializzare un socket e metterlo in stato di listening.\\
-Quando è richiesto un cambio nel numero di porta, la funzione viene chiamata con il flag SERVER\_UPDATE,
-che chiude il socket su cui era in ascolto in server e ne inizializza uno nuovo.
+che vengono lette periodicamente fintanto che il server è in ascolto. L'accesso a queste variabili è 
+protetto da una CRITICAL\_SECTION nel caso Windows e dall'uso del tipo sig\_atomic\_t (wrappato in sig\_atomic per comodità)
+nel caso Linux, che assicura l'accesso atomico alle variabili anche in presenza di interrupt asincroni.
+Nel caso in cui la lettura delle configurazioni fallisse vengono utilizzate le 
+impostazioni di default, salvate in globals.h.
 
 \subsubsection{Avvio del server}
 
-Il server viene avviato con la funzione \href{html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a}{runServer},
+Il server viene avviato con la funzione \href{}{runServer},
 che prende in input un puntatore a una struttura server\_t inizializzata con le funzioni precedenti.
 La funzione attende con una select una richiesta di connessione, controllando periodicamente la ricezione
-di segnali. Questa scelta è motivata dal fatto che i segnali da console di Windows non interrompono la select.
-Quando il server riceve una richiesta di connessione, genera un nuovo thread o processo a seconda della (modalità
-utilizzata), il quale esegue il protocollo tramite la funzione \href{html/protocol_8h.html#a733e68cc8d5f947c30d0ca51e1b76d9b}{gopher}.
-Quando il server riceve un segnale SIGINT, la funzione runServer ritorna SERVER\_SUCCESS. Il modulo Server
-non si occupa di liberare le risorse.
+di segnali. Questa scelta è motivata dal fatto che gli eventi da console di Windows non interrompono la select.
+Quando il server riceve una richiesta di connessione, genera un nuovo thread o processo (a seconda della modalità
+utilizzata), il quale passa il controllo al protocollo tramite la funzione \href{}
+{gopher}. Siccome il modulo Protocollo si assume la responsabilità di avviare un nuovo thread se richiesto
+l'invio di un file, il thread principale di un processo che invoca la funzione gopher non dovrebbe terminare
+(se non tramite le funzioni pthread\_exit o ExitThread). Quando il server riceve una richiesta di terminazione, 
+la funzione runServer termina con successo. Il modulo Server non si occupa di liberare le risorse.
 
-\section{Protocollo}
+\subsection{Protocollo}
+
 Il modulo Protocollo è implementato dall'header protocol.h e dal file protocol.c.
-L'header espone all'esterno, oltre a diverse costanti, una singola funzione \href{html/protocol_8h.html#a733e68cc8d5f947c30d0ca51e1b76d9b}{gopher}.
-La funzione legge l'input dal socket ricevuto fin quando non legge un CRLF, come da protocollo.
-Se la connessione viene chiusa o si verifica un errore, la funzione ritorna GOPHER\_FAILURE.
-L'input letto viene poi validato (poiché il selettore viene utilizzato per recuperare la risorsa
-richiesta, non può contenere costrutti per la navigazione di directory, quali ./ ../ etc) e normalizzato
+L'header espone all'esterno, oltre a diverse costanti, una singola funzione \href{}{gopher}.
+Il modulo Protocollo si occupa di chiudere il socket del client sia in caso di fallimento che in caso di errore.
+La funzione riceve l'input dal socket ricevuto fin quando non legge un CRLF, come da protocollo.
+Se la connessione viene chiusa o si verifica un errore, la funzione fallisce.
+L'input letto viene validato (poiché il selettore viene utilizzato per recuperare la risorsa
+richiesta, non può contenere costrutti per la navigazione del file system, quali ./ ../ etc) e normalizzato
 (il selettore deve contenere solo forward slash e non backslash, e non può terminare con uno o più slash).
 
+\subsubsection{Costruzione della risposta}
+La lista di file disponibili, se richiesta una directory, viene costruita utilizzando la funzione \href{}
+{iterateDir}, la quale funge da interfaccia per le primitive specifiche delle piattaforme Linux e Windows,
+operando in modo analogo.\\
+Il carattere prefisso a ogni riga della risposta, che rappresenta il tipo del file, viene calcolato
+cercando determinate parole chiave nell'output del comando "file" nel caso Linux, e leggendo invece
+l'estensione nel caso Windows. Le estensioni riconosciute sono memorizzate nell'array \href{}{extensions}\\
+Se viene richiesto un file, questo viene mappato in memoria utilizzando la funzione di 
+Portabilità \href{}{getFileMap}, che wrappa le rispettive funzioni
+mmap di Linux e CreateFileMapping/MapViewOfFile di Windows. Viene poi creato un nuovo thread, che si occupa di
+inviare il file mappato in memoria al client, di chiudere la connessione e di costruire una stringa da passare al
+modulo Logger tramite la funzione \href{}{logTransfer}
+
+\subsection{Logger}
 
 \end{document}

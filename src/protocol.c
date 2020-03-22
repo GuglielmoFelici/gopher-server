@@ -252,12 +252,10 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         if (getFileSize(selector) == 0) {
             map.size = 0;
             map.view = "";
-        } else {
-            if (PLATFORM_SUCCESS != getFileMap(selector, &map)) {
-                logMessage(FILE_MAP_ERR, LOG_ERR);
-                sendErrorResponse(sock, SYS_ERR_MSG);
-                goto ON_ERROR;
-            }
+        } else if (PLATFORM_SUCCESS != getFileMap(selector, &map)) {
+            logMessage(FILE_MAP_ERR, LOG_ERR);
+            sendErrorResponse(sock, SYS_ERR_MSG);
+            goto ON_ERROR;
         }
         if (GOPHER_SUCCESS != sendFile(selector, &map, sock, pLogger)) {
             logMessage(FILE_SEND_ERR, LOG_ERR);
