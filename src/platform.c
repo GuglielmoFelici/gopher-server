@@ -318,7 +318,7 @@ int daemonize() {
             if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
                 return PLATFORM_FAILURE;
             }
-            return close(devNull) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+            return close(devNull) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
         }
     }
 }

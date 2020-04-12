@@ -31,7 +31,7 @@ typedef struct {
     socket_t sock;
     /** The socket address */
     struct sockaddr_in sockAddr;
-    /** The port where the server is listening */
+    /** The port the server is listening */
     unsigned short port;
     /** A flag stating whether the server should spawn a process or a thread per request */
     bool multiProcess;

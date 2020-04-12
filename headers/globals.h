@@ -6,6 +6,7 @@
 #define GLOBALS_H
 
 #include <stdbool.h>
+
 #include "../headers/datatypes.h"
 
 #if defined(_WIN32)
@@ -30,6 +31,7 @@
 /** Turn off with option -s (silent) to disable server logging. */
 extern bool enableLogging;
 
+/** The path to the installation directory */
 extern char installDir[MAX_NAME];
 
 #endif

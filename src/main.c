@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "../headers/globals.h"
 #include "../headers/log.h"
 #include "../headers/logger.h"
@@ -86,10 +87,6 @@ int main(int argc, string_t* argv) {
     }
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
         logMessage(MAIN_SOCKET_ERR, LOG_ERR);
-        goto ON_ERROR;
-    }
-    if (SERVER_SUCCESS != installDefaultSigHandlers()) {
-        logMessage(MAIN_CTRL_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     // Avvio

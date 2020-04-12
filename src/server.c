@@ -140,6 +140,10 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     if (!pServer) {
         return SERVER_FAILURE;
     }
+    if (SERVER_SUCCESS != installDefaultSigHandlers()) {
+        logMessage(HANDLERS_ERR, LOG_ERR);
+        return SERVER_FAILURE;
+    }
     struct timeval dfltTimeval = {1, 0};
     struct timeval timeOut;
     fd_set incomingConnections;

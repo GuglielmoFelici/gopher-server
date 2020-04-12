@@ -50,7 +50,7 @@ I quattro moduli sono:
     in memoria dei file.
     \item Logger - Gestisce il processo di logging, che ha il compito di registrare le operazioni di invio
     di file.
-    \item Portabilità - API minimale che offre diverse funzioni di supporto portabili. Espone wrapper
+    \item Compatibilità - API minimale che offre diverse funzioni di supporto portabili. Espone wrapper
     di varie chiamate di sistema e altre operazioni comuni non portabili, nonché wrapper di tipi di dato.
 \end{itemize} 
 Di seguito vengono esaminati in astratto i moduli nel dettaglio.
@@ -78,8 +78,8 @@ e loggare un trasferimento.
 E' implementato dall'header logger.h e dal file logger.c, nonché dal file winLogger.c nel caso di Windows. 
 
 
-\subsection{Portabilità}
-Il modulo portabilità offre numerose funzionalità implementate in modo portabile per essere riutilizzate
+\subsection{Compatibilità}
+Il modulo di Compatibilità offre numerose funzionalità implementate in modo portabile per essere riutilizzate
 dai moduli che lo richiedano. Le funzioni si articolano in:
 \begin{itemize}
     \item utilità generiche (operazioni sulla working directory, logging...)
@@ -90,7 +90,7 @@ dai moduli che lo richiedano. Le funzioni si articolano in:
     \item messaggi di log e debug uniformi
     \item parsing di opzioni da riga di comando.
 \end{itemize}
-Il modulo Portabilità è implementato dagli header platform.h, datatypes.h, log.h e wingetopt.h, e dai 
+Il modulo di Compatibilità è implementato dagli header platform.h, datatypes.h, log.h e wingetopt.h, e dai 
 sorgenti platform.c e \href{http://note.sonots.com/Comp/CompLang/cpp/getopt.html}{wingetopt.c}. 
 \newpage
 
@@ -102,22 +102,22 @@ separation of concerns in fase di sviluppo, le sue componenti sono comunque inte
 in un'unica applicazione. Da qui la scelta di utilizzare configurazioni globali 
 e usare path relativi che assumono la struttura di file e directory.\\
 
-Per realizzare l'aspetto modulare ogni file espone, tramite il proprio header, funzioni utili a espletare
+Ogni file espone, tramite il proprio header, funzioni utili a espletare
 i compiti previsti dal modulo logico a cui il file fa riferimento. Le funzioni di ogni modulo
 utilizzano come valore di ritorno delle costanti per indicare il successo o il fallimento dell'operazione (a volte
 messe in OR con altre costanti per fornire ulteriori informazioni sull'esito).
 \\Le funzioni esposte utilizzano i tipi definiti in datatypes.h, per astrarre dai tipi specifici utilizzati
-dalla libreria Win32 o dalle funzioni POSIX. La realizzazione interna delle funzioni invece
- utilizza i tipi specifici della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte da Portabilità,
- di un'implementazione ad hoc per Windows e una per GNU/Linux, demandando la scelta dell'implementazione
+dalla libreria Win32 o dalle funzioni POSIX. L'implementazione interna delle funzioni invece
+ utilizza i tipi specifici della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte dal 
+modulo di Compatibilità, di un'implementazione ad hoc per Windows e una per GNU/Linux, demandando la scelta dell'implementazione
 da utilizzare al preprocessore.
-Una documentazione approfondita su ogni file, funzione e struttura, generata con Doxygen a partire dalla 
+Una documentazione rigorosa su ogni file, funzione e struttura, generata con Doxygen a partire dalla 
 documentazione sul codice sorgente, è disponibile \href{html/index.html}{qui}. 
 
 \subsection{Server}
 Il modulo Server è implementato dall'header server.h, dal file server.c e dal file winGopherProcess.c 
 nel caso in cui si compili su Windows.\\
-L'header dichiara la struttura server\_t, utilizzata come interfaccia per il modulo:
+L'header dichiara la struttura server\_t, utilizzata come interfaccia:
 \begin{lstlisting}
 /** A struct representing an instance of a gopher server */
 typedef struct {
@@ -125,7 +125,7 @@ typedef struct {
     socket_t sock;
     /** The socket address */
     struct sockaddr_in sockAddr;
-    /** The port where the server is listening */
+    /** The port the server is listening on */
     unsigned short port;
     /** A flag indicating whether the server should spawn a process or a thread per request */
     bool multiProcess;
@@ -145,13 +145,13 @@ SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{}
 {main loop} del server.\\
 I gestori dei segnali utilizzano le variabili booleane globali
 \begin{lstlisting}
-    static sig_atomic volatile updateConfig = false;
-    static sig_atomic volatile requestShutdown = false;
+    static sig_atomic volatile updateConfig;
+    static sig_atomic volatile requestShutdown;
 \end{lstlisting}
 che vengono lette periodicamente fintanto che il server è in ascolto. L'accesso a queste variabili è 
 protetto da una CRITICAL\_SECTION nel caso Windows e dall'uso del tipo sig\_atomic\_t (wrappato in sig\_atomic per comodità)
 nel caso Linux, che assicura l'accesso atomico alle variabili anche in presenza di interrupt asincroni.
-Nel caso in cui la lettura delle configurazioni fallisse vengono utilizzate le 
+Nel caso in cui la lettura delle configurazioni dovesse fallire vengono utilizzate le 
 impostazioni di default, salvate in globals.h.
 
 \subsubsection{Avvio del server}
@@ -162,7 +162,7 @@ La funzione attende con una select una richiesta di connessione, controllando pe
 di segnali. Questa scelta è motivata dal fatto che gli eventi da console di Windows non interrompono la select.
 Quando il server riceve una richiesta di connessione, genera un nuovo thread o processo (a seconda della modalità
 utilizzata), il quale passa il controllo al protocollo tramite la funzione \href{}
-{gopher}. Siccome il modulo Protocollo si assume la responsabilità di avviare un nuovo thread se richiesto
+{gopher}. Siccome protocollo si assume la responsabilità di avviare un nuovo thread se richiesto
 l'invio di un file, il thread principale di un processo che invoca la funzione gopher non termina,
 se non tramite le funzioni pthread\_exit o ExitThread. Quando il server riceve una richiesta di terminazione, 
 la funzione runServer ritorna con successo. Il modulo Server non si occupa di liberare le risorse.
@@ -171,8 +171,8 @@ la funzione runServer ritorna con successo. Il modulo Server non si occupa di li
 
 Il modulo Protocollo è implementato dall'header protocol.h e dal file protocol.c.
 L'header espone all'esterno, oltre a diverse costanti, una singola funzione \href{}{gopher}.
-Il modulo Protocollo si occupa di chiudere il socket del client sia in caso di fallimento che in caso di errore.
-La funzione riceve l'input dal socket ricevuto fin quando non legge un CRLF, come da protocollo.
+Il protocollo si occupa di chiudere il socket del client sia in caso di fallimento che in caso di errore.
+La funzione riceve l'input dal socket ricevuto fin quando non legge un CRLF.
 Se la connessione viene chiusa o si verifica un errore, la funzione fallisce.
 L'input letto viene validato (poiché il selettore viene utilizzato per recuperare la risorsa
 richiesta, non può contenere costrutti per la navigazione del file system, quali ./ ../ etc) e normalizzato,
@@ -183,18 +183,18 @@ La lista di file disponibili, se richiesta una directory, viene costruita utiliz
 {iterateDir}, la quale funge da interfaccia per le primitive specifiche delle piattaforme Linux e Windows,
 operando in modo analogo.\\
 Il carattere prefisso a ogni riga della risposta, che rappresenta il tipo del file, viene calcolato
-cercando determinate parole chiave nell'output del comando "file" nel caso Linux, e leggendo invece
+cercando determinate parole chiave nell'output del comando "file" nel caso Linux e leggendo invece
 l'estensione nel caso Windows. Le estensioni riconosciute sono memorizzate nell'array \href{}{extensions}.\\
 Se viene richiesto un file, questo viene mappato in memoria utilizzando la funzione di 
-Portabilità \href{}{getFileMap}, che wrappa le rispettive funzioni
+compatibilità \href{}{getFileMap}, che wrappa le rispettive funzioni
 mmap di Linux e CreateFileMapping/MapViewOfFile di Windows. Viene poi creato un nuovo thread, che si occupa di
 inviare il file mappato in memoria al client, di chiudere la connessione e di costruire una stringa da passare al
-modulo Logger tramite la funzione \href{}{logTransfer}
+logger tramite la funzione \href{}{logTransfer}.
 
 \subsection{Logger}
 Il modulo Logger è implementato dall'header logger.h, dal file logger.c e in aggiunta dal file winLogger.c,
 utilizzato nel caso in cui si compili su Windows per generare l'eseguibile con il quale avviare il processo.\\
-L'header dichiara la struttura logger\_t, utilizzata come interfaccia per il modulo:
+L'header dichiara la struttura logger\_t, utilizzata come interfaccia:
 \begin{lstlisting}
     /**
     * A struct representing an instance of a transfer logger
@@ -230,13 +230,20 @@ al processo.
 \subsubsection{Windows}
 Il logger di Windows funziona in modo analogo al caso Linux, fatta eccezione per alcune differenze,
 (principalmente dovute all'assenza della fork, che consentiva al processo di ereditare i puntatori alle
-aree di memoria condivise.
+aree di memoria condivise).
 Il mutex e l'evento (che sostituisce la condition variable di Linux) vengono creati con nome, per
 potervi poi accedere con facilità dal processo di logging. L'estremo in lettura della pipe viene 
 impostato come standard input del processo creato. Il loop principale è demandato a un eseguibile
 generato a partire dal file winLogger.c, che opera in modo analogo alla funzione di Linux.\\
-Anche in questo caso la funzione di interruzione libera le risorse e termina il processo di logging,
-tramite la funzione TerminateProcess.
+Anche in questo caso la funzione di interruzione libera le risorse e termina il processo di logging
+mediante la funzione TerminateProcess.
+
+\subsection{Main}
+Le componenti sopra descritte vengono combinate in maniera intuitiva nel main.
+Vengono creati i due oggetti server_t e logger_t per gestire rispettivamente server e logger.
+Dopo aver letto e settato opportunamente le configurazioni nella struttura server_t, viene eseguita la 
+procedura per rendere il processo demone (nel caso Linux). Dopodiché vengono avviati, tramite le apposite 
+funzioni, il processo di logging e il server.
 
 
 \end{document}
