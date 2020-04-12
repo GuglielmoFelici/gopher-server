@@ -165,7 +165,7 @@ utilizzata), il quale passa il controllo al protocollo tramite la funzione \href
 {gopher}. Siccome il modulo Protocollo si assume la responsabilità di avviare un nuovo thread se richiesto
 l'invio di un file, il thread principale di un processo che invoca la funzione gopher non termina,
 se non tramite le funzioni pthread\_exit o ExitThread. Quando il server riceve una richiesta di terminazione, 
-la funzione runServer termina con successo. Il modulo Server non si occupa di liberare le risorse.
+la funzione runServer ritorna con successo. Il modulo Server non si occupa di liberare le risorse.
 
 \subsection{Protocollo}
 
@@ -192,8 +192,8 @@ inviare il file mappato in memoria al client, di chiudere la connessione e di co
 modulo Logger tramite la funzione \href{}{logTransfer}
 
 \subsection{Logger}
-Il modulo Logger è implementato dall'header logger.h, dal file logger.c e in aggiunta dal file winLogger.c 
-nel caso in cui si compili su Windows.\\
+Il modulo Logger è implementato dall'header logger.h, dal file logger.c e in aggiunta dal file winLogger.c,
+utilizzato nel caso in cui si compili su Windows per generare l'eseguibile con il quale avviare il processo.\\
 L'header dichiara la struttura logger\_t, utilizzata come interfaccia per il modulo:
 \begin{lstlisting}
     /**
@@ -213,11 +213,30 @@ L'header dichiara la struttura logger\_t, utilizzata come interfaccia per il mod
    } logger_t;
 \end{lstlisting}
 Come nel caso del server, le funzioni comunicano con i rispettivi chiamanti tramite puntatori a 
-strutture logger_t.
+strutture logger\_t.
 L'header espone tre funzioni: per avviare il logger, per interromperlo e per loggare una stringa.
 A causa delle differenze tra Windows e Linux circa l'IPC, le due implementazioni sono completamente distinte.
-\subsubsection{Windows}
 
+\subsubsection{Linux}
+Nel caso Linux, la funzione di avvio startTransferLog inizializza una pipe, un mutex e una condition variable
+in uno spazio di memoria condiviso e ne scrive i riferimenti nella struttura logger\_t ricevuta in input.
+Dopodiché viene effettuata una fork per avviare il processo che esegua il loop principale.
+Il loop principale apre il file di logging e attende sulla condition variable del logger ricevuto in input.
+Quando riceve una richiesta di logging (notificata sulla condition variable) acquisisce un lock
+esclusivo sul file di logging tramite fcntl e scrive la stringa sul file.
+La funzione per interrompere il logger si occupa di liberare tutte le risorse e di inviare SIGINT
+al processo.
+
+\subsubsection{Windows}
+Il logger di Windows funziona in modo analogo al caso Linux, fatta eccezione per alcune differenze,
+(principalmente dovute all'assenza della fork, che consentiva al processo di ereditare i puntatori alle
+aree di memoria condivise.
+Il mutex e l'evento (che sostituisce la condition variable di Linux) vengono creati con nome, per
+potervi poi accedere con facilità dal processo di logging. L'estremo in lettura della pipe viene 
+impostato come standard input del processo creato. Il loop principale è demandato a un eseguibile
+generato a partire dal file winLogger.c, che opera in modo analogo alla funzione di Linux.\\
+Anche in questo caso la funzione di interruzione libera le risorse e termina il processo di logging,
+tramite la funzione TerminateProcess.
 
 
 \end{document}

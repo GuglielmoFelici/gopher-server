@@ -1,6 +1,8 @@
 #include "../headers/logger.h"
+
 #include <stdio.h>
 #include <string.h>
+
 #include "../headers/globals.h"
 
 /** [Linux] Starts the main logging process loop.
@@ -38,7 +40,6 @@ int startTransferLog(logger_t* pLogger) {
     if (!CreatePipe(&readPipe, &writePipe, &attr, 0)) {
         goto ON_ERROR;
     }
-    pLogger->logPipe = writePipe;
     if (NULL == (pLogMutex = malloc(sizeof(HANDLE)))) {
         goto ON_ERROR;
     }
@@ -46,11 +47,12 @@ int startTransferLog(logger_t* pLogger) {
     if (NULL == *pLogMutex) {
         goto ON_ERROR;
     }
-    pLogger->pLogMutex = pLogMutex;
     HANDLE logEvent = CreateEvent(&attr, FALSE, FALSE, LOGGER_EVENT_NAME);
     if (NULL == logEvent) {
         goto ON_ERROR;
     }
+    pLogger->pLogMutex = pLogMutex;
+    pLogger->logPipe = writePipe;
     pLogger->logEvent = logEvent;
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
@@ -140,6 +142,7 @@ int stopTransferLog(logger_t* pLogger) {
 #include <sys/types.h>
 #include <syslog.h>
 #include <unistd.h>
+
 #include "../headers/log.h"
 #include "../headers/platform.h"
 
@@ -268,8 +271,10 @@ int stopTransferLog(logger_t* pLogger) {
         return LOGGER_FAILURE;
     }
     if (pLogger->pid > 0 && kill(pLogger->pid, 0) == 0) {
-        if (kill(pLogger->pid, SIGINT) != 0) {
+        if (kill(pLogger->pid, SIGINT) == 0) {
             pLogger->pid = -1;
+        } else {
+            return LOGGER_FAILURE;
         }
     }
     if (close(pLogger->logPipe) != 0) {
