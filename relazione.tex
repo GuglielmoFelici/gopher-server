@@ -99,22 +99,18 @@ sorgenti platform.c e \href{http://note.sonots.com/Comp/CompLang/cpp/getopt.html
 
 Per quanto il progetto sia stato impostato con una struttura modulare per trarre tutti i vantaggi della
 separation of concerns in fase di sviluppo, le sue componenti sono comunque interconnesse e progettate per coesistere 
-in un'unica applicazione. Da qui la scelta di rendere globali diverse costanti di configurazione 
-e di usare path relativi che assumono la struttura di file e directory.\\
+in un'unica applicazione. Da qui la scelta di utilizzare configurazioni globali 
+e usare path relativi che assumono la struttura di file e directory.\\
 
 Per realizzare l'aspetto modulare ogni file espone, tramite il proprio header, funzioni utili a espletare
-i compiti previsti dal modulo a cui il file fa riferimento (logicamente, poiché non c'è nessuna organizzazione
-che rifletta la suddivisione dei moduli a livello di directory). Le funzioni di ogni modulo
+i compiti previsti dal modulo logico a cui il file fa riferimento. Le funzioni di ogni modulo
 utilizzano come valore di ritorno delle costanti per indicare il successo o il fallimento dell'operazione (a volte
 messe in OR con altre costanti per fornire ulteriori informazioni sull'esito).
 \\Le funzioni esposte utilizzano i tipi definiti in datatypes.h, per astrarre dai tipi specifici utilizzati
 dalla libreria Win32 o dalle funzioni POSIX. La realizzazione interna delle funzioni invece
  utilizza i tipi specifici della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte da Portabilità,
  di un'implementazione ad hoc per Windows e una per GNU/Linux, demandando la scelta dell'implementazione
-da utilizzare al preprocessore tramite la direttiva 
-\begin{lstlisting} 
-#if defined(_WIN32) 
-\end{lstlisting}
+da utilizzare al preprocessore.
 Una documentazione approfondita su ogni file, funzione e struttura, generata con Doxygen a partire dalla 
 documentazione sul codice sorgente, è disponibile \href{html/index.html}{qui}. 
 
@@ -140,12 +136,12 @@ un puntatore a una struttura server\_t, dalla quale leggere o sulla quale scrive
 
 \subsubsection{Lettura della configurazione}
 
-La lettura dei file di configurazione avviene tramite la funzione \href{html/server_8c.html#a2e07cc3959eab913ab4c894bc6c8395d}
-{readConfig}, che legge (usando le funzioni della libreria standard) il file identificato 
+La lettura dei file di configurazione avviene tramite la funzione \href{}
+{readConfig}, che legge, mediante le funzioni della libreria standard, il file identificato 
 dal path \href{}{CONFIG\_FILE} e scrive le configurazioni nella struttura server\_t ricevuta in input.
 Il file è una sequenze di righe del tipo CHIAVE=VALORE.
 La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
-SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a}
+SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{}
 {main loop} del server.\\
 I gestori dei segnali utilizzano le variabili booleane globali
 \begin{lstlisting}
@@ -167,8 +163,8 @@ di segnali. Questa scelta è motivata dal fatto che gli eventi da console di Win
 Quando il server riceve una richiesta di connessione, genera un nuovo thread o processo (a seconda della modalità
 utilizzata), il quale passa il controllo al protocollo tramite la funzione \href{}
 {gopher}. Siccome il modulo Protocollo si assume la responsabilità di avviare un nuovo thread se richiesto
-l'invio di un file, il thread principale di un processo che invoca la funzione gopher non dovrebbe terminare
-(se non tramite le funzioni pthread\_exit o ExitThread). Quando il server riceve una richiesta di terminazione, 
+l'invio di un file, il thread principale di un processo che invoca la funzione gopher non termina,
+se non tramite le funzioni pthread\_exit o ExitThread. Quando il server riceve una richiesta di terminazione, 
 la funzione runServer termina con successo. Il modulo Server non si occupa di liberare le risorse.
 
 \subsection{Protocollo}
@@ -179,8 +175,8 @@ Il modulo Protocollo si occupa di chiudere il socket del client sia in caso di f
 La funzione riceve l'input dal socket ricevuto fin quando non legge un CRLF, come da protocollo.
 Se la connessione viene chiusa o si verifica un errore, la funzione fallisce.
 L'input letto viene validato (poiché il selettore viene utilizzato per recuperare la risorsa
-richiesta, non può contenere costrutti per la navigazione del file system, quali ./ ../ etc) e normalizzato
-(il selettore deve contenere solo forward slash e non backslash, e non può terminare con uno o più slash).
+richiesta, non può contenere costrutti per la navigazione del file system, quali ./ ../ etc) e normalizzato,
+per consentire una maggiore flessibilità circa le richieste accettate.
 
 \subsubsection{Costruzione della risposta}
 La lista di file disponibili, se richiesta una directory, viene costruita utilizzando la funzione \href{}
@@ -188,7 +184,7 @@ La lista di file disponibili, se richiesta una directory, viene costruita utiliz
 operando in modo analogo.\\
 Il carattere prefisso a ogni riga della risposta, che rappresenta il tipo del file, viene calcolato
 cercando determinate parole chiave nell'output del comando "file" nel caso Linux, e leggendo invece
-l'estensione nel caso Windows. Le estensioni riconosciute sono memorizzate nell'array \href{}{extensions}\\
+l'estensione nel caso Windows. Le estensioni riconosciute sono memorizzate nell'array \href{}{extensions}.\\
 Se viene richiesto un file, questo viene mappato in memoria utilizzando la funzione di 
 Portabilità \href{}{getFileMap}, che wrappa le rispettive funzioni
 mmap di Linux e CreateFileMapping/MapViewOfFile di Windows. Viene poi creato un nuovo thread, che si occupa di
@@ -196,5 +192,32 @@ inviare il file mappato in memoria al client, di chiudere la connessione e di co
 modulo Logger tramite la funzione \href{}{logTransfer}
 
 \subsection{Logger}
+Il modulo Logger è implementato dall'header logger.h, dal file logger.c e in aggiunta dal file winLogger.c 
+nel caso in cui si compili su Windows.\\
+L'header dichiara la struttura logger\_t, utilizzata come interfaccia per il modulo:
+\begin{lstlisting}
+    /**
+    * A struct representing an instance of a transfer logger
+   */
+   typedef struct {
+       /** Pipe to use for read/write */
+       pipe_t logPipe;
+       /** Pointer to the mutex guarding the log pipe */
+       mutex_t* pLogMutex;
+       /** [Linux only] Pointer to the condition variable to notify the logger for incoming data */
+       cond_t* pLogCond;
+       /** [Windows only] Event to notify the logger for incoming data */
+       event_t logEvent;
+       /** The pid of the log process */
+       proc_id_t pid;
+   } logger_t;
+\end{lstlisting}
+Come nel caso del server, le funzioni comunicano con i rispettivi chiamanti tramite puntatori a 
+strutture logger_t.
+L'header espone tre funzioni: per avviare il logger, per interromperlo e per loggare una stringa.
+A causa delle differenze tra Windows e Linux circa l'IPC, le due implementazioni sono completamente distinte.
+\subsubsection{Windows}
+
+
 
 \end{document}
