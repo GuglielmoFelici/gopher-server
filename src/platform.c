@@ -360,9 +360,7 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
         close(fd);
         ret = realpath(relative, absolute);
         if (remove(relative) < 0) {
-            if (ret) {
-                free(ret);
-            }
+            if (ret) free(ret);
             return NULL;
         }
     }

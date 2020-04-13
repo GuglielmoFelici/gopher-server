@@ -29,20 +29,24 @@
 
 \tableofcontents
 
+\vspace{15mm} %5mm vertical space
+Una documentazione rigorosa su ogni file, funzione e struttura, generata con Doxygen a partire dalla 
+documentazione sul codice sorgente, è disponibile \href{html/index.html}{a questo link}. 
+
 \newpage
 
 \section{Utilizzo del software}
 
 E' possibile compilare il progetto con il comando make. La compilazione genera l'eseguibile linuxserver o winserver.exe,
 e due binari aggiuntivi nel caso in cui si buildi su Windows.\\
-Sono disponibili le seguenti opzioni:\\
+Sono disponibili le seguenti opzioni da riga di comando:\\
 \begin{lstlisting}
 -d DIR
     Utilizza la directory DIR come root del server.
 -f FILE 
     Leggi le configurazioni da FILE. 
     Per informazioni sulla struttura del file, vedere la sezione 
-    3.1.1 Lettura della configurazione.
+    1.1 Lettura della configurazione.
 -h
     Mostra la sintassi.
 -l FILE
@@ -61,7 +65,22 @@ Sono disponibili le seguenti opzioni:\\
 \end{lstlisting}
 Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.
 
-\newpage
+\subsection{Lettura della configurazione}
+
+Se viene utilizzato un file di configurazione con l'opzione -f, le impostazioni non specificate
+da riga di comando vengono lette dal file dato in input. Questo deve essere una sequenza di righe del tipo CHIAVE = VALORE, 
+dove sono accettate le seguenti coppie:
+\begin{itemize}
+    \item port = $<$numero di porta$>$
+    \item multiprocess = yes/no
+    \item silent = yes/no
+    \item logfile = $<$path$>$
+    \item root = $<$path$>$
+\end{itemize}
+La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
+SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{}
+{main loop} del server; tuttavia, nel caso in cui si ricarichino le configurazioni mentre il server è in esecuzione,
+non verranno aggiornati il path di logging e la root directory del server.\\
 
 \section{Struttura del progetto}
 
@@ -80,31 +99,27 @@ I quattro moduli sono:
     in memoria dei file.
     \item Logger - Gestisce il processo di logging, che ha il compito di registrare le operazioni di invio
     di file.
-    \item Compatibilità - API minimale che offre diverse funzioni di supporto portabili. Espone wrapper
-    di varie chiamate di sistema e altre operazioni comuni non portabili, nonché wrapper di tipi di dato.
+    \item Compatibilità - API minimale che offre diverse funzioni di supporto portabili. Espone interfacce
+    a varie chiamate di sistema e altre operazioni comuni non portabili, nonché wrapper di tipi di dato.
 \end{itemize} 
 
 Per quanto il progetto sia stato impostato con struttura modulare, le sue componenti sono 
 comunque interconnesse e progettate per coesistere in un'unica applicazione. 
-Per questo motivo, la maggior parte delle configurazioni pertinenti a tutto il programma hanno scope globale.\\
+Per questo motivo, la maggior parte delle configurazioni pertinenti a tutto il programma ha scope globale.\\
+Ogni file espone, tramite il proprio header, funzioni utili a espletare
+i compiti previsti dal modulo logico a cui il file fa riferimento. Le funzioni di ogni modulo
+utilizzano come valore di ritorno delle costanti per indicare il successo o il fallimento dell'operazione (a volte
+messe in OR con altre costanti per fornire ulteriori informazioni sull'esito).
+\\Le dichiarazioni utilizzano i tipi definiti in datatypes.h, per astrarre dai tipi specifici utilizzati
+dalla libreria Win32 o dalle funzioni POSIX. L'implementazione interna delle funzioni invece
+ utilizza i tipi specifici della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte dal 
+modulo di Compatibilità, di un'implementazione ad hoc per Windows e una per GNU/Linux, demandando la scelta dell'implementazione
+da utilizzare al preprocessore.
 
 \newpage
 
 
 \section{Scelte implementative}
-
-
-Ogni file espone, tramite il proprio header, funzioni utili a espletare
-i compiti previsti dal modulo logico a cui il file fa riferimento. Le funzioni di ogni modulo
-utilizzano come valore di ritorno delle costanti per indicare il successo o il fallimento dell'operazione (a volte
-messe in OR con altre costanti per fornire ulteriori informazioni sull'esito).
-\\Le funzioni esposte utilizzano i tipi definiti in datatypes.h, per astrarre dai tipi specifici utilizzati
-dalla libreria Win32 o dalle funzioni POSIX. L'implementazione interna delle funzioni invece
- utilizza i tipi specifici della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte dal 
-modulo di Compatibilità, di un'implementazione ad hoc per Windows e una per GNU/Linux, demandando la scelta dell'implementazione
-da utilizzare al preprocessore.
-Una documentazione rigorosa su ogni file, funzione e struttura, generata con Doxygen a partire dalla 
-documentazione sul codice sorgente, è disponibile \href{html/index.html}{qui}. 
 
 \subsection{Server}
 Il modulo Server è implementato dall'header server.h e dal file server.c.\\
@@ -123,25 +138,10 @@ typedef struct {
 } server_t;
 \end{lstlisting}
 La maggior parte delle funzioni dichiarate dall'header richiede in input
-un puntatore a una struttura server\_t, dalla quale leggere o nella quale scrivere informazioni.
+un puntatore a una struttura server\_t, dalla quale leggere o nella quale scrivere informazioni.\\
 
-\subsubsection{Lettura della configurazione}
 
-Se viene specificato un file di configurazione con l'opzione -f, il parsing delle impostazioni avviene tramite la funzione \href{}
-{readConfig}, che legge il file mediante le funzioni della libreria standard e scrive le configurazioni nella 
-struttura server\_t ricevuta in input. Il file è una sequenze di righe del tipo CHIAVE = VALORE, dove sono accettate le seguenti coppie:
-\begin{itemize}
-    \item port = /numero di porta/
-    \item multiprocess = yes/no
-    \item silent = yes/no
-    \item logfile = /path/
-    \item root = /path/
-\end{itemize}
-La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
-SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{}
-{main loop} del server; tuttavia, nel caso in cui si ricarichino le configurazioni mentre il server è in esecuzione,
-non verranno aggiornati il path di logging e la root directory del server.\\
-I gestori dei segnali utilizzano le variabili booleane globali
+Per fornire l'interazione utente, i gestori dei segnali utilizzano le variabili booleane globali
 \begin{lstlisting}
     static sig_atomic volatile updateConfig;
     static sig_atomic volatile requestShutdown;
@@ -198,6 +198,7 @@ logger tramite la funzione \href{}{logTransfer}.
 Il modulo Logger è implementato dall'header logger.h, dal file logger.c e in aggiunta dal file winLogger.c,
 utilizzato nel caso in cui si compili su Windows per generare l'eseguibile con il quale avviare il processo.\\
 L'header dichiara la struttura logger\_t, utilizzata come interfaccia:
+\newpage
 \begin{lstlisting}
     /**
     * A struct representing an instance of a transfer logger
@@ -255,12 +256,8 @@ dai moduli che lo richiedano. Le funzioni si articolano in:
     \item messaggi di log e debug uniformi
     \item parsing di opzioni da riga di comando.
 \end{itemize}
-Alcune funzioni notevoli sono:
-\begin{itemize}
-    \item \href{}{startThread}
-    \item \href{}{getFileMap}
-    \item \href{}{iterateDir}
-\end{itemize}
+Su queste funzioni non c'è molto da dire, poiché spesso sono in corrispondenza diretta con le corrispettive funzioni
+specifiche della piattaforma, a meno di qualche aggiunta o piccola modifica.
 
 \subsection{Main}
 Le componenti sopra descritte vengono combinate in maniera intuitiva nel main.

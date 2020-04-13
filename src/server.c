@@ -108,9 +108,7 @@ int readConfig(server_t* pServer, int which) {
                 }
                 pServer->port = port;
             } else if (strcmp(key, CONFIG_LOG_KEY) == 0 && (which & READ_LOG)) {
-                if (logPath) {
-                    free(logPath);
-                }
+                if (logPath) free(logPath);
                 logPath = getRealPath(value, NULL, true);
                 if (NULL == logPath) {
                     debugMessage(LOGFILE_OPEN_ERR, LOG_ERR);
@@ -306,9 +304,7 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     free(cmdLine);
     return SERVER_SUCCESS;
 ON_ERROR:
-    if (cmdLine) {
-        free(cmdLine);
-    }
+    if (cmdLine) free(cmdLine);
     return SERVER_FAILURE;
 }
 

@@ -145,32 +145,18 @@ int main(int argc, string_t* argv) {
     }
     closeSocket(server.sock);
     stopTransferLog(&logger);
-    if (configPath) {
-        free(configPath);
-    }
-    if (logPath) {
-        free(logPath);
-    }
-    if (winHelperPath) {
-        free(winHelperPath);
-    }
+    if (configPath) free(configPath);
+    if (logPath) free(logPath);
+    if (winHelperPath) free(winHelperPath);
     return 0;
 ON_ERROR:
     if (enableDebug) {
         debugMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
     }
-    if (configPath) {
-        free(configPath);
-    }
-    if (logPath) {
-        free(logPath);
-    }
-    if (winHelperPath) {
-        free(logPath);
-    }
-    if (winLoggerPath) {
-        free(logPath);
-    }
+    if (configPath) free(configPath);
+    if (logPath) free(logPath);
+    if (winHelperPath) free(logPath);
+    if (winLoggerPath) free(logPath);
     stopTransferLog(&logger);
     return 1;
 }

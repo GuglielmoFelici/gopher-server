@@ -133,9 +133,7 @@ static int sendDir(cstring_t path, int sock, int port) {
     closeDir(dir);
     return GOPHER_SUCCESS;
 ON_ERROR:
-    if (line) {
-        free(line);
-    }
+    if (line) free(line);
     if (dir) {
         closeDir(dir);
     }
@@ -225,22 +223,19 @@ static int sendFile(cstring_t name, const file_mapping_t* map, int sock, const l
  */
 int gopher(socket_t sock, int port, const logger_t* pLogger) {
     string_t selector = NULL;
-    char buf[BUFF_SIZE];
     size_t bytesRec = 0, selectorSize = 1;
     do {
-        if ((bytesRec = recv(sock, buf, BUFF_SIZE, 0)) <= 0) {
-            debugMessage(bytesRec == 0 ? CONN_CLOS_ERR : RECV_ERR, bytesRec == 0 ? LOG_WARNING : LOG_ERR);
-            goto ON_ERROR;
-        }
-        if (NULL == (selector = realloc(selector, selectorSize + bytesRec))) {
+        if (NULL == (selector = realloc(selector, selectorSize + BUFF_SIZE))) {
             debugMessage(ALLOC_ERR, LOG_ERR);
             goto ON_ERROR;
         }
-        memcpy(selector + selectorSize - 1, buf, bytesRec);
+        if ((bytesRec = recv(sock, selector + selectorSize - 1, BUFF_SIZE, 0)) <= 0) {
+            debugMessage(bytesRec == 0 ? CONN_CLOS_ERR : RECV_ERR, bytesRec == 0 ? LOG_WARNING : LOG_ERR);
+            goto ON_ERROR;
+        }
         selectorSize += bytesRec;
         selector[selectorSize - 1] = '\0';
     } while (bytesRec > 0 && !strstr(selector, CRLF));
-    debugMessage(selector, LOG_INFO);
     if (!validateInput(selector)) {
         sendErrorResponse(sock, INVALID_SELECTOR);
         goto ON_ERROR;
@@ -275,9 +270,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
 ON_ERROR:
     debugMessage(GOPHER_REQUEST_FAILED, LOG_WARNING);
     closeSocket(sock);
-    if (selector) {
-        free(selector);
-    }
+    if (selector) free(selector);
     return GOPHER_FAILURE;
 }
 

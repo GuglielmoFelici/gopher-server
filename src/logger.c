@@ -86,9 +86,7 @@ ON_ERROR:
     if (logEvent) {
         CloseHandle(logEvent);
     }
-    if (pLogMutex) {
-        free(pLogMutex);
-    }
+    if (pLogMutex) free(pLogMutex);
     return LOGGER_FAILURE;
 }
 
@@ -119,12 +117,8 @@ int stopTransferLog(logger_t* pLogger) {
     }
     pLogger->pid = -1;
     CloseHandle(*(pLogger->pLogMutex));
-    if (pLogger->pLogMutex) {
-        free(pLogger->pLogMutex);
-    }
-    if (pLogger->pLogCond) {
-        free(pLogger->pLogCond);
-    }
+    if (pLogger->pLogMutex) free(pLogger->pLogMutex);
+    if (pLogger->pLogCond) free(pLogger->pLogCond);
     if (!CloseHandle(pLogger->logEvent) ||
         !CloseHandle(pLogger->logPipe)) {
         return LOGGER_FAILURE;
