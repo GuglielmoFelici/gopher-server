@@ -92,7 +92,7 @@ int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
     struct switches switches;
-    switches.d = switches.l = switches.m = switches.p = switches.s = false;
+    switches.d = switches.f = switches.l = switches.m = switches.p = switches.s = false;
     if (SERVER_SUCCESS != initWsa()) {
         fprintf(stderr, "%s\n", MAIN_WSA_ERR);
         goto ON_ERROR;
@@ -115,8 +115,7 @@ int main(int argc, string_t* argv) {
         }
     }
     // TODO aggiungere al config file
-    // TODO importante! prevedere che il logFile cambi in windows
-    if (!switches.l) {
+    if (!logPath) {
         if (NULL == (logPath = getRealPath(LOG_FILE, NULL, true))) {
             fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
             goto ON_ERROR;

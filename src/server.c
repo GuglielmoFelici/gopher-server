@@ -96,7 +96,7 @@ int readConfig(server_t* pServer, int which) {
     if (NULL == (configFile = fopen(configPath, "r"))) {
         goto ON_ERROR;
     }
-    char key[32], value[32];
+    char key[32], value[MAX_NAME];
     while (NULL != fgets(buff, sizeof(buff), configFile)) {
         if (sscanf(buff, "%s = %s", key, value) == 2) {
             if (strcmp(key, CONFIG_PORT_KEY) == 0 && (which & READ_PORT)) {
@@ -108,11 +108,14 @@ int readConfig(server_t* pServer, int which) {
                 }
                 pServer->port = port;
             } else if (strcmp(key, CONFIG_LOG_KEY) == 0 && (which & READ_LOG)) {
-                logPath = realloc(logPath, strlen(value) + 1);
-                if (logPath = NULL) {
+                if (logPath) {
+                    free(logPath);
+                }
+                logPath = getRealPath(value, NULL, true);
+                if (NULL == logPath) {
+                    logMessage(LOGFILE_OPEN_ERR, LOG_ERR);
                     goto ON_ERROR;
                 }
-                memcpy(logPath, value, strlen(value) + 1);
             } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
                 pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
             } else if (strcmp(key, CONFIG_SILENT_KEY) == 0 && (which & READ_SILENT)) {
@@ -150,7 +153,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG) && configPath) {
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
-                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT | READ_LOG)) {
+                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT)) {
                     logMessage(MAIN_CONFIG_ERR, LOG_WARNING);
                 }
                 if (pServer->port != htons(pServer->sockAddr.sin_port)) {

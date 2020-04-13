@@ -36,12 +36,6 @@ E' possibile compilare il progetto con il comando make. La compilazione genera l
 e due binari aggiuntivi nel caso in cui si buildi su Windows.\\
 Sono disponibili le seguenti opzioni:\\
 \begin{lstlisting}
--h
-    Mostra la sintassi.
--s
-    (silent) - Non loggare in console/syslog.
--p PORT
-    Metti il server in ascolto sulla porta PORT.
 -d DIR
     Utilizza la directory DIR come root del server. 
     NOTA: Se viene utilizzata questa opzione, il path specificato in -f 
@@ -49,10 +43,20 @@ Sono disponibili le seguenti opzioni:\\
 -f FILE 
     Leggi le configurazioni da FILE. 
     Per informazioni sulla struttura del file, vedere la sezione 
-    3.1.1 Lettura della configurazione. 
+    3.1.1 Lettura della configurazione.
+-h
+    Mostra la sintassi.
+-l FILE
+    Logga i trasferimenti sul file FILE. Di default il logging avviene sul file "logfile", nella stessa directory dell'eseguibile.
 -m 
-    Utilizza un processo per ogni client.
+    Utilizza un processo per ogni client. Disabilitato di default.
+-p PORT
+    Metti il server in ascolto sulla porta PORT. 7070 di default.
+-s
+    (silent) - Non loggare in console/syslog. Disabilitato di default.
+
 \end{lstlisting}
+Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.
 
 \newpage
 
@@ -131,7 +135,8 @@ struttura server\_t ricevuta in input. Il file è una sequenze di righe del tipo
 \end{itemize}
 La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
 SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{}
-{main loop} del server.\\
+{main loop} del server; tuttavia, nel caso in cui si rileggano le configurazioni mentre il server è in esecuzione,
+verranno ricaricate solo le impostazioni port, multiprocess e silent.\\
 I gestori dei segnali utilizzano le variabili booleane globali
 \begin{lstlisting}
     static sig_atomic volatile updateConfig;
