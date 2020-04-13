@@ -62,6 +62,13 @@ void logMessage(cstring_t message, int level) {
     fprintf(stderr, "%s - %s\n", lvl, message);
 }
 
+int getWindowsHelpersPaths() {
+    if (NULL == (winLogPath = realPath(WINLOGGER_PATH, NULL))) {
+        return PLATFORM_FAILURE
+    }
+    return (winHelperPath = realPath(WINHELPER_PATH, NULL)) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
 /********************************************** SOCKETS *************************************************************/
 
 /* Ritorna l'ultimo codice di errore relativo alle chiamate WSA */
@@ -245,6 +252,10 @@ void logMessage(cstring_t message, int level) {
     syslog(level, "%s - %s\n%s", lvl, message, level == LOG_ERR ? strerror(errno) : "");
 }
 
+int getWindowsHelpersPaths() {
+    return PLATFORM_SUCCESS;
+}
+
 /********************************************** SOCKETS *************************************************************/
 
 int sockErr() {
@@ -324,6 +335,14 @@ int daemonize() {
 }
 
 /*********************************************** FILES ****************************************************************/
+
+int createIfAbsent(cstring_t path) {
+    int fd = creat(path, S_IRWXU | S_IRGRP | S_IROTH);
+    if (fd < 0) {
+        return PLATFORM_FAILURE;
+    }
+    return close(fd) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
 
 int fileAttributes(cstring_t path) {
     struct stat statbuf;

@@ -28,7 +28,7 @@ int startTransferLog(logger_t* pLogger) {
     }
     pLogger->pid = -1;
     char exec[MAX_NAME];
-    int bytesWritten = snprintf(exec, sizeof(exec), "%s/" LOGGER_PATH, installDir);
+    int bytesWritten = snprintf(exec, sizeof(exec), "%s %s", winLoggerPath, logPath);
     if (bytesWritten < 0 || bytesWritten >= sizeof(exec)) {
         goto ON_ERROR;
     }
@@ -63,7 +63,7 @@ int startTransferLog(logger_t* pLogger) {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, installDir, &startupInfo, &processInfo)) {
+    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
         goto ON_ERROR;
     }
     pLogger->pid = processInfo.dwProcessId;
@@ -297,18 +297,12 @@ static void loggerLoop(const logger_t* pLogger) {
     int logFile = -1;
     const int MAX_LINE_SIZE = 100;
     char buff[MAX_LINE_SIZE];
-    char logFilePath[MAX_NAME];
     if (!pLogger) {
         goto ON_ERROR;
     }
     prctl(PR_SET_NAME, LOG_PROCESS_NAME);  // TODO rimuovere?
     prctl(PR_SET_PDEATHSIG, SIGINT);
-    int bytesWritten = snprintf(logFilePath, sizeof(logFilePath), "%s/" LOG_FILE, installDir);
-    if (bytesWritten < 0 || bytesWritten >= sizeof(logFilePath)) {
-        logMessage(LOGFILE_NAME_ERR, LOG_ERR);
-        goto ON_ERROR;
-    }
-    if ((logFile = open(logFilePath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
+    if ((logFile = open(logPath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
         logMessage(LOGFILE_OPEN_ERR, LOG_ERR);
         goto ON_ERROR;
     }

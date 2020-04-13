@@ -144,7 +144,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             } else if (checkSignal(CHECK_SHUTDOWN)) {
                 logMessage(SHUTDOWN_REQUESTED, LOG_INFO);
                 return SERVER_SUCCESS;
-            } else if (checkSignal(CHECK_CONFIG) && strlen(configPath)) {
+            } else if (checkSignal(CHECK_CONFIG) && configPath) {
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
                 if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT)) {
                     logMessage(MAIN_CONFIG_ERR, LOG_WARNING);
@@ -265,10 +265,6 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     if (pLogger) {
         logPipe = pLogger->logPipe;
     }
-    char exec[MAX_NAME];
-    if (snprintf(exec, sizeof(exec), "%s/" HELPER_PATH, installDir) < strlen(installDir) + strlen(HELPER_PATH) + 1) {
-        goto ON_ERROR;
-    }
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
     memset(&startupInfo, 0, sizeof(startupInfo));
@@ -282,11 +278,11 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
         goto ON_ERROR;
     }
     size_t cmdLineSize;
-    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p", exec, pServer->port, client, logPipe) + 1;
+    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p", winHelperPath, pServer->port, client, logPipe) + 1;
     if (NULL == (cmdLine = malloc(cmdLineSize))) {
         goto ON_ERROR;
     }
-    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p", exec, pServer->port, client, logPipe) < cmdLineSize - 1) {
+    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p", winHelperPath, pServer->port, client, logPipe) < cmdLineSize - 1) {
         goto ON_ERROR;
     }
     if (!SetHandleInformation((HANDLE)pServer->sock, HANDLE_FLAG_INHERIT, 0)) {

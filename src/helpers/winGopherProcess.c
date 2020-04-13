@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <windows.h>
+
 #include "../../headers/logger.h"
 #include "../../headers/protocol.h"
-
-char installDir[MAX_NAME];
 
 static int getLogger(logger_t* pLogger, LPSTR* argv) {
     HANDLE mutex = NULL;
@@ -49,9 +48,6 @@ DWORD main(DWORD argc, LPSTR* argv) {
     WORD versionWanted = MAKEWORD(1, 1);
     int step = 0;
     if (WSAStartup(versionWanted, &wsaData) != 0) {
-        return 1;
-    }
-    if (!GetCurrentDirectory(sizeof(installDir), installDir)) {
         return 1;
     }
     sscanf(argv[1], "%hu", &port);

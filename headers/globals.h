@@ -21,8 +21,8 @@
 #define LOG_MUTEX_NAME "logMutex"
 #define LOGGER_EVENT_NAME "logEvent"
 #define LOG_FILE "logFile"
-#define LOGGER_PATH "winLogger.exe"
-#define HELPER_PATH "winGopherProcess.exe"
+#define WINLOGGER_PATH "winLogger.exe"
+#define WINHELPER_PATH "winGopherProcess.exe"
 #define DEFAULT_MULTI_PROCESS 0
 #define DEFAULT_PORT 7070
 
@@ -36,13 +36,16 @@
 /** Turn off with option -s (silent) to disable server logging. */
 extern bool enableLogging;
 
-/** The path to the installation directory */
-extern char installDir[MAX_NAME];
-
 /** The path to the configuration file */
-extern char configPath[MAX_NAME];
+extern string_t configPath;
 
 /** The path to the log file */
-extern char logPath[MAX_NAME];
+extern string_t logPath;
+
+/** [Windows] The path to the windows logger executable */
+extern string_t winLoggerPath;
+
+/** [Windows] The path to the windows gopher executable */
+extern string_t winHelperPath;
 
 #endif

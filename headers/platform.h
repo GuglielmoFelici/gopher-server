@@ -52,6 +52,20 @@ int changeCwd(cstring_t path);
 */
 void logMessage(cstring_t message, int level);
 
+/**
+ * Gets the absolute path of a file.
+ * @param relative The relative path of the file to be converted to absolute.
+ * @param absolute A pointer to a buffer where the absolute path will be stored.
+ * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
+int getRealPath(cstring_t relative, string_t absolute);
+
+/**
+ * Gets the absolute paths of windows helper files and stores them in the global variables winLogPath and winHelperPath.
+ * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
+int getWindowsHelpersPaths();
+
 /********************************************** SOCKETS *************************************************************/
 
 /** @return the current system error relative to the sockets */
@@ -98,6 +112,11 @@ int waitChildren();
 int daemonize();
 
 /*********************************************** FILES  ***************************************************************/
+
+/**
+ * Creates a file if it doesn't exist.
+*/
+int createIfAbsent(cstring_t path);
 
 /** Retrieves the attributes of a file.
  * @return PLATFORM_ISFILE or PLATFORM_ISDIR. Upon error returns PLATFORM_FAILURE, or-ed with PLATFORM_NOT_FOUND if the file was not found.

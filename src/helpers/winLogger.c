@@ -4,7 +4,6 @@
 
 #define LOG_ERR "WARNING - Logger - Fatal error, maybe already running?\n"
 #define LOGGER_EVENT_NAME "logEvent"
-#define LOG_FILE "logFile"
 
 /* Richiede la rilettura del file di configurazione */
 static BOOL sigHandler(DWORD signum) {
@@ -24,7 +23,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
         exit(1);
     }
     HANDLE logFile;
-    if (INVALID_HANDLE_VALUE == (logFile = CreateFile(LOG_FILE, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL))) {
+    if (INVALID_HANDLE_VALUE == (logFile = CreateFile(argv[1], GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL))) {
         fprintf(stderr, LOG_ERR);
         exit(1);
     }

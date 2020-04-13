@@ -8,42 +8,64 @@
 #include "../headers/server.h"
 #include "../headers/wingetopt.h"
 
-char installDir[MAX_NAME];
-char configPath[MAX_NAME] = "";
-char logPath[MAX_NAME] = "";
+string_t configPath = NULL;
+string_t logPath = NULL;
+string_t winLoggerPath = NULL;
+string_t winHelperPath = NULL;
 
 int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
+    char newWD[MAX_NAME] = "";
     if (SERVER_SUCCESS != initWsa()) {
-        logMessage(MAIN_WSA_ERR, LOG_ERR);
+        fprintf(stderr, "%s\n", MAIN_WSA_ERR);
         goto ON_ERROR;
     }
-    if (PLATFORM_SUCCESS != getCwd(installDir, sizeof(installDir))) {
-        logMessage(MAIN_CWD_ERR, LOG_ERR);
+    if (PLATFORM_SUCCESS != getWindowsHelpersPaths()) {
+        fprintf(stderr, "%s\n", HELPER_OPEN_ERR);
         goto ON_ERROR;
     }
     logger.pid = -1;
     defaultConfig(&server, READ_MULTIPROCESS | READ_PORT);
     /* Options parsing */
     int opt, opterr = 0;
-    bool port = false, mp = false, silent = false, config = false;
-    while ((opt = getopt(argc, argv, "hmsp:d:f:")) != -1) {
+    bool port = false, mp = false, silent = false;
+    while ((opt = getopt(argc, argv, "hmsp:d:f:l:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "%s\n", MAIN_USAGE);
                 goto ON_ERROR;
             case 'f':
-                if (strlen(optarg) >= sizeof(configPath)) {
-                    fprintf(stderr, "%s\n", PATH_TOO_LONG);
+                if (strlen(optarg) > MAX_NAME) {
+                    fprintf(stderr, "%s\n", CONFIG_OPEN_ERR);
                     goto ON_ERROR;
                 }
-                snprintf(configPath, sizeof(configPath), "%s", optarg);
-                config = true;
+                configPath = realpath(optarg, NULL);
+                if (NULL == configPath) {
+                    fprintf(stderr, "%s\n", CONFIG_OPEN_ERR);
+                    goto ON_ERROR;
+                }
                 break;
             case 's':
                 enableLogging = false;
                 silent = true;
+                break;
+            case 'l':
+                if (strlen(optarg) > MAX_NAME) {
+                    fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
+                    goto ON_ERROR;
+                }
+                logPath = realpath(optarg, NULL);
+                if (NULL == logPath) {
+                    if (PLATFORM_SUCCESS != createIfAbsent(optarg)) {
+                        fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
+                        goto ON_ERROR;
+                    }
+                    if (NULL == (logPath = realpath(optarg, NULL))) {
+                        fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
+                        goto ON_ERROR;
+                    }
+                }
                 break;
             case 'm':
                 mp = true;
@@ -63,20 +85,34 @@ int main(int argc, string_t* argv) {
                 }
                 break;
             case 'd':
-                if (PLATFORM_SUCCESS != changeCwd(optarg)) {
-                    fprintf(stderr, "%s\n", MAIN_CWD_ERR);
-                }
+                strncpy(newWD, optarg, sizeof(newWD));
                 break;
             default:
                 fprintf(stderr, "%s\n", MAIN_USAGE);
                 goto ON_ERROR;
         }
     }
-    if (config) {
+    if (configPath) {
         int request = 0 | (port ? 0 : READ_PORT) | (mp ? 0 : READ_MULTIPROCESS) | (silent ? 0 : READ_SILENT);
         if (SERVER_SUCCESS != readConfig(&server, request)) {
             fprintf(stderr, "%s\n", MAIN_CONFIG_ERR);
             defaultConfig(&server, request);
+        }
+    }
+    // TODO aggiungere al config file
+    if (!logPath) {
+        if (PLATFORM_SUCCESS != createIfAbsent(LOG_FILE)) {
+            fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
+            goto ON_ERROR;
+        }
+        if (NULL == (logPath = realpath(LOG_FILE, NULL))) {
+            fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
+            goto ON_ERROR;
+        }
+    }
+    if (strlen(newWD)) {
+        if (PLATFORM_SUCCESS != changeCwd(newWD)) {
+            fprintf(stderr, "%s\n", MAIN_CWD_ERR);
         }
     }
     if (enableLogging) {
@@ -102,10 +138,34 @@ int main(int argc, string_t* argv) {
     }
     closeSocket(server.sock);
     stopTransferLog(&logger);
+    if (configPath) {
+        free(configPath);
+    }
+    if (logPath) {
+        free(logPath);
+    }
+    if (winHelperPath) {
+        free(logPath);
+    }
+    if (winLoggerPath) {
+        free(logPath);
+    }
     return 0;
 ON_ERROR:
     if (enableLogging) {
         logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
+    }
+    if (configPath) {
+        free(configPath);
+    }
+    if (logPath) {
+        free(logPath);
+    }
+    if (winHelperPath) {
+        free(logPath);
+    }
+    if (winLoggerPath) {
+        free(logPath);
     }
     stopTransferLog(&logger);
     return 1;
