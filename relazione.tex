@@ -1,9 +1,14 @@
 \documentclass{article}
 
-\usepackage{hyperref}
+\usepackage[colorlinks = true, linkcolor = black, urlcolor = blue]{hyperref}
+%\hypersetup{
+%    colorlinks = true,
+%    linkcolor [red]
+%}
 \usepackage{listings}
 \usepackage{color}
-% \usepackage[T1]{fontenc}
+%\usepackage[pdftex, pdfborderstyle={/S/U/W 0}]{hyperref} % this disables the boxes around links
+%\usepackage[colorlinks=false, linktocpage=true]{hyperref}
 
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
@@ -31,14 +36,15 @@
 
 \vspace{15mm} %5mm vertical space
 Una documentazione rigorosa su ogni file, funzione e struttura, generata con Doxygen a partire dalla 
-documentazione sul codice sorgente, è disponibile \href{html/index.html}{a questo link}. 
+documentazione sul codice sorgente, è disponibile \href{html/index.html}{qui}. 
 
 \newpage
 
 \section{Utilizzo del software}
 
-E' possibile compilare il progetto con il comando make. La compilazione genera l'eseguibile linuxserver o winserver.exe,
-e due binari aggiuntivi nel caso in cui si buildi su Windows.\\
+E' possibile compilare il progetto con il comando make. La compilazione genera l'eseguibile linuxserver o,
+nel caso in cui si esegua la build su Windows, il file winserver.exe e due binari aggiuntivi.\\
+La compilazione effettua il linking alla libreria pthread su GNU/Linux e alla libreria Winsock (Ws2\_32) su Windows.
 Sono disponibili le seguenti opzioni da riga di comando:\\
 \begin{lstlisting}
 -d DIR
@@ -78,9 +84,9 @@ dove sono accettate le seguenti coppie:
     \item root = $<$path$>$
 \end{itemize}
 La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
-SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{}
+SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a}
 {main loop} del server; tuttavia, nel caso in cui si ricarichino le configurazioni mentre il server è in esecuzione,
-non verranno aggiornati il path di logging e la root directory del server.\\
+non verranno aggiornati il path di logging e la root directory.\\
 
 \section{Struttura del progetto}
 
@@ -112,7 +118,7 @@ utilizzano come valore di ritorno delle costanti per indicare il successo o il f
 messe in OR con altre costanti per fornire ulteriori informazioni sull'esito).
 \\Le dichiarazioni utilizzano i tipi definiti in datatypes.h, per astrarre dai tipi specifici utilizzati
 dalla libreria Win32 o dalle funzioni POSIX. L'implementazione interna delle funzioni invece
- utilizza i tipi specifici della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte dal 
+ utilizza i tipi propri della piattaforma, e consiste, laddove impossibile scrivere codice portabile o utilizzare solo funzioni offerte dal 
 modulo di Compatibilità, di un'implementazione ad hoc per Windows e una per GNU/Linux, demandando la scelta dell'implementazione
 da utilizzare al preprocessore.
 
@@ -154,12 +160,12 @@ impostazioni di default, salvate in globals.h.
 
 \subsubsection{Avvio del server}
 
-Il server viene avviato con la funzione \href{}{runServer},
+Il server viene avviato con la funzione \href{html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a}{runServer},
 che prende in input un puntatore a una struttura server\_t opportunamente inizializzata.
 La funzione attende con una select una richiesta di connessione, controllando periodicamente la ricezione
 di segnali. Questa scelta è motivata dal fatto che gli eventi da console di Windows non interrompono la select.
 Quando il server riceve una richiesta di connessione, genera un nuovo thread o processo (a seconda della modalità
-utilizzata), il quale passa il controllo al protocollo tramite la funzione \href{}
+utilizzata), il quale passa il controllo al protocollo tramite la funzione \href{html/protocol_8h.html#a733e68cc8d5f947c30d0ca51e1b76d9b}
 {gopher}. Siccome il protocollo si assume la responsabilità di avviare un nuovo thread se richiesto
 l'invio di un file, il thread principale di un processo che invoca la funzione gopher non termina,
 se non tramite le funzioni pthread\_exit o ExitThread. Quando il server riceve una richiesta di terminazione, 
@@ -169,7 +175,7 @@ la funzione runServer ritorna con successo. Il modulo Server non si occupa di li
 
 Il modulo Protocollo è implementato dall'header protocol.h, dal file protocol.c e dal file winGopherProcess.c 
 nel caso in cui si compili su Windows.\\
-L'header espone all'esterno, oltre a diverse costanti, una singola funzione \href{}{gopher}.
+L'header espone all'esterno, oltre a diverse costanti, una singola funzione \href{html/protocol_8h.html#a733e68cc8d5f947c30d0ca51e1b76d9b}{gopher}.
 La funzione riceve l'input dal socket ricevuto fin quando non legge un CRLF;
 L'input letto viene validato (poiché il selettore viene utilizzato per recuperare la risorsa
 richiesta, non può contenere costrutti per la navigazione del file system, quali ./ ../ etc) e normalizzato,
@@ -179,7 +185,7 @@ il protocollo si incarica di chiudere il socket del client sia in caso di fallim
 
 
 \subsubsection{Costruzione della risposta}
-La lista di file disponibili, se richiesta una directory, viene costruita utilizzando la funzione \href{}
+La lista di file disponibili, se richiesta una directory, viene costruita utilizzando la funzione \href{html/platform_8h.html#a0cec7649e32d72daadab4beb95e6ef96}
 {iterateDir}, la quale funge da interfaccia per le primitive specifiche delle piattaforme Linux e Windows,
 operando in modo analogo.\\
 Il carattere prefisso a ogni riga della risposta, che rappresenta il tipo del file, viene calcolato
@@ -189,10 +195,10 @@ e l'appartenenza di un'estensione a un tipo di file (testo, immagine...) viene c
 Ogni maschera rappresenta un gruppo di estensioni e ha settati a 1 i bit che corrispondono agli indici degli elementi
 dell'array extensions che fanno parte di quel gruppo.\\
 Se viene richiesto un file, questo viene mappato in memoria utilizzando la funzione di 
-compatibilità \href{}{getFileMap}, che wrappa le rispettive funzioni
+compatibilità \href{html#a135c09a3fee8c20311691644b6f7f289}{getFileMap}, che wrappa le rispettive funzioni
 mmap di Linux e CreateFileMapping/MapViewOfFile di Windows. Viene poi creato un nuovo thread, che si occupa di
 inviare il file mappato in memoria al client, di chiudere la connessione e di costruire una stringa da passare al
-logger tramite la funzione \href{}{logTransfer}.
+logger tramite la funzione \href{html/logger_8c.html#a7d4a9a5bacd7404955557ba85aa7e70f}{logTransfer}.
 
 \subsection{Logger}
 Il modulo Logger è implementato dall'header logger.h, dal file logger.c e in aggiunta dal file winLogger.c,
@@ -222,13 +228,13 @@ L'header espone tre funzioni: per avviare il logger, per interromperlo e per log
 A causa delle differenze tra Windows e Linux circa l'IPC, le due implementazioni sono completamente distinte.
 
 \subsubsection{Linux}
-Nel caso Linux, la funzione di avvio startTransferLog inizializza una pipe, un mutex e una condition variable
+Nel caso Linux, la funzione di avvio \href{html/logger_8c.html#a568bb98500e52ddc98667703cdc46927}{startTransferLog} inizializza una pipe, un mutex e una condition variable
 in uno spazio di memoria condiviso e ne scrive i riferimenti nella struttura logger\_t ricevuta in input.
 Dopodiché viene effettuata una fork per avviare il processo che esegua il loop principale.
-Il loop principale apre il file di logging e attende sulla condition variable del logger ricevuto in input.
+Il \href{html/logger_8c.html#a27125c21f8cde1856449d4e02e42f156}{loop principale} apre il file di logging e attende sulla condition variable del logger ricevuto in input.
 Quando riceve una richiesta di logging (notificata sulla condition variable) acquisisce un lock
 esclusivo sul file di logging tramite fcntl e scrive la stringa sul file.
-La funzione per interrompere il logger si occupa di liberare tutte le risorse e di inviare SIGINT
+La \href{html/logger_8c.html#a5a3ad1e6309f96bc43ab8e56ea8ffd39}{funzione per interrompere il logger} si occupa di liberare tutte le risorse e di inviare SIGINT
 al processo.
 
 \subsubsection{Windows}
