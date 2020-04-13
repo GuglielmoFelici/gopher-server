@@ -34,8 +34,8 @@
 #define CONFIG_SILENT_KEY "silent"
 #define CONFIG_YES "yes"
 
-/** Turn off with option -s (silent) to disable server logging. */
-extern bool enableLogging;
+/** Turn off with option -s (silent) to disable debug logging. */
+extern bool enableDebug;
 
 /** The path to the configuration file */
 extern string_t configPath;

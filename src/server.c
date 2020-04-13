@@ -92,18 +92,18 @@ void defaultConfig(server_t* pServer, int which) {
 
 int readConfig(server_t* pServer, int which) {
     FILE* configFile = NULL;
-    char buff[50];
+    char line[MAX_NAME];
     if (NULL == (configFile = fopen(configPath, "r"))) {
         goto ON_ERROR;
     }
     char key[32], value[MAX_NAME];
-    while (NULL != fgets(buff, sizeof(buff), configFile)) {
-        if (sscanf(buff, "%s = %s", key, value) == 2) {
+    while (NULL != fgets(line, sizeof(line), configFile)) {
+        if (sscanf(line, "%s = %s", key, value) == 2) {
             if (strcmp(key, CONFIG_PORT_KEY) == 0 && (which & READ_PORT)) {
                 int port;
                 port = strtol(value, NULL, 10);
                 if (port < 1 || port > 65535) {
-                    logMessage(MAIN_PORT_ERR, LOG_WARNING);
+                    debugMessage(MAIN_PORT_ERR, LOG_WARNING);
                     goto ON_ERROR;
                 }
                 pServer->port = port;
@@ -113,7 +113,7 @@ int readConfig(server_t* pServer, int which) {
                 }
                 logPath = getRealPath(value, NULL, true);
                 if (NULL == logPath) {
-                    logMessage(LOGFILE_OPEN_ERR, LOG_ERR);
+                    debugMessage(LOGFILE_OPEN_ERR, LOG_ERR);
                     goto ON_ERROR;
                 }
             } else if (strcmp(key, CONFIG_DIR_KEY) == 0 && (which & READ_DIR)) {
@@ -124,7 +124,7 @@ int readConfig(server_t* pServer, int which) {
             } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
                 pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
             } else if (strcmp(key, CONFIG_SILENT_KEY) == 0 && (which & READ_SILENT)) {
-                enableLogging = strcmp(value, CONFIG_YES) != 0;
+                enableDebug = strcmp(value, CONFIG_YES) != 0;
             }
         }
     }
@@ -141,7 +141,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         return SERVER_FAILURE;
     }
     if (SERVER_SUCCESS != installDefaultSigHandlers()) {
-        logMessage(HANDLERS_ERR, LOG_ERR);
+        debugMessage(HANDLERS_ERR, LOG_ERR);
         return SERVER_FAILURE;
     }
     struct timeval dfltTimeval = {1, 0};
@@ -154,12 +154,12 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
-                logMessage(SHUTDOWN_REQUESTED, LOG_INFO);
+                debugMessage(SHUTDOWN_REQUESTED, LOG_INFO);
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG) && configPath) {
-                logMessage(UPDATE_REQUESTED, LOG_INFO);
+                debugMessage(UPDATE_REQUESTED, LOG_INFO);
                 if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT)) {
-                    logMessage(MAIN_CONFIG_ERR, LOG_WARNING);
+                    debugMessage(MAIN_CONFIG_ERR, LOG_WARNING);
                 }
                 if (pServer->port != htons(pServer->sockAddr.sin_port)) {
                     if (SERVER_FAILURE == prepareSocket(pServer, SERVER_UPDATE)) {
@@ -171,18 +171,18 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
         } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
-        logMessage(INCOMING_CONNECTION, LOG_INFO);
+        debugMessage(INCOMING_CONNECTION, LOG_INFO);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
-            logMessage(SERVE_CLIENT_ERR, LOG_WARNING);
+            debugMessage(SERVE_CLIENT_ERR, LOG_WARNING);
         } else if (pServer->multiProcess) {
             if (SERVER_SUCCESS != serveProc(client, pLogger, pServer)) {
-                logMessage(SERVE_CLIENT_ERR, LOG_ERR);
+                debugMessage(SERVE_CLIENT_ERR, LOG_ERR);
             };
             closeSocket(client);
         } else {
             if (SERVER_SUCCESS != serveThread(client, pServer->port, pLogger)) {
-                logMessage(SERVE_CLIENT_ERR, LOG_ERR);
+                debugMessage(SERVE_CLIENT_ERR, LOG_ERR);
                 closeSocket(client);
             }
         }
@@ -290,11 +290,11 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
         goto ON_ERROR;
     }
     size_t cmdLineSize;
-    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %p", winHelperPath, pServer->port, client, logPipe) + 1;
+    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %d %p", winHelperPath, pServer->port, client, enableDebug, logPipe) + 1;
     if (NULL == (cmdLine = malloc(cmdLineSize))) {
         goto ON_ERROR;
     }
-    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %p", winHelperPath, pServer->port, client, logPipe) < cmdLineSize - 1) {
+    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %d %p", winHelperPath, pServer->port, client, enableDebug, logPipe) < cmdLineSize - 1) {
         goto ON_ERROR;
     }
     if (!SetHandleInformation((HANDLE)pServer->sock, HANDLE_FLAG_INHERIT, 0)) {
@@ -378,7 +378,7 @@ static void* serveThreadTask(void* args) {
 static int serveThread(int sock, int port, logger_t* pLogger) {
     server_thread_args_t* tArgs = malloc(sizeof(server_thread_args_t));
     if (NULL == tArgs) {
-        logMessage(ARGS_ERR, LOG_ERR);
+        debugMessage(ARGS_ERR, LOG_ERR);
         return SERVER_FAILURE;
     }
     tArgs->sock = sock;

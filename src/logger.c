@@ -15,7 +15,7 @@ string_t winLoggerPath = NULL;
 /** [Linux] Starts the main logging process loop.
  *  If pLogger is NULL or a system error occurs, the function logs and terminates the process with exit code 1
  *  @param pLogger A pointer to the logger_t struct representing a logging process.
- *  @see logMessage 
+ *  @see debugMessage 
 */
 static void loggerLoop(const logger_t* pLogger);
 
@@ -180,14 +180,14 @@ int startTransferLog(logger_t* pLogger) {
         pthread_mutexattr_init(&mutexAttr) != 0 ||
         pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED) != 0 ||
         pthread_mutex_init(&mutex, &mutexAttr) != 0) {
-        logMessage(MUTEX_INIT_ERR, LOG_ERR);
+        debugMessage(MUTEX_INIT_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     if (
         pthread_condattr_init(&condAttr) != 0 ||
         pthread_condattr_setpshared(&condAttr, PTHREAD_PROCESS_SHARED) != 0 ||
         pthread_cond_init(&cond, &condAttr) != 0) {
-        logMessage(COND_INIT_ERR, LOG_ERR);
+        debugMessage(COND_INIT_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     *pMutex = mutex;
@@ -209,7 +209,7 @@ int startTransferLog(logger_t* pLogger) {
     }
     int pid;
     if ((pid = fork()) < 0) {
-        logMessage(FORK_FAILED, LOG_ERR);
+        debugMessage(FORK_FAILED, LOG_ERR);
         goto ON_ERROR;
     } else if (pid == 0) {  // Logger
         struct sigaction act;
@@ -218,7 +218,7 @@ int startTransferLog(logger_t* pLogger) {
             goto ON_ERROR;
         }
         if (close(pipeFd[1]) < 0) {
-            logMessage(PIPE_CLOSE_ERR, LOG_WARNING);
+            debugMessage(PIPE_CLOSE_ERR, LOG_WARNING);
         }
         pLogger->pid = getpid();
         pLogger->logPipe = pipeFd[0];
@@ -226,7 +226,7 @@ int startTransferLog(logger_t* pLogger) {
     } else {  // Server
         sigprocmask(SIG_UNBLOCK, &set, NULL);
         if (close(pipeFd[0]) < 0) {
-            logMessage(PIPE_CLOSE_ERR, LOG_WARNING);
+            debugMessage(PIPE_CLOSE_ERR, LOG_WARNING);
         }
         pLogger->logPipe = pipeFd[1];
         pLogger->pid = pid;
@@ -255,19 +255,19 @@ int logTransfer(const logger_t* pLogger, const char* log) {
         return LOGGER_FAILURE;
     }
     if (!pthread_mutex_lock(pLogger->pLogMutex) < 0) {
-        logMessage(MUTEX_LOCK_ERR, LOG_ERR);
+        debugMessage(MUTEX_LOCK_ERR, LOG_ERR);
         return LOGGER_FAILURE;
     }
     if (write(pLogger->logPipe, log, strlen(log)) < 0) {
-        logMessage(LOGFILE_WRITE_ERR, LOG_ERR);
+        debugMessage(LOGFILE_WRITE_ERR, LOG_ERR);
         return LOGGER_FAILURE;
     }
     if (pthread_cond_signal(pLogger->pLogCond) < 0) {
-        logMessage(COND_SIGNAL_ERR, LOG_ERR);
+        debugMessage(COND_SIGNAL_ERR, LOG_ERR);
         return LOGGER_FAILURE;
     }
     if (pthread_mutex_unlock(pLogger->pLogMutex) < 0) {
-        logMessage(MUTEX_UNLOCK_ERR, LOG_ERR);
+        debugMessage(MUTEX_UNLOCK_ERR, LOG_ERR);
         return LOGGER_FAILURE;
     }
     return LOGGER_SUCCESS;
@@ -312,21 +312,21 @@ static void loggerLoop(const logger_t* pLogger) {
     prctl(PR_SET_NAME, LOG_PROCESS_NAME);  // TODO rimuovere?
     prctl(PR_SET_PDEATHSIG, SIGINT);
     if ((logFile = open(logPath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
-        logMessage(LOGFILE_OPEN_ERR, LOG_ERR);
+        debugMessage(LOGFILE_OPEN_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     if (pthread_mutex_lock(pLogger->pLogMutex) != 0) {
-        logMessage(MUTEX_LOCK_ERR, LOG_ERR);
+        debugMessage(MUTEX_LOCK_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     while (1) {
         size_t bytesRead;
         if (pthread_cond_wait(pLogger->pLogCond, pLogger->pLogMutex) != 0) {
-            logMessage(COND_WAIT_ERR, LOG_ERR);
+            debugMessage(COND_WAIT_ERR, LOG_ERR);
             goto ON_ERROR;
         }
         if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff))) < 0) {
-            logMessage(PIPE_READ_ERR, LOG_ERR);
+            debugMessage(PIPE_READ_ERR, LOG_ERR);
             goto ON_ERROR;
         } else {
             struct flock lck;
@@ -335,16 +335,16 @@ static void loggerLoop(const logger_t* pLogger) {
             lck.l_len = 0;
             lck.l_pid = getpid();
             if (fcntl(logFile, F_SETLKW, &lck) < 0) {
-                logMessage(FILE_LOCK_ERR, LOG_ERR);
+                debugMessage(FILE_LOCK_ERR, LOG_ERR);
                 goto ON_ERROR;
             }
             if (write(logFile, buff, bytesRead) < 0) {
-                logMessage(LOGFILE_WRITE_ERR, LOG_ERR);
+                debugMessage(LOGFILE_WRITE_ERR, LOG_ERR);
                 goto ON_ERROR;
             }
             lck.l_type = F_UNLCK;
             if (fcntl(logFile, F_SETLK, &lck) < 0) {
-                logMessage(FILE_UNLOCK_ERR, LOG_ERR);
+                debugMessage(FILE_UNLOCK_ERR, LOG_ERR);
                 goto ON_ERROR;
             }
         }

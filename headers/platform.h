@@ -50,7 +50,7 @@ int changeCwd(cstring_t path);
  * @param message The message to be logged.
  * @param level The importance level. Can be LOG_DEBUG, LOG_INFO, LOG_WARNING or LOG_ERR.
 */
-void logMessage(cstring_t message, int level);
+void debugMessage(cstring_t message, int level);
 
 /**
  * Gets the absolute paths of windows helper files and stores them in the global variables winLogPath and winHelperPath.

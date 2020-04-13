@@ -43,4 +43,4 @@ doxy : Doxyfile
 
 .PHONY : clean
 clean :
-	rm -f $(objects) $(target) 
+	rm -f $(objects) $(target) *.exe

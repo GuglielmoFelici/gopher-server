@@ -52,6 +52,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
     }
     sscanf(argv[1], "%hu", &port);
     sscanf(argv[2], "%p", &sock);
+    sscanf(argv[4], "%d", &enableDebug);
     pLogger = malloc(sizeof(logger_t));
     if (pLogger == NULL) {
         return 1;

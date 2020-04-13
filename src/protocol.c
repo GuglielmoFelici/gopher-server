@@ -158,7 +158,7 @@ static void* sendFileTask(void* threadArgs) {
     if (
         PLATFORM_FAILURE == sendAll(args.dest, args.src, args.size) ||
         PLATFORM_FAILURE == sendAll(args.dest, CRLF ".", 3)) {
-        logMessage(SEND_ERR, LOG_ERR);
+        debugMessage(SEND_ERR, LOG_ERR);
         closeSocket(args.dest);
         return NULL;
     }
@@ -229,18 +229,18 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     size_t bytesRec = 0, selectorSize = 1;
     do {
         if ((bytesRec = recv(sock, buf, BUFF_SIZE, 0)) <= 0) {
-            logMessage(bytesRec == 0 ? CONN_CLOS_ERR : RECV_ERR, bytesRec == 0 ? LOG_WARNING : LOG_ERR);
+            debugMessage(bytesRec == 0 ? CONN_CLOS_ERR : RECV_ERR, bytesRec == 0 ? LOG_WARNING : LOG_ERR);
             goto ON_ERROR;
         }
         if (NULL == (selector = realloc(selector, selectorSize + bytesRec))) {
-            logMessage(ALLOC_ERR, LOG_ERR);
+            debugMessage(ALLOC_ERR, LOG_ERR);
             goto ON_ERROR;
         }
         memcpy(selector + selectorSize - 1, buf, bytesRec);
         selectorSize += bytesRec;
         selector[selectorSize - 1] = '\0';
     } while (bytesRec > 0 && !strstr(selector, CRLF));
-    logMessage(selector, LOG_INFO);
+    debugMessage(selector, LOG_INFO);
     if (!validateInput(selector)) {
         sendErrorResponse(sock, INVALID_SELECTOR);
         goto ON_ERROR;
@@ -252,7 +252,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         goto ON_ERROR;
     } else if (PLATFORM_ISDIR & fileAttr) {  // Directory
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
-            logMessage(DIR_SEND_ERR, LOG_ERR);
+            debugMessage(DIR_SEND_ERR, LOG_ERR);
             goto ON_ERROR;
         }
     } else {  // File
@@ -261,19 +261,19 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
             map.size = 0;
             map.view = "";
         } else if (PLATFORM_SUCCESS != getFileMap(selector, &map)) {
-            logMessage(FILE_MAP_ERR, LOG_ERR);
+            debugMessage(FILE_MAP_ERR, LOG_ERR);
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
         if (GOPHER_SUCCESS != sendFile(selector, &map, sock, pLogger)) {
-            logMessage(FILE_SEND_ERR, LOG_ERR);
+            debugMessage(FILE_SEND_ERR, LOG_ERR);
             goto ON_ERROR;
         }
     }
     free(selector);
     return GOPHER_SUCCESS;
 ON_ERROR:
-    logMessage(GOPHER_REQUEST_FAILED, LOG_WARNING);
+    debugMessage(GOPHER_REQUEST_FAILED, LOG_WARNING);
     closeSocket(sock);
     if (selector) {
         free(selector);

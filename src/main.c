@@ -41,8 +41,8 @@ int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* p
                 }
                 break;
             case 'h':
-                pSwitches->h = true;
-                break;
+                printf("%s\n", MAIN_USAGE);
+                exit(0);
             case 'l':
                 pSwitches->l = true;
                 if (optarg[0] == '-') {
@@ -74,7 +74,7 @@ int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* p
                 break;
             case 's':
                 pSwitches->s = true;
-                enableLogging = false;
+                enableDebug = false;
                 break;
             default:
                 fprintf(stderr, "%s\n", MAIN_USAGE);
@@ -99,10 +99,6 @@ int main(int argc, string_t* argv) {
     if (parseOptions(argc, argv, &server, &switches) < 0) {
         goto ON_ERROR;
     }
-    if (switches.h) {
-        printf("%s\n", MAIN_USAGE);
-        return 0;
-    }
     // Get paths before cwd is changed
     if (PLATFORM_SUCCESS != getWindowsHelpersPaths()) {
         fprintf(stderr, "%s\n", HELPER_OPEN_ERR);
@@ -126,25 +122,25 @@ int main(int argc, string_t* argv) {
             fprintf(stderr, "%s\n", MAIN_CWD_ERR);
         }
     }
-    if (enableLogging) {
+    if (enableDebug) {
         printf("Port %d\n", server.port);
-        logMessage(MAIN_STARTING, LOG_INFO);
+        debugMessage(MAIN_STARTING, LOG_INFO);
     }
     if (PLATFORM_SUCCESS != daemonize()) {
-        logMessage(MAIN_DAEMON_ERR, LOG_ERR);
+        debugMessage(MAIN_DAEMON_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
-        logMessage(MAIN_START_LOG_ERR, LOG_WARNING);
+        debugMessage(MAIN_START_LOG_ERR, LOG_WARNING);
     }
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
-        logMessage(MAIN_SOCKET_ERR, LOG_ERR);
+        debugMessage(MAIN_SOCKET_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     // Avvio
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {
-        logMessage(MAIN_LOOP_ERR, LOG_ERR);
+        debugMessage(MAIN_LOOP_ERR, LOG_ERR);
         goto ON_ERROR;
     }
     closeSocket(server.sock);
@@ -160,8 +156,8 @@ int main(int argc, string_t* argv) {
     }
     return 0;
 ON_ERROR:
-    if (enableLogging) {
-        logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
+    if (enableDebug) {
+        debugMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
     }
     if (configPath) {
         free(configPath);

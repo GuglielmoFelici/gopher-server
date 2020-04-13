@@ -5,7 +5,7 @@
 
 #include "../headers/globals.h"
 
-bool enableLogging = true;
+bool enableDebug = true;
 
 bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
@@ -41,10 +41,11 @@ int changeCwd(LPCSTR path) {
     return SetCurrentDirectory(path) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-void logMessage(cstring_t message, int level) {
-    if (!enableLogging) {
+void debugMessage(cstring_t message, int level) {
+    if (!enableDebug) {
         return;
     }
+    FILE* where = stdout;
     string_t lvl = "";
     switch (level) {
         case LOG_DEBUG:
@@ -54,12 +55,14 @@ void logMessage(cstring_t message, int level) {
             lvl = "INFO";
             break;
         case LOG_WARNING:
+            where = stderr;
             lvl = "WARNING";
             break;
         case LOG_ERR:
+            where = stderr;
             lvl = "ERROR";
     }
-    fprintf(stderr, "%s - %s\n", lvl, message);
+    fprintf(where, "%s - %s\n", lvl, message);
 }
 
 int getWindowsHelpersPaths() {
@@ -239,8 +242,8 @@ int changeCwd(const char *path) {
     return chdir(path) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-void logMessage(cstring_t message, int level) {
-    if (!enableLogging) {
+void debugMessage(cstring_t message, int level) {
+    if (!enableDebug) {
         return;
     }
     string_t lvl = "";
