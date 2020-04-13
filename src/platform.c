@@ -336,6 +336,28 @@ int daemonize() {
 
 /*********************************************** FILES ****************************************************************/
 
+string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
+    string_t ret = NULL;
+    int attr = fileAttributes(relative);
+    if (!(PLATFORM_FAILURE & attr)) {
+        ret = realpath(relative, absolute);
+    } else if (attr & PLATFORM_NOT_FOUND && acceptAbsent) {
+        int fd = creat(relative, S_IRWXU);
+        if (fd < 0) {
+            return NULL;
+        }
+        close(fd);
+        ret = realpath(relative, absolute);
+        if (remove(relative) < 0) {
+            if (ret) {
+                free(ret);
+            }
+            return NULL;
+        }
+    }
+    return ret;
+}
+
 int createIfAbsent(cstring_t path) {
     int fd = creat(path, S_IRWXU | S_IRGRP | S_IROTH);
     if (fd < 0) {

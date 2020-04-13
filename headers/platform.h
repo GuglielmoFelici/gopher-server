@@ -56,9 +56,10 @@ void logMessage(cstring_t message, int level);
  * Gets the absolute path of a file.
  * @param relative The relative path of the file to be converted to absolute.
  * @param absolute A pointer to a buffer where the absolute path will be stored.
- * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+ * @param acceptAbsent If false, the function fails if the relative path does not exist.
+ * @return If absolute is NULL, the function returns a pointer to a heap-allocated string containing the path. Absolute is returned otherwise.
 */
-int getRealPath(cstring_t relative, string_t absolute);
+string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent);
 
 /**
  * Gets the absolute paths of windows helper files and stores them in the global variables winLogPath and winHelperPath.

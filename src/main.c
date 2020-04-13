@@ -12,11 +12,87 @@ string_t configPath = NULL;
 string_t logPath = NULL;
 string_t winLoggerPath = NULL;
 string_t winHelperPath = NULL;
+char cwd[MAX_NAME];
+
+struct switches {
+    /* Help, multiprocess, silent, port, directory, file, logFile */
+    bool h, m, s, p, d, f, l;
+};
+
+int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* pSwitches) {
+    int opt, opterr = 0;
+    while ((opt = getopt(argc, argv, "hmsp:d:f:l:")) != -1) {
+        switch (opt) {
+            case 'h':
+                pSwitches->h = true;
+                fprintf(stderr, "%s\n", MAIN_USAGE);
+                return -1;
+            case 'f':
+                pSwitches->f = true;
+                if (optarg[0] == '-') {
+                    fprintf(stderr, "%s\n", MAIN_USAGE);
+                    return -1;
+                }
+                configPath = getRealPath(optarg, NULL, false);
+                if (NULL == configPath) {
+                    fprintf(stderr, "%s\n", CONFIG_OPEN_ERR);
+                    return -1;
+                }
+                break;
+            case 's':
+                pSwitches->s = true;
+                enableLogging = false;
+                break;
+            case 'l':
+                pSwitches->l = true;
+                if (optarg[0] == '-') {
+                    fprintf(stderr, "%s\n", MAIN_USAGE);
+                    return -1;
+                }
+                logPath = getRealPath(optarg, NULL, true);
+                if (NULL == logPath) {
+                    fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
+                    return -1;
+                }
+                break;
+            case 'm':
+                pSwitches->m = true;
+                pServer->multiProcess = true;
+                break;
+            case 'p':
+                pSwitches->p = true;
+                if (optarg[0] == '-') {
+                    fprintf(stderr, "%s\n", MAIN_USAGE);
+                    return -1;
+                }
+                int port = strtol(optarg, NULL, 10);
+                if (port < 1 || port > 65535) {
+                    fprintf(stderr, "%s\n", MAIN_PORT_ERR);
+                } else {
+                    pServer->port = port;
+                }
+                break;
+            case 'd':
+                pSwitches->d = true;
+                if (optarg[0] == '-') {
+                    fprintf(stderr, "%s\n", MAIN_USAGE);
+                    return -1;
+                }
+                strncpy(cwd, optarg, sizeof(cwd));
+                break;
+            default:
+                fprintf(stderr, "%s\n", MAIN_USAGE);
+                return -1;
+        }
+    }
+    return 0;
+}
 
 int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
-    char newWD[MAX_NAME] = "";
+    struct switches switches;
+    switches.p = switches.m = switches.s = false;
     if (SERVER_SUCCESS != initWsa()) {
         fprintf(stderr, "%s\n", MAIN_WSA_ERR);
         goto ON_ERROR;
@@ -25,93 +101,28 @@ int main(int argc, string_t* argv) {
         fprintf(stderr, "%s\n", HELPER_OPEN_ERR);
         goto ON_ERROR;
     }
+    server.port = -1;
     logger.pid = -1;
     defaultConfig(&server, READ_MULTIPROCESS | READ_PORT);
-    /* Options parsing */
-    int opt, opterr = 0;
-    bool port = false, mp = false, silent = false;
-    while ((opt = getopt(argc, argv, "hmsp:d:f:l:")) != -1) {
-        switch (opt) {
-            case 'h':
-                fprintf(stderr, "%s\n", MAIN_USAGE);
-                goto ON_ERROR;
-            case 'f':
-                if (strlen(optarg) > MAX_NAME) {
-                    fprintf(stderr, "%s\n", CONFIG_OPEN_ERR);
-                    goto ON_ERROR;
-                }
-                configPath = realpath(optarg, NULL);
-                if (NULL == configPath) {
-                    fprintf(stderr, "%s\n", CONFIG_OPEN_ERR);
-                    goto ON_ERROR;
-                }
-                break;
-            case 's':
-                enableLogging = false;
-                silent = true;
-                break;
-            case 'l':
-                if (strlen(optarg) > MAX_NAME) {
-                    fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
-                    goto ON_ERROR;
-                }
-                logPath = realpath(optarg, NULL);
-                if (NULL == logPath) {
-                    if (PLATFORM_SUCCESS != createIfAbsent(optarg)) {
-                        fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
-                        goto ON_ERROR;
-                    }
-                    if (NULL == (logPath = realpath(optarg, NULL))) {
-                        fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
-                        goto ON_ERROR;
-                    }
-                }
-                break;
-            case 'm':
-                mp = true;
-                server.multiProcess = true;
-                break;
-            case 'p':
-                port = true;
-                if (optarg[0] == '-') {
-                    fprintf(stderr, "%s\n", MAIN_USAGE);
-                    goto ON_ERROR;
-                }
-                int port = strtol(optarg, NULL, 10);
-                if (server.port < 1 || server.port > 65535) {
-                    fprintf(stderr, "%s\n", MAIN_PORT_ERR);
-                } else {
-                    server.port = port;
-                }
-                break;
-            case 'd':
-                strncpy(newWD, optarg, sizeof(newWD));
-                break;
-            default:
-                fprintf(stderr, "%s\n", MAIN_USAGE);
-                goto ON_ERROR;
-        }
+    if (parseOptions(argc, argv, &server, &switches) < 0) {
+        goto ON_ERROR;
     }
-    if (configPath) {
-        int request = 0 | (port ? 0 : READ_PORT) | (mp ? 0 : READ_MULTIPROCESS) | (silent ? 0 : READ_SILENT);
+    if (switches.f) {
+        int request = 0 | (switches.p ? 0 : READ_PORT) | (switches.m ? 0 : READ_MULTIPROCESS) | (switches.s ? 0 : READ_SILENT);
         if (SERVER_SUCCESS != readConfig(&server, request)) {
             fprintf(stderr, "%s\n", MAIN_CONFIG_ERR);
             defaultConfig(&server, request);
         }
     }
     // TODO aggiungere al config file
-    if (!logPath) {
-        if (PLATFORM_SUCCESS != createIfAbsent(LOG_FILE)) {
-            fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
-            goto ON_ERROR;
-        }
-        if (NULL == (logPath = realpath(LOG_FILE, NULL))) {
+    if (!switches.l) {
+        if (NULL == (logPath = getRealPath(LOG_FILE, NULL, true))) {
             fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
             goto ON_ERROR;
         }
     }
-    if (strlen(newWD)) {
-        if (PLATFORM_SUCCESS != changeCwd(newWD)) {
+    if (switches.d) {
+        if (PLATFORM_SUCCESS != changeCwd(cwd)) {
             fprintf(stderr, "%s\n", MAIN_CWD_ERR);
         }
     }

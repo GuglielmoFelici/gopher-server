@@ -5,6 +5,8 @@
 
 #include "../headers/globals.h"
 
+#define MAX_LINE_SIZE 200
+
 /** [Linux] Starts the main logging process loop.
  *  If pLogger is NULL or a system error occurs, the function logs and terminates the process with exit code 1
  *  @param pLogger A pointer to the logger_t struct representing a logging process.
@@ -295,7 +297,6 @@ int stopTransferLog(logger_t* pLogger) {
 
 static void loggerLoop(const logger_t* pLogger) {
     int logFile = -1;
-    const int MAX_LINE_SIZE = 100;
     char buff[MAX_LINE_SIZE];
     if (!pLogger) {
         goto ON_ERROR;

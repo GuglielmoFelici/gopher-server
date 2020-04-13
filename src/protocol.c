@@ -169,14 +169,19 @@ static void* sendFileTask(void* threadArgs) {
     closeSocket(args.dest);
     inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
     string_t logFormat = "File: %s | Size: %db | Sent to: %s:%i\n";
+    string_t path = getRealPath(args.name, NULL, false);
+    if (NULL == path) {
+        return NULL;
+    }
     if (args.pLogger) {
-        logSize = snprintf(NULL, 0, logFormat, args.name, args.size, address, clientAddr.sin_port) + 1;
+        logSize = snprintf(NULL, 0, logFormat, path, args.size, address, clientAddr.sin_port) + 1;
         if (NULL == (log = malloc(logSize))) {
             return NULL;
         }
-        if (snprintf(log, logSize, logFormat, args.name, args.size, address, clientAddr.sin_port) > 0) {
+        if (snprintf(log, logSize, logFormat, path, args.size, address, clientAddr.sin_port) > 0) {
             logTransfer(args.pLogger, log);
         }
+        free(path);
         free(log);
     }
 }

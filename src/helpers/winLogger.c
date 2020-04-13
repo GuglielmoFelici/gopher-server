@@ -4,6 +4,7 @@
 
 #define LOG_ERR "WARNING - Logger - Fatal error, maybe already running?\n"
 #define LOGGER_EVENT_NAME "logEvent"
+#define MAX_LINE_SIZE = 200;
 
 /* Richiede la rilettura del file di configurazione */
 static BOOL sigHandler(DWORD signum) {
@@ -12,7 +13,6 @@ static BOOL sigHandler(DWORD signum) {
 
 /* Quando viene segnalato l'evento logEvent, legge dallo stdInput (estremo in lettura della pipe di log) */
 DWORD main(DWORD argc, LPSTR* argv) {
-    const int MAX_LINE_SIZE = 100;
     char buff[MAX_LINE_SIZE];
     HANDLE logEvent;
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigHandler, TRUE)) {
