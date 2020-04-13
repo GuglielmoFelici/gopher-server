@@ -107,6 +107,8 @@ int readConfig(server_t* pServer, int which) {
                     goto ON_ERROR;
                 }
                 pServer->port = port;
+            } else if (strcmp(key, CONFIG_LOG_KEY) == 0 && (which & READ_LOG)) {
+                // TODO
             } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
                 pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
             } else if (strcmp(key, CONFIG_SILENT_KEY) == 0 && (which & READ_SILENT)) {

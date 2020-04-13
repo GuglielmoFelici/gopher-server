@@ -10,6 +10,7 @@
 
 char installDir[MAX_NAME];
 char configPath[MAX_NAME] = "";
+char logPath[MAX_NAME] = "";
 
 int main(int argc, string_t* argv) {
     server_t server;

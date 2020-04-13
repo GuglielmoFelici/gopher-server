@@ -20,6 +20,7 @@
 #define READ_PORT 0x0001
 #define READ_MULTIPROCESS 0x0002
 #define READ_SILENT 0x0004
+#define READ_LOG 0x0008
 #define SERVER_UPDATE 0x0001
 #define SERVER_INIT 0x0002
 // Error codes

@@ -70,22 +70,22 @@ I quattro moduli sono:
     \item Protocollo - Si occupa di leggere, validare, interpretare e soddisfare la richiesta di un singolo client,
     costruendo la risposta secondo lo standard del protocollo Gopher. 
     In questo modulo avviene la lettura del file system e l'eventuale mapping 
-    in memoria dei file, nonché la registrazione dei trasferimenti mediante il modulo
+    in memoria dei file.
     \item Logger - Gestisce il processo di logging, che ha il compito di registrare le operazioni di invio
     di file.
     \item Compatibilità - API minimale che offre diverse funzioni di supporto portabili. Espone wrapper
     di varie chiamate di sistema e altre operazioni comuni non portabili, nonché wrapper di tipi di dato.
 \end{itemize} 
 
+Per quanto il progetto sia stato impostato con struttura modulare, le sue componenti sono 
+comunque interconnesse e progettate per coesistere in un'unica applicazione. 
+Da qui la scelta di utilizzare diverse configurazioni globali.\\
+
 \newpage
 
 
 \section{Scelte implementative}
 
-Per quanto il progetto sia stato impostato con una struttura modulare per trarre tutti i vantaggi della
-separation of concerns in fase di sviluppo, le sue componenti sono comunque interconnesse e progettate per coesistere 
-in un'unica applicazione. Da qui la scelta di utilizzare configurazioni globali 
-e usare path relativi che assumono la struttura di file e directory.\\
 
 Ogni file espone, tramite il proprio header, funzioni utili a espletare
 i compiti previsti dal modulo logico a cui il file fa riferimento. Le funzioni di ogni modulo

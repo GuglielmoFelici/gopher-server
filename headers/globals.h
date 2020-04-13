@@ -28,6 +28,7 @@
 
 #define CONFIG_DEFAULT "config"
 #define CONFIG_PORT_KEY "port"
+#define CONFIG_LOG_KEY "logfile"
 #define CONFIG_MP_KEY "multiprocess"
 #define CONFIG_SILENT_KEY "silent"
 #define CONFIG_YES "yes"
@@ -40,5 +41,8 @@ extern char installDir[MAX_NAME];
 
 /** The path to the configuration file */
 extern char configPath[MAX_NAME];
+
+/** The path to the log file */
+extern char logPath[MAX_NAME];
 
 #endif
