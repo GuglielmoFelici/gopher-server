@@ -4,7 +4,7 @@
 
 #define LOG_ERR "WARNING - Logger - Fatal error, maybe already running?\n"
 #define LOGGER_EVENT_NAME "logEvent"
-#define MAX_LINE_SIZE = 200;
+#define MAX_LINE_SIZE 200
 
 /* Richiede la rilettura del file di configurazione */
 static BOOL sigHandler(DWORD signum) {

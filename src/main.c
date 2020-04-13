@@ -9,9 +9,6 @@
 #include "../headers/wingetopt.h"
 
 string_t configPath = NULL;
-string_t logPath = NULL;
-string_t winLoggerPath = NULL;
-string_t winHelperPath = NULL;
 char cwd[MAX_NAME];
 
 struct switches {
@@ -45,8 +42,7 @@ int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* p
                 break;
             case 'h':
                 pSwitches->h = true;
-                fprintf(stderr, "%s\n", MAIN_USAGE);
-                return -1;
+                break;
             case 'l':
                 pSwitches->l = true;
                 if (optarg[0] == '-') {
@@ -97,14 +93,19 @@ int main(int argc, string_t* argv) {
         fprintf(stderr, "%s\n", MAIN_WSA_ERR);
         goto ON_ERROR;
     }
-    if (PLATFORM_SUCCESS != getWindowsHelpersPaths()) {
-        fprintf(stderr, "%s\n", HELPER_OPEN_ERR);
-        goto ON_ERROR;
-    }
     server.port = -1;
     logger.pid = -1;
     defaultConfig(&server, READ_MULTIPROCESS | READ_PORT);
     if (parseOptions(argc, argv, &server, &switches) < 0) {
+        goto ON_ERROR;
+    }
+    if (switches.h) {
+        printf("%s\n", MAIN_USAGE);
+        return 0;
+    }
+    // Get paths before cwd is changed
+    if (PLATFORM_SUCCESS != getWindowsHelpersPaths()) {
+        fprintf(stderr, "%s\n", HELPER_OPEN_ERR);
         goto ON_ERROR;
     }
     if (!switches.l) {
@@ -155,10 +156,7 @@ int main(int argc, string_t* argv) {
         free(logPath);
     }
     if (winHelperPath) {
-        free(logPath);
-    }
-    if (winLoggerPath) {
-        free(logPath);
+        free(winHelperPath);
     }
     return 0;
 ON_ERROR:

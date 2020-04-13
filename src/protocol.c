@@ -9,6 +9,9 @@
 #include "../headers/logger.h"
 #include "../headers/platform.h"
 
+/** Path to the windows gopher helper executable */
+string_t winHelperPath = NULL;
+
 typedef struct {
     void* src;
     int size;

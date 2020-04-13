@@ -6,7 +6,7 @@ CC = gcc
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
 	target = winserver.exe
 	lib = lws2_32
-	helpers = src/helpers/winLogger.exe src/helpers/winGopherProcess.exe
+	helpers = winLogger.exe winGopherProcess.exe
 else
     target = linuxserver
 	lib = pthread
@@ -18,11 +18,11 @@ $(target) : $(objects) $(helpers)
 debug : CFLAGS += -g
 debug : $(objects) $(helpers) $(target)
 
-src/helpers/winGopherProcess.exe : $(winHelperObjects)
-	$(CC) $(CFLAGS) -o $@ ../../$(winHelperObjects) -$(lib)
+winGopherProcess.exe : $(winHelperObjects)
+	$(CC) $(CFLAGS) -o $@ $(winHelperObjects) -$(lib)
 
-src/helpers/winLogger.exe : $(winLoggerObjects)
-	$(CC) $(CFLAGS) -o $@ ../../$(winLoggerObjects)
+winLogger.exe : $(winLoggerObjects)
+	$(CC) $(CFLAGS) -o $@ $(winLoggerObjects)
 
 src/main.o : headers/globals.h headers/log.h headers/logger.h headers/platform.h headers/server.h headers/wingetopt.h
 src/logger.o : headers/globals.h headers/logger.h

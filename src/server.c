@@ -256,7 +256,7 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
     args->sock = sock;
     args->port = port;
     args->pLogger = pLogger;
-    ReleaseMutex(*(pLogger->pLogMutex));
+    //ReleaseMutex(*(pLogger->pLogMutex));
     if (NULL == (thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL))) {  // TODO startThread?
         free(args);
         return SERVER_FAILURE;
@@ -300,7 +300,7 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     if (!SetHandleInformation((HANDLE)pServer->sock, HANDLE_FLAG_INHERIT, 0)) {
         goto ON_ERROR;
     }
-    if (!CreateProcess(exec, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+    if (!CreateProcess(winHelperPath, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
         goto ON_ERROR;
     }
     free(cmdLine);

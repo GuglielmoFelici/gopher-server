@@ -7,6 +7,11 @@
 
 #define MAX_LINE_SIZE 200
 
+/** Path to the logfile */
+string_t logPath = NULL;
+/** Path to the windows logger executable*/
+string_t winLoggerPath = NULL;
+
 /** [Linux] Starts the main logging process loop.
  *  If pLogger is NULL or a system error occurs, the function logs and terminates the process with exit code 1
  *  @param pLogger A pointer to the logger_t struct representing a logging process.
@@ -29,9 +34,9 @@ int startTransferLog(logger_t* pLogger) {
         goto ON_ERROR;
     }
     pLogger->pid = -1;
-    char exec[MAX_NAME];
-    int bytesWritten = snprintf(exec, sizeof(exec), "%s %s", winLoggerPath, logPath);
-    if (bytesWritten < 0 || bytesWritten >= sizeof(exec)) {
+    char cmdLine[MAX_NAME];
+    int bytesWritten = snprintf(cmdLine, sizeof(cmdLine), "%s %s", winLoggerPath, logPath);
+    if (bytesWritten < 0 || bytesWritten >= sizeof(cmdLine)) {
         goto ON_ERROR;
     }
     SECURITY_ATTRIBUTES attr;
@@ -65,7 +70,7 @@ int startTransferLog(logger_t* pLogger) {
     startupInfo.hStdInput = readPipe;
     startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    if (!CreateProcess(exec, NULL, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
+    if (!CreateProcess(winLoggerPath, cmdLine, NULL, NULL, TRUE, 0, NULL, NULL, &startupInfo, &processInfo)) {
         goto ON_ERROR;
     }
     pLogger->pid = processInfo.dwProcessId;

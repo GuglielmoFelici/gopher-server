@@ -63,10 +63,10 @@ void logMessage(cstring_t message, int level) {
 }
 
 int getWindowsHelpersPaths() {
-    if (NULL == (winLogPath = realPath(WINLOGGER_PATH, NULL))) {
-        return PLATFORM_FAILURE
+    if (NULL == (winLoggerPath = getRealPath(WINLOGGER_PATH, NULL, false))) {
+        return PLATFORM_FAILURE;
     }
-    return (winHelperPath = realPath(WINHELPER_PATH, NULL)) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    return (winHelperPath = getRealPath(WINHELPER_PATH, NULL, false)) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /********************************************** SOCKETS *************************************************************/
@@ -104,6 +104,14 @@ int daemonize() {
 }
 
 /*********************************************** FILES  ***************************************************************/
+
+string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
+    int attr = fileAttributes(relative);
+    if (!(PLATFORM_FAILURE & attr) || (attr & PLATFORM_NOT_FOUND && acceptAbsent)) {
+        return _fullpath(absolute, relative, 0);
+    } 
+    return NULL;
+}
 
 int getFileSize(const char *path) {
     WIN32_FIND_DATA data;

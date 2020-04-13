@@ -1,3 +1,4 @@
 port = 7072
 multiProcess = 0
-root = ../
+logfile = ../cancuro
+root = C:\\Users\Guglielmo
