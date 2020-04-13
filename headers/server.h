@@ -19,6 +19,7 @@
 
 #define READ_PORT 0x0001
 #define READ_MULTIPROCESS 0x0002
+#define READ_SILENT 0x0004
 #define SERVER_UPDATE 0x0001
 #define SERVER_INIT 0x0002
 // Error codes
@@ -44,13 +45,6 @@ typedef struct {
  * @return SERVER_SUCCESS or SERVER_FAILURE.  
  */
 int prepareSocket(server_t* pServer, int flags);
-
-/** Installs the default signal handlers for the server process.
- * On Windows, CTRL_C interrupts the server and CTRL_BREAK requests a configuration update.
- * On Linux, SIGINT interrupts the server and SIGHUP requests a configuration update.
- * @return SERVER_SUCCESS or SERVER_FAILURE. 
-*/
-int installDefaultSigHandlers();
 
 /** [Windows only] Initializes the Winsock DLL and the critical section for console signals.
  *  @return SERVER_SUCCESS or SERVER_FAILURE. 

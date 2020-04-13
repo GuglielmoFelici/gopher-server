@@ -9,6 +9,7 @@
 #include "../headers/wingetopt.h"
 
 char installDir[MAX_NAME];
+char configPath[MAX_NAME] = CONFIG_DEFAULT;
 
 int main(int argc, string_t* argv) {
     server_t server;
@@ -22,56 +23,59 @@ int main(int argc, string_t* argv) {
         goto ON_ERROR;
     }
     logger.pid = -1;
-    bool portOk = true, mpOk = true;
-    if (SERVER_SUCCESS != readConfig(&server, READ_PORT)) {
-        portOk = false;
-        defaultConfig(&server, READ_PORT);
-    }
-    if (SERVER_SUCCESS != readConfig(&server, READ_MULTIPROCESS)) {
-        mpOk = false;
-        defaultConfig(&server, READ_MULTIPROCESS);
-    }
+    defaultConfig(&server, READ_MULTIPROCESS | READ_PORT);
     /* Options parsing */
     int opt, opterr = 0;
-    while ((opt = getopt(argc, argv, "hmsp:d:")) != -1) {
+    bool port = false, mp = false, silent = false, config = false;
+    while ((opt = getopt(argc, argv, "hmsp:d:f:")) != -1) {
         switch (opt) {
             case 'h':
-                logMessage(MAIN_USAGE, LOG_INFO);
+                fprintf(stderr, "%s\n", MAIN_USAGE);
                 goto ON_ERROR;
+            case 'f':
+                if (strlen(optarg) >= sizeof(configPath)) {
+                    fprintf(stderr, "%s\n", PATH_TOO_LONG);
+                    goto ON_ERROR;
+                }
+                snprintf(configPath, sizeof(configPath), "%s", optarg);
+                config = true;
+                break;
             case 's':
                 enableLogging = false;
+                silent = true;
+                break;
             case 'm':
-                mpOk = true;
+                mp = true;
                 server.multiProcess = true;
                 break;
             case 'p':
-                portOk = true;
+                port = true;
                 if (optarg[0] == '-') {
-                    logMessage(MAIN_USAGE, LOG_INFO);
+                    fprintf(stderr, "%s\n", MAIN_USAGE);
                     goto ON_ERROR;
                 }
                 int port = strtol(optarg, NULL, 10);
-                if (port < 1 || port > 65535) {
-                    logMessage(MAIN_PORT_ERR, LOG_WARNING);
-                } else {
-                    server.port = port;
-                }
+                server.port = port;
                 break;
             case 'd':
                 if (PLATFORM_SUCCESS != changeCwd(optarg)) {
-                    logMessage(MAIN_CWD_ERR, LOG_WARNING);
+                    fprintf(stderr, "%s\n", MAIN_CWD_ERR);
                 }
                 break;
             default:
-                logMessage(MAIN_USAGE, LOG_INFO);
+                fprintf(stderr, "%s\n", MAIN_USAGE);
                 goto ON_ERROR;
         }
     }
-    if (!portOk) {
-        logMessage(MAIN_PORT_CONFIG_ERR, LOG_WARNING);
+    if (config) {
+        int request = 0 | (port ? 0 : READ_PORT) | (mp ? 0 : READ_MULTIPROCESS) | (silent ? 0 : READ_SILENT);
+        if (SERVER_SUCCESS != readConfig(&server, request)) {
+            fprintf(stderr, "%s\n", MAIN_CONFIG_ERR);
+            defaultConfig(&server, request);
+        }
     }
-    if (!mpOk) {
-        logMessage(MAIN_MULTIPROCESS_CONFIG_ERR, LOG_WARNING);
+    if (server.port < 1 || server.port > 65535) {
+        fprintf(stderr, "%s\n", MAIN_PORT_ERR);
     }
     if (enableLogging) {
         printf("Port %d\n", server.port);
@@ -99,7 +103,6 @@ int main(int argc, string_t* argv) {
     return 0;
 ON_ERROR:
     if (enableLogging) {
-        fprintf(stderr, "The program terminated with errors, check logs.\n");
         logMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
     }
     stopTransferLog(&logger);

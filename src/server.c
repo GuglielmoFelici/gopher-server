@@ -45,6 +45,13 @@ static int serveThread(socket_t sock, int port, logger_t* pLogger);
 */
 static int serveProc(socket_t client, const logger_t* pLogger, const server_t* pServer);
 
+/** Installs the default signal handlers for the server process.
+ * On Windows, CTRL_C interrupts the server and CTRL_BREAK requests a configuration update.
+ * On Linux, SIGINT interrupts the server and SIGHUP requests a configuration update.
+ * @return SERVER_SUCCESS or SERVER_FAILURE. 
+*/
+int installDefaultSigHandlers();
+
 int prepareSocket(server_t* pServer, int flags) {
     if (!pServer) {
         goto ON_ERROR;
@@ -85,53 +92,31 @@ void defaultConfig(server_t* pServer, int which) {
 
 int readConfig(server_t* pServer, int which) {
     FILE* configFile = NULL;
-    char* configFilePath = NULL;
-    int configFilePathSize = strlen(installDir) + sizeof(CONFIG_FILE) + 2;
-    if (NULL == (configFilePath = malloc(configFilePathSize))) {
+    char buff[50];
+    if (NULL == (configFile = fopen(configPath, "r"))) {
         goto ON_ERROR;
     }
-    snprintf(configFilePath, configFilePathSize, "%s/%s", installDir, CONFIG_FILE);
-    if (NULL == (configFile = fopen(configFilePath, "r"))) {
-        goto ON_ERROR;
-    }
-    free(configFilePath);
-    char portBuff[6], multiProcess[2];
-    char c;
-    do {
-        c = fgetc(configFile);
-    } while (c != CONFIG_DELIMITER);
-    if (c == EOF) {
-        goto ON_ERROR;
-    }
-    fgets(portBuff, sizeof(portBuff), configFile);
-    do {
-        c = fgetc(configFile);
-    } while (c != CONFIG_DELIMITER);
-    if (c == EOF) {
-        goto ON_ERROR;
-    }
-    fgets(multiProcess, sizeof(multiProcess), configFile);
-    if (fclose(configFile) != 0) {
-        goto ON_ERROR;
-    }
-    if (which & READ_PORT) {
-        int port;
-        port = strtol(portBuff, NULL, 10);
-        if (port < 1 || port > 65535) {
-            goto ON_ERROR;
+    char key[32], value[32];
+    while (NULL != fgets(buff, sizeof(buff), configFile)) {
+        if (sscanf(buff, "%s = %s", key, value) == 2) {
+            if (strcmp(key, CONFIG_PORT_KEY) == 0 && (which & READ_PORT)) {
+                int port;
+                port = strtol(value, NULL, 10);
+                if (port < 1 || port > 65535) {
+                    goto ON_ERROR;
+                }
+                pServer->port = port;
+            } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
+                pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
+            } else if (strcmp(key, CONFIG_SILENT_KEY) == 0 && (which & READ_SILENT)) {
+                enableLogging = strcmp(value, CONFIG_YES) != 0;
+            }
         }
-        pServer->port = port;
-    }
-    if (which & READ_MULTIPROCESS) {
-        pServer->multiProcess = strtol(multiProcess, NULL, 10);
     }
     return SERVER_SUCCESS;
 ON_ERROR:
     if (configFile) {
         fclose(configFile);
-    }
-    if (configFilePath) {
-        free(configFilePath);
     }
     return SERVER_FAILURE;
 }
@@ -158,9 +143,8 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG)) {
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
-                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS)) {
+                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT)) {
                     logMessage(MAIN_CONFIG_ERR, LOG_WARNING);
-                    defaultConfig(pServer, READ_PORT);
                 }
                 if (pServer->port != htons(pServer->sockAddr.sin_port)) {
                     if (SERVER_FAILURE == prepareSocket(pServer, SERVER_UPDATE)) {

@@ -5,7 +5,21 @@
 #ifndef LOG_H
 #define LOG_H
 
-#define MAIN_CONFIG_ERR "Can't read configuration file."
+#define MAIN_USAGE \
+    "Available options: \
+    \n-h\n\tShow usage help. \
+    \n-s\n\tDon't log on console/syslog (silent mode). \
+    \n-f FILE\n\tRead configurations from FILE. \
+        \n\tIMPORTANT: see \"NOTE\" for -d. \
+        \n\tThe file must be a collection of lines of the form KEY = VALUE, where the following pairs are accepted:\
+        \n\t\t port = <port number>\
+        \n\t\t silent = yes/no\
+        \n\t\t multiprocess = yes/no\
+    \n-p PORT\n\tSet the port to PORT.\
+    \n-d DIR\n\tChange cwd of the server to DIR.\
+        \n\tNOTE: This option changes the working directory. Don't use relative paths for -f is this option is used.\
+    \n-m\n\tUse multiprocess mode"
+#define MAIN_CONFIG_ERR "Can't read configuration file. Default options will be used."
 #define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file and no option provided, multiprocess will be disabled."
 #define MAIN_PORT_CONFIG_ERR "Can't read configuration file and no option provided for port, default one will be used."
 #define MAIN_PORT_ERR "Invalid port number, default one will be used."
@@ -21,7 +35,7 @@
 #define MAIN_THREAD_ERR "Error starting a new thread."
 #define MAIN_SYS_ERR "System error."
 #define MAIN_WSA_ERR "Error initializing the WSA."
-#define MAIN_USAGE "Available options:\n-h\tshow usage help\n-s\tDon't log on console/syslog\n-p=PORT\tsets the port to PORT\n-d=DIR\tchanges cwd of the server to DIR\n-m\tactivates multiprocess mode"
+#define PATH_TOO_LONG "Error: the path is too long."
 #define MAIN_STARTING "Starting server..."
 #define FORK_FAILED "Fork failed."
 #define HANDLERS_ERR "Error setting up console ctrl events handlers."

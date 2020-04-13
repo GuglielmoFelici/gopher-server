@@ -32,6 +32,17 @@
 
 \section{Utilizzo del software}
 
+E' possibile compilare il progetto con il comando make. La compilazione genera l'eseguibile linuxserver o winserver.exe,
+e due binari aggiuntivi posizionati in src/helpers nel caso in cui si buildi su Windows.\\
+E' possibile eseguire il programma con le seguenti opzioni:\\
+\\-h\\ \hspace*{2cm} Mostra la sintassi\\
+-s\\ \hspace*{2cm} (silent) - Non loggare in console/syslog\\
+-p PORT \\ \hspace*{2cm} Metti il server in ascolto sulla porta PORT\\
+-d DIR \\ \hspace*{2cm} Utilizza la directory DIR come root del server\\
+-m \\ \hspace*{2cm} Utilizza il server in modalità multiprocesso\\
+
+Il programma legge le 
+
 \newpage
 
 \section{Struttura del progetto}
@@ -44,54 +55,17 @@ I quattro moduli sono:
 \begin{itemize}
     \item Server - Riceve le richieste di connessione dei client e crea nuovi thread 
     o processi per inviare le risposte. Si occupa inoltre della lettura dei file di configurazione e 
-    della gestione dei segnali.
-    \item Protocollo - Legge la richieste di un client e costruisce la risposta secondo lo standard del
-    protocollo Gopher. In questo modulo avviene la lettura del file system e l'eventuale mapping 
-    in memoria dei file.
+    della gestione dei segnali per l'interazione con l'utente.
+    \item Protocollo - Si occupa di leggere, validare, interpretare e soddisfare la richiesta di un singolo client,
+    costruendo la risposta secondo lo standard del protocollo Gopher. 
+    In questo modulo avviene la lettura del file system e l'eventuale mapping 
+    in memoria dei file, nonché la registrazione dei trasferimenti mediante il modulo
     \item Logger - Gestisce il processo di logging, che ha il compito di registrare le operazioni di invio
     di file.
     \item Compatibilità - API minimale che offre diverse funzioni di supporto portabili. Espone wrapper
     di varie chiamate di sistema e altre operazioni comuni non portabili, nonché wrapper di tipi di dato.
 \end{itemize} 
-Di seguito vengono esaminati in astratto i moduli nel dettaglio.
 
-\subsection{Server}
-Il modulo Server si occupa di leggere il file di configurazione, di inizializzare la Winsock DLL 
-(caso Windows), di amministrare le connessioni tramite socket e di gestire i 
-segnali per l'interazione con l'utente.
-Quando riceve una richiesta di connessione, il modulo si occupa di generare un nuovo thread o un nuovo processo
-e passare il socket connesso al modulo Protocollo.
-Il modulo Server espone un'interfaccia composta da una struttura dati (server\_t) e
-varie funzioni per inizializzare il socket, leggere le configurazioni, installare i 
-gestori di segnali di default e mettere in ascolto il server.  
-
-\subsection{Protocollo}
-Il modulo Protocollo riceve in input un socket connesso.
-Esso si occupa di leggere, validare, interpretare e soddisfare la richiesta del client.
-Nel caso in cui venga inviato un file, il modulo Protocollo richiede al modulo Logger di registrare 
-l'avvenuto trasferimento.
-
-\subsection{Logger}
-Il modulo Logger si interfaccia con i moduli superiori attraverso una struttura dati (logger\_t) che
-contiene le informazioni sul processo di logging, e le funzioni per avviare o interrompere il processo
-e loggare un trasferimento.
-E' implementato dall'header logger.h e dal file logger.c, nonché dal file winLogger.c nel caso di Windows. 
-
-
-\subsection{Compatibilità}
-Il modulo di Compatibilità offre numerose funzionalità implementate in modo portabile per essere riutilizzate
-dai moduli che lo richiedano. Le funzioni si articolano in:
-\begin{itemize}
-    \item utilità generiche (operazioni sulla working directory, logging...)
-    \item operazioni sui socket
-    \item operazioni su thread e processi
-    \item operazioni sul file system
-    \item wrapper per tipi di dato
-    \item messaggi di log e debug uniformi
-    \item parsing di opzioni da riga di comando.
-\end{itemize}
-Il modulo di Compatibilità è implementato dagli header platform.h, datatypes.h, log.h e wingetopt.h, e dai 
-sorgenti platform.c e \href{http://note.sonots.com/Comp/CompLang/cpp/getopt.html}{wingetopt.c}. 
 \newpage
 
 
@@ -238,10 +212,25 @@ generato a partire dal file winLogger.c, che opera in modo analogo alla funzione
 Anche in questo caso la funzione di interruzione libera le risorse e termina il processo di logging
 mediante la funzione TerminateProcess.
 
+\subsection{Compatibilità}
+Il modulo di Compatibilità è implementato dagli header platform.h, datatypes.h, log.h e wingetopt.h, e dai 
+sorgenti platform.c e \href{http://note.sonots.com/Comp/CompLang/cpp/getopt.html}{wingetopt.c}.
+Offre numerose funzionalità implementate in modo portabile per essere riutilizzate
+dai moduli che lo richiedano. Le funzioni si articolano in:
+\begin{itemize}
+    \item utilità generiche (operazioni sulla working directory, logging...)
+    \item operazioni sui socket
+    \item operazioni su thread e processi
+    \item operazioni sul file system
+    \item wrapper per tipi di dato
+    \item messaggi di log e debug uniformi
+    \item parsing di opzioni da riga di comando.
+\end{itemize} 
+
 \subsection{Main}
 Le componenti sopra descritte vengono combinate in maniera intuitiva nel main.
-Vengono creati i due oggetti server_t e logger_t per gestire rispettivamente server e logger.
-Dopo aver letto e settato opportunamente le configurazioni nella struttura server_t, viene eseguita la 
+Vengono creati i due oggetti server\_t e logger\_t per gestire rispettivamente server e logger.
+Dopo aver letto e settato opportunamente le configurazioni nella struttura server\_t, viene eseguita la 
 procedura per rendere il processo demone (nel caso Linux). Dopodiché vengono avviati, tramite le apposite 
 funzioni, il processo di logging e il server.
 
