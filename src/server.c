@@ -103,6 +103,7 @@ int readConfig(server_t* pServer, int which) {
                 int port;
                 port = strtol(value, NULL, 10);
                 if (port < 1 || port > 65535) {
+                    logMessage(MAIN_PORT_ERR, LOG_WARNING);
                     goto ON_ERROR;
                 }
                 pServer->port = port;
@@ -141,7 +142,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             } else if (checkSignal(CHECK_SHUTDOWN)) {
                 logMessage(SHUTDOWN_REQUESTED, LOG_INFO);
                 return SERVER_SUCCESS;
-            } else if (checkSignal(CHECK_CONFIG)) {
+            } else if (checkSignal(CHECK_CONFIG) && strlen(configPath)) {
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
                 if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT)) {
                     logMessage(MAIN_CONFIG_ERR, LOG_WARNING);

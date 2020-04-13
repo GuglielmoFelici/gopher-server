@@ -15,14 +15,14 @@ endif
 $(target) : $(objects) $(helpers)
 	$(CC) $(CFLAGS) -o $@ $(objects) -$(lib)
 
-debug : CFLAGS += -g 
+debug : CFLAGS += -g
 debug : $(objects) $(helpers) $(target)
-	
+
 src/helpers/winGopherProcess.exe : $(winHelperObjects)
-	$(CC) $(CFLAGS) -o $@ $(winHelperObjects) -$(lib)
+	$(CC) $(CFLAGS) -o $@ ../../$(winHelperObjects) -$(lib)
 
 src/helpers/winLogger.exe : $(winLoggerObjects)
-	$(CC) $(CFLAGS) -o $@ $(winLoggerObjects)
+	$(CC) $(CFLAGS) -o $@ ../../$(winLoggerObjects)
 
 src/main.o : headers/globals.h headers/log.h headers/logger.h headers/platform.h headers/server.h headers/wingetopt.h
 src/logger.o : headers/globals.h headers/logger.h

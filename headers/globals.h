@@ -21,8 +21,8 @@
 #define LOG_MUTEX_NAME "logMutex"
 #define LOGGER_EVENT_NAME "logEvent"
 #define LOG_FILE "logFile"
-#define LOGGER_PATH "src\\helpers\\winLogger.exe"
-#define HELPER_PATH "src\\helpers\\winGopherProcess.exe"
+#define LOGGER_PATH "winLogger.exe"
+#define HELPER_PATH "winGopherProcess.exe"
 #define DEFAULT_MULTI_PROCESS 0
 #define DEFAULT_PORT 7070
 

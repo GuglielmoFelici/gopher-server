@@ -3,6 +3,7 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{color}
+\usepackage[T1]{fontenc}
 
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
@@ -20,7 +21,6 @@
   keywordstyle=\color{blue},
   commentstyle=\color{dkgreen},
   stringstyle=\color{mauve},
-  breaklines=true,
   breakatwhitespace=true,
   tabsize=3
 }
@@ -33,15 +33,26 @@
 \section{Utilizzo del software}
 
 E' possibile compilare il progetto con il comando make. La compilazione genera l'eseguibile linuxserver o winserver.exe,
-e due binari aggiuntivi posizionati in src/helpers nel caso in cui si buildi su Windows.\\
-E' possibile eseguire il programma con le seguenti opzioni:\\
-\\-h\\ \hspace*{2cm} Mostra la sintassi\\
--s\\ \hspace*{2cm} (silent) - Non loggare in console/syslog\\
--p PORT \\ \hspace*{2cm} Metti il server in ascolto sulla porta PORT\\
--d DIR \\ \hspace*{2cm} Utilizza la directory DIR come root del server\\
--m \\ \hspace*{2cm} Utilizza il server in modalità multiprocesso\\
-
-Il programma legge le 
+e due binari aggiuntivi nel caso in cui si buildi su Windows.\\
+Sono disponibili le seguenti opzioni:\\
+\begin{lstlisting}
+-h
+    Mostra la sintassi.
+-s
+    (silent) - Non loggare in console/syslog.
+-p PORT
+    Metti il server in ascolto sulla porta PORT.
+-d DIR
+    Utilizza la directory DIR come root del server. 
+    NOTA: Se viene utilizzata questa opzione, il path specificato in -f 
+    deve essere assoluto.
+-f FILE 
+    Leggi le configurazioni da FILE. 
+    Per informazioni sulla struttura del file, vedere la sezione 
+    3.1.1 Lettura della configurazione. 
+-m 
+    Utilizza un processo per ogni client.
+\end{lstlisting}
 
 \newpage
 
@@ -110,10 +121,14 @@ un puntatore a una struttura server\_t, dalla quale leggere o sulla quale scrive
 
 \subsubsection{Lettura della configurazione}
 
-La lettura dei file di configurazione avviene tramite la funzione \href{}
-{readConfig}, che legge, mediante le funzioni della libreria standard, il file identificato 
-dal path \href{}{CONFIG\_FILE} e scrive le configurazioni nella struttura server\_t ricevuta in input.
-Il file è una sequenze di righe del tipo CHIAVE=VALORE.
+Se viene specificato un file di configurazione con l'opzione -f, il parsing delle impostazioni avviene tramite la funzione \href{}
+{readConfig}, che legge il file mediante le funzioni della libreria standard e scrive le configurazioni nella 
+struttura server\_t ricevuta in input. Il file è una sequenze di righe del tipo CHIAVE = VALORE, dove sono accettate le seguenti coppie:
+\begin{itemize}
+    \item port = <numero di porta>
+    \item multiprocess = yes/no
+    \item silent = yes/no
+\end{itemize}
 La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
 SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{}
 {main loop} del server.\\

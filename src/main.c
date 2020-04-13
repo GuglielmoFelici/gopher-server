@@ -9,7 +9,7 @@
 #include "../headers/wingetopt.h"
 
 char installDir[MAX_NAME];
-char configPath[MAX_NAME] = CONFIG_DEFAULT;
+char configPath[MAX_NAME] = "";
 
 int main(int argc, string_t* argv) {
     server_t server;
@@ -55,7 +55,11 @@ int main(int argc, string_t* argv) {
                     goto ON_ERROR;
                 }
                 int port = strtol(optarg, NULL, 10);
-                server.port = port;
+                if (server.port < 1 || server.port > 65535) {
+                    fprintf(stderr, "%s\n", MAIN_PORT_ERR);
+                } else {
+                    server.port = port;
+                }
                 break;
             case 'd':
                 if (PLATFORM_SUCCESS != changeCwd(optarg)) {
@@ -73,9 +77,6 @@ int main(int argc, string_t* argv) {
             fprintf(stderr, "%s\n", MAIN_CONFIG_ERR);
             defaultConfig(&server, request);
         }
-    }
-    if (server.port < 1 || server.port > 65535) {
-        fprintf(stderr, "%s\n", MAIN_PORT_ERR);
     }
     if (enableLogging) {
         printf("Port %d\n", server.port);
