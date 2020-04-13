@@ -195,7 +195,7 @@ e l'appartenenza di un'estensione a un tipo di file (testo, immagine...) viene c
 Ogni maschera rappresenta un gruppo di estensioni e ha settati a 1 i bit che corrispondono agli indici degli elementi
 dell'array extensions che fanno parte di quel gruppo.\\
 Se viene richiesto un file, questo viene mappato in memoria utilizzando la funzione di 
-compatibilità \href{html#a135c09a3fee8c20311691644b6f7f289}{getFileMap}, che wrappa le rispettive funzioni
+compatibilità \href{html/platform_8c.html#a135c09a3fee8c20311691644b6f7f289}{getFileMap}, che wrappa le rispettive funzioni
 mmap di Linux e CreateFileMapping/MapViewOfFile di Windows. Viene poi creato un nuovo thread, che si occupa di
 inviare il file mappato in memoria al client, di chiudere la connessione e di costruire una stringa da passare al
 logger tramite la funzione \href{html/logger_8c.html#a7d4a9a5bacd7404955557ba85aa7e70f}{logTransfer}.
