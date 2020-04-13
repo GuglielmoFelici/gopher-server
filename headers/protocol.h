@@ -41,8 +41,7 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
                                    ".c", ".cpp", ".h", ".bat",
                                    ".sh", ".hqx", ".dos", ".exe",
                                    ".gif", ".jpg", ".jpeg", ".png"};
-// TODO
-// Extension groups (bits set to 1 are the indexes in the array of extensions that belong to the group)
+/* Extension groups (bits set to 1 are the indexes in the array of extensions that belong to the group) */
 #define EXT_TXT 0X01FF
 #define EXT_HQX 0x0200
 #define EXT_DOS 0x0400

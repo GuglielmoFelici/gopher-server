@@ -29,6 +29,7 @@
 #define CONFIG_DEFAULT "config"
 #define CONFIG_PORT_KEY "port"
 #define CONFIG_LOG_KEY "logfile"
+#define CONFIG_DIR_KEY "root"
 #define CONFIG_MP_KEY "multiprocess"
 #define CONFIG_SILENT_KEY "silent"
 #define CONFIG_YES "yes"

@@ -7,18 +7,21 @@
 
 #define MAIN_USAGE \
     "Available options: \
-    \n-f FILE\n\tRead configurations from FILE. \
+    \n-f FILE\n\tRead configurations from FILE. Note that command line options overwrite configurations read from file.\
         \n\tThe file must be a collection of lines of the form KEY = VALUE, where the following pairs are accepted:\
         \n\t\t port = <port number>\
         \n\t\t silent = yes/no\
         \n\t\t multiprocess = yes/no\
-        \n\tBy default, logs are written in logFile.\
+        \n\t\t logfile = <path>\
+        \n\t\t root = <path>\
     \n-d DIR\n\tChange root of the server to DIR.\
     \n-h\n\tShow usage help. \
     \n-l FILE\n\tRedirect transfer logs to FILE. \
-    \n-m\n\tUse multiprocess mode \
-    \n-p PORT\n\tSet the port to PORT.\
-    \n-s\n\tDon't log on console/syslog (silent mode)."
+    \n\tDefault: logFile.\
+    \n-m\n\tUse multiprocess mode. Default: no. \
+    \n-p PORT\n\tSet the port to PORT. Default: 7070.\
+    \n-s\n\tDisable debug log to syslog/cmd (silent mode). \
+    \n\tDefault: no."
 #define MAIN_CONFIG_ERR "Can't read configuration file. Default options will be used."
 #define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file and no option provided, multiprocess will be disabled."
 #define MAIN_PORT_CONFIG_ERR "Can't read configuration file and no option provided for port, default one will be used."

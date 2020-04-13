@@ -28,7 +28,8 @@
 \begin{document}
 
 \tableofcontents
-%newpage
+
+\newpage
 
 \section{Utilizzo del software}
 
@@ -37,9 +38,7 @@ e due binari aggiuntivi nel caso in cui si buildi su Windows.\\
 Sono disponibili le seguenti opzioni:\\
 \begin{lstlisting}
 -d DIR
-    Utilizza la directory DIR come root del server. 
-    NOTA: Se viene utilizzata questa opzione, il path specificato in -f 
-    deve essere assoluto.
+    Utilizza la directory DIR come root del server.
 -f FILE 
     Leggi le configurazioni da FILE. 
     Per informazioni sulla struttura del file, vedere la sezione 
@@ -47,13 +46,17 @@ Sono disponibili le seguenti opzioni:\\
 -h
     Mostra la sintassi.
 -l FILE
-    Logga i trasferimenti sul file FILE. Di default il logging avviene sul file "logfile", nella stessa directory dell'eseguibile.
+    Logga i trasferimenti sul file FILE. 
+    Default: logfile.
 -m 
-    Utilizza un processo per ogni client. Disabilitato di default.
+    Utilizza un processo per ogni client. 
+    Default: no.
 -p PORT
-    Metti il server in ascolto sulla porta PORT. 7070 di default.
+    Metti il server in ascolto sulla porta PORT. 
+    Default: 7070.
 -s
-    (silent) - Non loggare in console/syslog. Disabilitato di default.
+    (silent) - Disabilita il logging di debug. 
+    Default: no.
 
 \end{lstlisting}
 Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.
@@ -83,7 +86,7 @@ I quattro moduli sono:
 
 Per quanto il progetto sia stato impostato con struttura modulare, le sue componenti sono 
 comunque interconnesse e progettate per coesistere in un'unica applicazione. 
-Da qui la scelta di utilizzare diverse configurazioni globali.\\
+Per questo motivo, la maggior parte delle configurazioni pertinenti a tutto il programma hanno scope globale.\\
 
 \newpage
 
@@ -104,8 +107,7 @@ Una documentazione rigorosa su ogni file, funzione e struttura, generata con Dox
 documentazione sul codice sorgente, è disponibile \href{html/index.html}{qui}. 
 
 \subsection{Server}
-Il modulo Server è implementato dall'header server.h, dal file server.c e dal file winGopherProcess.c 
-nel caso in cui si compili su Windows.\\
+Il modulo Server è implementato dall'header server.h e dal file server.c.\\
 L'header dichiara la struttura server\_t, utilizzata come interfaccia:
 \begin{lstlisting}
 /** A struct representing an instance of a gopher server */
@@ -121,7 +123,7 @@ typedef struct {
 } server_t;
 \end{lstlisting}
 La maggior parte delle funzioni dichiarate dall'header richiede in input
-un puntatore a una struttura server\_t, dalla quale leggere o sulla quale scrivere informazioni.
+un puntatore a una struttura server\_t, dalla quale leggere o nella quale scrivere informazioni.
 
 \subsubsection{Lettura della configurazione}
 
@@ -132,11 +134,13 @@ struttura server\_t ricevuta in input. Il file è una sequenze di righe del tipo
     \item port = <numero di porta>
     \item multiprocess = yes/no
     \item silent = yes/no
+    \item logfile = <path>
+    \item root = <path>
 \end{itemize}
 La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
 SIGHUP (caso Linux) o CTRL\_BREAK (caso Windows) durante il \href{}
-{main loop} del server; tuttavia, nel caso in cui si rileggano le configurazioni mentre il server è in esecuzione,
-verranno ricaricate solo le impostazioni port, multiprocess e silent.\\
+{main loop} del server; tuttavia, nel caso in cui si ricarichino le configurazioni mentre il server è in esecuzione,
+non verranno aggiornati il path di logging e la root directory del server.\\
 I gestori dei segnali utilizzano le variabili booleane globali
 \begin{lstlisting}
     static sig_atomic volatile updateConfig;
@@ -151,34 +155,39 @@ impostazioni di default, salvate in globals.h.
 \subsubsection{Avvio del server}
 
 Il server viene avviato con la funzione \href{}{runServer},
-che prende in input un puntatore a una struttura server\_t inizializzata con le funzioni precedenti.
+che prende in input un puntatore a una struttura server\_t opportunamente inizializzata.
 La funzione attende con una select una richiesta di connessione, controllando periodicamente la ricezione
 di segnali. Questa scelta è motivata dal fatto che gli eventi da console di Windows non interrompono la select.
 Quando il server riceve una richiesta di connessione, genera un nuovo thread o processo (a seconda della modalità
 utilizzata), il quale passa il controllo al protocollo tramite la funzione \href{}
-{gopher}. Siccome protocollo si assume la responsabilità di avviare un nuovo thread se richiesto
+{gopher}. Siccome il protocollo si assume la responsabilità di avviare un nuovo thread se richiesto
 l'invio di un file, il thread principale di un processo che invoca la funzione gopher non termina,
 se non tramite le funzioni pthread\_exit o ExitThread. Quando il server riceve una richiesta di terminazione, 
-la funzione runServer ritorna con successo. Il modulo Server non si occupa di liberare le risorse.
+la funzione runServer ritorna con successo. Il modulo Server non si occupa di liberare le proprie risorse.
 
 \subsection{Protocollo}
 
-Il modulo Protocollo è implementato dall'header protocol.h e dal file protocol.c.
+Il modulo Protocollo è implementato dall'header protocol.h, dal file protocol.c e dal file winGopherProcess.c 
+nel caso in cui si compili su Windows.\\
 L'header espone all'esterno, oltre a diverse costanti, una singola funzione \href{}{gopher}.
-Il protocollo si occupa di chiudere il socket del client sia in caso di fallimento che in caso di errore.
-La funzione riceve l'input dal socket ricevuto fin quando non legge un CRLF.
-Se la connessione viene chiusa o si verifica un errore, la funzione fallisce.
+La funzione riceve l'input dal socket ricevuto fin quando non legge un CRLF;
 L'input letto viene validato (poiché il selettore viene utilizzato per recuperare la risorsa
 richiesta, non può contenere costrutti per la navigazione del file system, quali ./ ../ etc) e normalizzato,
 per consentire una maggiore flessibilità circa le richieste accettate.
+Se la connessione viene chiusa o si verifica un errore, la funzione fallisce:
+il protocollo si incarica di chiudere il socket del client sia in caso di fallimento che in caso di errore.
+
 
 \subsubsection{Costruzione della risposta}
 La lista di file disponibili, se richiesta una directory, viene costruita utilizzando la funzione \href{}
 {iterateDir}, la quale funge da interfaccia per le primitive specifiche delle piattaforme Linux e Windows,
 operando in modo analogo.\\
 Il carattere prefisso a ogni riga della risposta, che rappresenta il tipo del file, viene calcolato
-cercando determinate parole chiave nell'output del comando "file" nel caso Linux e leggendo invece
-l'estensione nel caso Windows. Le estensioni riconosciute sono memorizzate nell'array \href{}{extensions}.\\
+cercando determinate parole chiave nell'output del comando "file" nel caso Linux.
+Nel caso Windows viene letta l'estensione del file: le estensioni riconosciute sono memorizzate nell'array \href{}{extensions},
+e l'appartenenza di un'estensione a un tipo di file (testo, immagine...) viene calcolata attraverso delle maschere di bit.
+Ogni maschera rappresenta un gruppo di estensioni e ha settati a 1 i bit che corrispondono agli indici degli elementi
+dell'array extensions che fanno parte di quel gruppo.\\
 Se viene richiesto un file, questo viene mappato in memoria utilizzando la funzione di 
 compatibilità \href{}{getFileMap}, che wrappa le rispettive funzioni
 mmap di Linux e CreateFileMapping/MapViewOfFile di Windows. Viene poi creato un nuovo thread, che si occupa di
@@ -245,12 +254,18 @@ dai moduli che lo richiedano. Le funzioni si articolano in:
     \item wrapper per tipi di dato
     \item messaggi di log e debug uniformi
     \item parsing di opzioni da riga di comando.
-\end{itemize} 
+\end{itemize}
+Alcune funzioni notevoli sono:
+\begin{itemize}
+    \item \href{}{startThread}
+    \item \href{}{getFileMap}
+    \item \href{}{iterateDir}
+\end{itemize}
 
 \subsection{Main}
 Le componenti sopra descritte vengono combinate in maniera intuitiva nel main.
 Vengono creati i due oggetti server\_t e logger\_t per gestire rispettivamente server e logger.
-Dopo aver letto e settato opportunamente le configurazioni nella struttura server\_t, viene eseguita la 
+Dopo aver letto e settato opportunamente le configurazioni, viene eseguita la 
 procedura per rendere il processo demone (nel caso Linux). Dopodiché vengono avviati, tramite le apposite 
 funzioni, il processo di logging e il server.
 

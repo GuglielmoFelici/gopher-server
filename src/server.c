@@ -116,6 +116,11 @@ int readConfig(server_t* pServer, int which) {
                     logMessage(LOGFILE_OPEN_ERR, LOG_ERR);
                     goto ON_ERROR;
                 }
+            } else if (strcmp(key, CONFIG_DIR_KEY) == 0 && (which & READ_DIR)) {
+                if (PLATFORM_SUCCESS != changeCwd(value)) {
+                    fprintf(stderr, "%s\n", MAIN_CWD_ERR);
+                    goto ON_ERROR;
+                }
             } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
                 pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
             } else if (strcmp(key, CONFIG_SILENT_KEY) == 0 && (which & READ_SILENT)) {

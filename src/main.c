@@ -107,18 +107,17 @@ int main(int argc, string_t* argv) {
     if (parseOptions(argc, argv, &server, &switches) < 0) {
         goto ON_ERROR;
     }
-    if (switches.f) {
-        int request = 0 | (switches.p ? 0 : READ_PORT) | (switches.m ? 0 : READ_MULTIPROCESS) | (switches.s ? 0 : READ_SILENT) | (switches.l ? 0 : READ_LOG);
-        if (SERVER_SUCCESS != readConfig(&server, request)) {
-            fprintf(stderr, "%s\n", MAIN_CONFIG_ERR);
-            defaultConfig(&server, request);
-        }
-    }
-    // TODO aggiungere al config file
-    if (!logPath) {
+    if (!switches.l) {
         if (NULL == (logPath = getRealPath(LOG_FILE, NULL, true))) {
             fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
             goto ON_ERROR;
+        }
+    }
+    if (switches.f) {
+        int request = 0 | (switches.p ? 0 : READ_PORT) | (switches.m ? 0 : READ_MULTIPROCESS) | (switches.s ? 0 : READ_SILENT) | (switches.l ? 0 : READ_LOG) | (switches.d ? 0 : READ_DIR);
+        if (SERVER_SUCCESS != readConfig(&server, request)) {
+            fprintf(stderr, "%s\n", MAIN_CONFIG_ERR);
+            defaultConfig(&server, request);
         }
     }
     if (switches.d) {
