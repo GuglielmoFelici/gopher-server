@@ -358,14 +358,6 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     return ret;
 }
 
-int createIfAbsent(cstring_t path) {
-    int fd = creat(path, S_IRWXU | S_IRGRP | S_IROTH);
-    if (fd < 0) {
-        return PLATFORM_FAILURE;
-    }
-    return close(fd) >= 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
-}
-
 int fileAttributes(cstring_t path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0) {

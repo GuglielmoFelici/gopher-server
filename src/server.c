@@ -108,7 +108,11 @@ int readConfig(server_t* pServer, int which) {
                 }
                 pServer->port = port;
             } else if (strcmp(key, CONFIG_LOG_KEY) == 0 && (which & READ_LOG)) {
-                // TODO
+                logPath = realloc(logPath, strlen(value) + 1);
+                if (logPath = NULL) {
+                    goto ON_ERROR;
+                }
+                memcpy(logPath, value, strlen(value) + 1);
             } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
                 pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
             } else if (strcmp(key, CONFIG_SILENT_KEY) == 0 && (which & READ_SILENT)) {
@@ -146,7 +150,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG) && configPath) {
                 logMessage(UPDATE_REQUESTED, LOG_INFO);
-                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT)) {
+                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT | READ_LOG)) {
                     logMessage(MAIN_CONFIG_ERR, LOG_WARNING);
                 }
                 if (pServer->port != htons(pServer->sockAddr.sin_port)) {

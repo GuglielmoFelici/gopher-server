@@ -298,6 +298,7 @@ int stopTransferLog(logger_t* pLogger) {
 static void loggerLoop(const logger_t* pLogger) {
     int logFile = -1;
     char buff[MAX_LINE_SIZE];
+    char* previousLogPath = logPath;
     if (!pLogger) {
         goto ON_ERROR;
     }
@@ -313,6 +314,13 @@ static void loggerLoop(const logger_t* pLogger) {
     }
     while (1) {
         size_t bytesRead;
+        if (logPath != previousLogPath) {
+            close(logFile);
+            if ((logFile = open(logPath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
+                logMessage(LOGFILE_OPEN_ERR, LOG_ERR);
+                goto ON_ERROR;
+            }
+        }
         if (pthread_cond_wait(pLogger->pLogCond, pLogger->pLogMutex) != 0) {
             logMessage(COND_WAIT_ERR, LOG_ERR);
             goto ON_ERROR;

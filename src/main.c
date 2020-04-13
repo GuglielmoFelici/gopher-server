@@ -15,18 +15,22 @@ string_t winHelperPath = NULL;
 char cwd[MAX_NAME];
 
 struct switches {
-    /* Help, multiprocess, silent, port, directory, file, logFile */
-    bool h, m, s, p, d, f, l;
+    /* Directory, file, help, logfile, multiprocess, port, silent */
+    bool d, f, h, l, m, p, s;
 };
 
 int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* pSwitches) {
     int opt, opterr = 0;
     while ((opt = getopt(argc, argv, "hmsp:d:f:l:")) != -1) {
         switch (opt) {
-            case 'h':
-                pSwitches->h = true;
-                fprintf(stderr, "%s\n", MAIN_USAGE);
-                return -1;
+            case 'd':
+                pSwitches->d = true;
+                if (optarg[0] == '-') {
+                    fprintf(stderr, "%s\n", MAIN_USAGE);
+                    return -1;
+                }
+                strncpy(cwd, optarg, sizeof(cwd));
+                break;
             case 'f':
                 pSwitches->f = true;
                 if (optarg[0] == '-') {
@@ -39,10 +43,10 @@ int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* p
                     return -1;
                 }
                 break;
-            case 's':
-                pSwitches->s = true;
-                enableLogging = false;
-                break;
+            case 'h':
+                pSwitches->h = true;
+                fprintf(stderr, "%s\n", MAIN_USAGE);
+                return -1;
             case 'l':
                 pSwitches->l = true;
                 if (optarg[0] == '-') {
@@ -72,13 +76,9 @@ int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* p
                     pServer->port = port;
                 }
                 break;
-            case 'd':
-                pSwitches->d = true;
-                if (optarg[0] == '-') {
-                    fprintf(stderr, "%s\n", MAIN_USAGE);
-                    return -1;
-                }
-                strncpy(cwd, optarg, sizeof(cwd));
+            case 's':
+                pSwitches->s = true;
+                enableLogging = false;
                 break;
             default:
                 fprintf(stderr, "%s\n", MAIN_USAGE);
@@ -92,7 +92,7 @@ int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
     struct switches switches;
-    switches.p = switches.m = switches.s = false;
+    switches.d = switches.l = switches.m = switches.p = switches.s = false;
     if (SERVER_SUCCESS != initWsa()) {
         fprintf(stderr, "%s\n", MAIN_WSA_ERR);
         goto ON_ERROR;
@@ -108,13 +108,14 @@ int main(int argc, string_t* argv) {
         goto ON_ERROR;
     }
     if (switches.f) {
-        int request = 0 | (switches.p ? 0 : READ_PORT) | (switches.m ? 0 : READ_MULTIPROCESS) | (switches.s ? 0 : READ_SILENT);
+        int request = 0 | (switches.p ? 0 : READ_PORT) | (switches.m ? 0 : READ_MULTIPROCESS) | (switches.s ? 0 : READ_SILENT) | (switches.l ? 0 : READ_LOG);
         if (SERVER_SUCCESS != readConfig(&server, request)) {
             fprintf(stderr, "%s\n", MAIN_CONFIG_ERR);
             defaultConfig(&server, request);
         }
     }
     // TODO aggiungere al config file
+    // TODO importante! prevedere che il logFile cambi in windows
     if (!switches.l) {
         if (NULL == (logPath = getRealPath(LOG_FILE, NULL, true))) {
             fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
