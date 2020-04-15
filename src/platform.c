@@ -11,7 +11,7 @@ bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-int sendAll(socket_t s, cstring_t data, size_t length) {
+int sendAll(socket_t s, cstring_t data, file_size_t length) {
     size_t count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);
@@ -30,6 +30,9 @@ int sendAll(socket_t s, cstring_t data, size_t length) {
 /*****************************************************************************************************************/
 
 #if defined(_WIN32)
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 /************************************************** UTILS ********************************************************/
 
@@ -124,12 +127,18 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     return NULL;
 }
 
-size_t getFileSize(const char *path) {
-    WIN32_FIND_DATA data;
-    if (!GetFileAttributesEx(path, GetFileExInfoStandard, &data)) {
+file_size_t getFileSize(const char *path) {
+    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (INVALID_HANDLE_VALUE == file) {
         return -1;
     }
-    return data.nFileSizeLow;
+    LARGE_INTEGER li;
+    if (!GetFileSizeEx(file, &li)) {
+        CloseHandle(file);
+        return -1;
+    }
+    CloseHandle(file);
+    return li.QuadPart;
 }
 
 int fileAttributes(LPCSTR path) {

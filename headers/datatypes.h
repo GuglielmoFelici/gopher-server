@@ -28,6 +28,7 @@ typedef LPSTR string_t;
 typedef LPCSTR cstring_t;
 typedef HANDLE thread_t, pipe_t, event_t, _dir, mutex_t, cond_t;
 typedef DWORD proc_id_t, sig_atomic;
+typedef LONGLONG file_size_t;
 
 #else
 
@@ -36,8 +37,8 @@ typedef DWORD proc_id_t, sig_atomic;
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 typedef int socket_t, event_t;
 typedef int pipe_t;
 typedef char* string_t;
@@ -49,6 +50,7 @@ typedef DIR* _dir;
 typedef pthread_mutex_t mutex_t;
 typedef pthread_cond_t cond_t;
 typedef pid_t proc_id_t;
+typedef off_t file_size_t;
 
 #endif
 
