@@ -62,7 +62,11 @@ void debugMessage(cstring_t message, int level) {
             where = stderr;
             lvl = "ERROR";
     }
-    fprintf(where, "%s - %s\n", lvl, message);
+    fprintf(where, "%s - %s", lvl, message);
+    if (level == DBG_ERR) {
+        printf(" - %d", GetLastError());
+    }
+    printf("\n");
 }
 
 int getWindowsHelpersPaths() {
@@ -147,10 +151,12 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     LPVOID view = NULL;
     LARGE_INTEGER fileSize;
     OVERLAPPED ovlp;
-    if ((file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
+    if (INVALID_HANDLE_VALUE == (file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL))) {
+        printf("1\n");
         goto ON_ERROR;
     }
     if (!GetFileSizeEx(file, &fileSize)) {
+        printf("2\n");
         goto ON_ERROR;
     }
     if (fileSize.QuadPart == 0) {
@@ -160,10 +166,12 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     }
     memset(&ovlp, 0, sizeof(ovlp));
     if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
+        printf("3\n");
         goto ON_ERROR;
     }
     if (NULL == (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL))) {
         UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp);
+        printf("4\n");
         goto ON_ERROR;
     }
     if (
@@ -171,6 +179,7 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
         !CloseHandle(file) ||
         NULL == (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) ||
         !CloseHandle(map)) {
+            printf("shaoo\n");
         goto ON_ERROR;
     }
     mapData->view = view;
