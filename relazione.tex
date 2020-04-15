@@ -42,7 +42,7 @@ documentazione sul codice sorgente, è disponibile \href{html/index.html}{qui}.
 
 \section{Utilizzo del software}
 
-E' possibile compilare il progetto con il comando make. La compilazione genera l'eseguibile linuxserver o,
+E' possibile compilare il progetto tramite make. La compilazione genera l'eseguibile linuxserver o,
 nel caso in cui si esegua la build su Windows, il file winserver.exe e due binari aggiuntivi.
 Viene effettuato il linking alla libreria pthread su GNU/Linux e alla libreria Winsock (Ws2\_32) su Windows.\\
 Il programma riconosce le seguenti opzioni da riga di comando:\\
@@ -65,16 +65,19 @@ Il programma riconosce le seguenti opzioni da riga di comando:\\
     Metti il server in ascolto sulla porta PORT. 
     Default: 7070.
 -v
-    Imposta il livello di verbosità del server, (syslog su Linux, console su Windows). Può essere
+    Imposta il livello di log informativi del server 
+    (syslog su Linux, console su Windows). I livelli sono:
     0 - Non loggare nulla.
     1 - Logga gli errori.
     2 - Logga gli errori e i warning.
     3 - Logga gli errori, i warning e i messaggi di info.
-    4 - Logga gli errori, i warning, i messaggi di info e i messaggi di debug.
+    4 - Logga errori, warning, messaggi di info e messaggi di debug.
     Default: 2.
 
 \end{lstlisting}
-Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.
+Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.\\
+Il server consente di listare il contenuto delle sottodirectory della cartella specificata come root (compresa), e di richiedere il download di file.
+Se non viene specificata alcuna root, verrà usata la directory contenente l'eseguibile. E' possibile scaricare file di dimensioni fino a 2GB.
 
 \subsection{Lettura della configurazione}
 

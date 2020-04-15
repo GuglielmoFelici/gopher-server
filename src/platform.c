@@ -152,11 +152,9 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     LARGE_INTEGER fileSize;
     OVERLAPPED ovlp;
     if (INVALID_HANDLE_VALUE == (file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL))) {
-        printf("1\n");
         goto ON_ERROR;
     }
     if (!GetFileSizeEx(file, &fileSize)) {
-        printf("2\n");
         goto ON_ERROR;
     }
     if (fileSize.QuadPart == 0) {
@@ -166,12 +164,10 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     }
     memset(&ovlp, 0, sizeof(ovlp));
     if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
-        printf("3\n");
         goto ON_ERROR;
     }
     if (NULL == (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL))) {
         UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp);
-        printf("4\n");
         goto ON_ERROR;
     }
     if (
@@ -179,7 +175,6 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
         !CloseHandle(file) ||
         NULL == (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) ||
         !CloseHandle(map)) {
-            printf("shaoo\n");
         goto ON_ERROR;
     }
     mapData->view = view;
@@ -397,7 +392,6 @@ int fileAttributes(cstring_t path) {
     struct stat statbuf;
     if (stat(path, &statbuf) != 0) {
         return errno == ENOENT ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
-        ;
     }
     if (S_ISREG(statbuf.st_mode)) {
         return PLATFORM_ISFILE;
