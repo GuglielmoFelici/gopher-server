@@ -250,7 +250,6 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     } else {  // File
         file_mapping_t map;
         file_size_t size = getFileSize(selector);
-        printf("size: %lli\n", size);
         if (size < 0) {
             debugMessage("getFileSize failed", DBG_DEBUG);
             sendErrorResponse(sock, SYS_ERR_MSG);

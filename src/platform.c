@@ -31,8 +31,8 @@ int sendAll(socket_t s, cstring_t data, file_size_t length) {
 
 #if defined(_WIN32)
 
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 /************************************************** UTILS ********************************************************/
 
@@ -411,7 +411,7 @@ int fileAttributes(cstring_t path) {
     }
 }
 
-size_t getFileSize(cstring_t path) {
+file_size_t getFileSize(cstring_t path) {
     struct stat statBuf;
     if (stat(path, &statBuf) < 0) {
         return -1;
