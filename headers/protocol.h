@@ -19,7 +19,8 @@
 #define ERROR_MSG "3Error"
 #define RESOURCE_NOT_FOUND_MSG "Resource not found"
 #define INVALID_SELECTOR "Invalid selector"
-#define SYS_ERR_MSG " Internal error"
+#define SYS_ERR_MSG "Internal error"
+#define FILE_TOO_LARGE_MSG "File too large"
 #define GOPHER_DOMAIN "localhost"
 // Types
 #define GOPHER_UNKNOWN 'X'

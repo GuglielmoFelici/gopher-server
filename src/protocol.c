@@ -249,7 +249,11 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         }
     } else {  // File
         file_mapping_t map;
-        if (getFileSize(selector) == 0) {
+        int size = getFileSize(selector);
+        if (size < 0) {
+            sendErrorResponse(sock, FILE_TOO_LARGE_MSG);
+            goto ON_ERROR;
+        } else if (size == 0) {
             map.size = 0;
             map.view = "";
         } else if (PLATFORM_SUCCESS != getFileMap(selector, &map)) {
