@@ -5,7 +5,7 @@
 
 #include "../headers/globals.h"
 
-bool enableDebug = true;
+int debugLevel = DBG_WARN;
 
 bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
@@ -42,23 +42,23 @@ int changeCwd(LPCSTR path) {
 }
 
 void debugMessage(cstring_t message, int level) {
-    if (!enableDebug) {
+    if (debugLevel < level) {
         return;
     }
     FILE* where = stdout;
     string_t lvl = "";
     switch (level) {
-        case LOG_DEBUG:
+        case DBG_DEBUG:
             lvl = "DEBUG";
             break;
-        case LOG_INFO:
+        case DBG_INFO:
             lvl = "INFO";
             break;
-        case LOG_WARNING:
+        case DBG_WARN:
             where = stderr;
             lvl = "WARNING";
             break;
-        case LOG_ERR:
+        case DBG_ERR:
             where = stderr;
             lvl = "ERROR";
     }
@@ -243,24 +243,29 @@ int changeCwd(const char *path) {
 }
 
 void debugMessage(cstring_t message, int level) {
-    if (!enableDebug) {
+    if (debugLevel < level) {
         return;
     }
+    int priority = 0;
     string_t lvl = "";
     switch (level) {
-        case LOG_DEBUG:
+        case DBG_DEBUG:
             lvl = "DEBUG";
+            priority = LOG_DEBUG;
             break;
-        case LOG_INFO:
+        case DBG_INFO:
             lvl = "INFO";
+            priority = LOG_INFO;
             break;
-        case LOG_WARNING:
+        case DBG_WARN:
             lvl = "WARNING";
+            priority = LOG_WARNING;
             break;
-        case LOG_ERR:
+        case DBG_ERR:
             lvl = "ERROR";
+            priority = LOG_ERR;
     }
-    syslog(level, "%s - %s\n%s", lvl, message, level == LOG_ERR ? strerror(errno) : "");
+    syslog(level, "%s - %s\n%s", lvl, message, level == DBG_ERR ? strerror(errno) : "");
 }
 
 int getWindowsHelpersPaths() {

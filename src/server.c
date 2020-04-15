@@ -102,8 +102,8 @@ int readConfig(server_t* pServer, int which) {
             if (strcmp(key, CONFIG_PORT_KEY) == 0 && (which & READ_PORT)) {
                 int port;
                 port = strtol(value, NULL, 10);
-                if (port < 1 || port > 65535) {
-                    debugMessage(MAIN_PORT_ERR, LOG_WARNING);
+                if (port < 1 || port > PORT_MAX) {
+                    debugMessage(MAIN_PORT_ERR, DBG_WARN);
                     goto ON_ERROR;
                 }
                 pServer->port = port;
@@ -111,18 +111,22 @@ int readConfig(server_t* pServer, int which) {
                 if (logPath) free(logPath);
                 logPath = getRealPath(value, NULL, true);
                 if (NULL == logPath) {
-                    debugMessage(LOGFILE_OPEN_ERR, LOG_ERR);
+                    debugMessage(LOGFILE_OPEN_ERR, DBG_WARN);
                     goto ON_ERROR;
                 }
             } else if (strcmp(key, CONFIG_DIR_KEY) == 0 && (which & READ_DIR)) {
                 if (PLATFORM_SUCCESS != changeCwd(value)) {
-                    fprintf(stderr, "%s\n", MAIN_CWD_ERR);
+                    debugMessage(MAIN_CWD_ERR, DBG_ERR);
                     goto ON_ERROR;
                 }
             } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
                 pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
-            } else if (strcmp(key, CONFIG_SILENT_KEY) == 0 && (which & READ_SILENT)) {
-                enableDebug = strcmp(value, CONFIG_YES) != 0;
+            } else if (strcmp(key, CONFIG_VERB_KEY) == 0 && (which & READ_VERB)) {
+                debugLevel = strtol(value, NULL, 10);
+                if (debugLevel < DBG_NO || debugLevel > DBG_DEBUG) {
+                    debugMessage(INVALID_DBG_LVL_ERR, DBG_ERR);
+                    return -1;
+                }
             }
         }
     }
@@ -139,7 +143,7 @@ int runServer(server_t* pServer, logger_t* pLogger) {
         return SERVER_FAILURE;
     }
     if (SERVER_SUCCESS != installDefaultSigHandlers()) {
-        debugMessage(HANDLERS_ERR, LOG_ERR);
+        debugMessage(HANDLERS_ERR, DBG_ERR);
         return SERVER_FAILURE;
     }
     struct timeval dfltTimeval = {1, 0};
@@ -152,12 +156,12 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
-                debugMessage(SHUTDOWN_REQUESTED, LOG_INFO);
+                debugMessage(SHUTDOWN_REQUESTED, DBG_INFO);
                 return SERVER_SUCCESS;
             } else if (checkSignal(CHECK_CONFIG) && configPath) {
-                debugMessage(UPDATE_REQUESTED, LOG_INFO);
-                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_SILENT)) {
-                    debugMessage(MAIN_CONFIG_ERR, LOG_WARNING);
+                debugMessage(UPDATE_REQUESTED, DBG_INFO);
+                if (SERVER_SUCCESS != readConfig(pServer, READ_PORT | READ_MULTIPROCESS | READ_VERB)) {
+                    debugMessage(MAIN_CONFIG_ERR, DBG_WARN);
                 }
                 if (pServer->port != htons(pServer->sockAddr.sin_port)) {
                     if (SERVER_FAILURE == prepareSocket(pServer, SERVER_UPDATE)) {
@@ -169,18 +173,18 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             FD_ZERO(&incomingConnections);
             FD_SET(pServer->sock, &incomingConnections);
         } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
-        debugMessage(INCOMING_CONNECTION, LOG_INFO);
+        debugMessage(INCOMING_CONNECTION, DBG_DEBUG);
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
-            debugMessage(SERVE_CLIENT_ERR, LOG_WARNING);
+            debugMessage(SERVE_CLIENT_ERR, DBG_WARN);
         } else if (pServer->multiProcess) {
             if (SERVER_SUCCESS != serveProc(client, pLogger, pServer)) {
-                debugMessage(SERVE_CLIENT_ERR, LOG_ERR);
+                debugMessage(SERVE_CLIENT_ERR, DBG_ERR);
             };
             closeSocket(client);
         } else {
             if (SERVER_SUCCESS != serveThread(client, pServer->port, pLogger)) {
-                debugMessage(SERVE_CLIENT_ERR, LOG_ERR);
+                debugMessage(SERVE_CLIENT_ERR, DBG_ERR);
                 closeSocket(client);
             }
         }
@@ -288,11 +292,11 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
         goto ON_ERROR;
     }
     size_t cmdLineSize;
-    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %d %p", winHelperPath, pServer->port, client, enableDebug, logPipe) + 1;
+    cmdLineSize = snprintf(NULL, 0, "%s %hu %p %d %p", winHelperPath, pServer->port, client, debugLevel, logPipe) + 1;
     if (NULL == (cmdLine = malloc(cmdLineSize))) {
         goto ON_ERROR;
     }
-    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %d %p", winHelperPath, pServer->port, client, enableDebug, logPipe) < cmdLineSize - 1) {
+    if (snprintf(cmdLine, cmdLineSize, "%s %hu %p %d %p", winHelperPath, pServer->port, client, debugLevel, logPipe) < cmdLineSize - 1) {
         goto ON_ERROR;
     }
     if (!SetHandleInformation((HANDLE)pServer->sock, HANDLE_FLAG_INHERIT, 0)) {
@@ -374,7 +378,7 @@ static void* serveThreadTask(void* args) {
 static int serveThread(int sock, int port, logger_t* pLogger) {
     server_thread_args_t* tArgs = malloc(sizeof(server_thread_args_t));
     if (NULL == tArgs) {
-        debugMessage(ARGS_ERR, LOG_ERR);
+        debugMessage(ARGS_ERR, DBG_ERR);
         return SERVER_FAILURE;
     }
     tArgs->sock = sock;

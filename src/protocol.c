@@ -156,7 +156,7 @@ static void* sendFileTask(void* threadArgs) {
     if (
         PLATFORM_FAILURE == sendAll(args.dest, args.src, args.size) ||
         PLATFORM_FAILURE == sendAll(args.dest, CRLF ".", 3)) {
-        debugMessage(SEND_ERR, LOG_ERR);
+        debugMessage(SEND_ERR, DBG_ERR);
         closeSocket(args.dest);
         return NULL;
     }
@@ -226,28 +226,30 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     size_t bytesRec = 0, selectorSize = 1;
     do {
         if (NULL == (selector = realloc(selector, selectorSize + BUFF_SIZE))) {
-            debugMessage(ALLOC_ERR, LOG_ERR);
+            debugMessage(ALLOC_ERR, DBG_ERR);
             goto ON_ERROR;
         }
         if ((bytesRec = recv(sock, selector + selectorSize - 1, BUFF_SIZE, 0)) <= 0) {
-            debugMessage(bytesRec == 0 ? CONN_CLOS_ERR : RECV_ERR, bytesRec == 0 ? LOG_WARNING : LOG_ERR);
+            debugMessage(bytesRec == 0 ? CONN_CLOS_ERR : RECV_ERR, bytesRec == 0 ? DBG_WARN : DBG_ERR);
             goto ON_ERROR;
         }
         selectorSize += bytesRec;
         selector[selectorSize - 1] = '\0';
     } while (bytesRec > 0 && !strstr(selector, CRLF));
+    debugMessage(selector, DBG_INFO);
     if (!validateInput(selector)) {
         sendErrorResponse(sock, INVALID_SELECTOR);
         goto ON_ERROR;
     }
     normalizePath(selector);
+    debugMessage(selector, DBG_DEBUG);
     int fileAttr = fileAttributes(selector);
     if (PLATFORM_FAILURE & fileAttr) {
         sendErrorResponse(sock, PLATFORM_NOT_FOUND & fileAttr ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
         goto ON_ERROR;
     } else if (PLATFORM_ISDIR & fileAttr) {  // Directory
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
-            debugMessage(DIR_SEND_ERR, LOG_ERR);
+            debugMessage(DIR_SEND_ERR, DBG_ERR);
             goto ON_ERROR;
         }
     } else {  // File
@@ -256,19 +258,19 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
             map.size = 0;
             map.view = "";
         } else if (PLATFORM_SUCCESS != getFileMap(selector, &map)) {
-            debugMessage(FILE_MAP_ERR, LOG_ERR);
+            debugMessage(FILE_MAP_ERR, DBG_ERR);
             sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         }
         if (GOPHER_SUCCESS != sendFile(selector, &map, sock, pLogger)) {
-            debugMessage(FILE_SEND_ERR, LOG_ERR);
+            debugMessage(FILE_SEND_ERR, DBG_ERR);
             goto ON_ERROR;
         }
     }
     free(selector);
     return GOPHER_SUCCESS;
 ON_ERROR:
-    debugMessage(GOPHER_REQUEST_FAILED, LOG_WARNING);
+    debugMessage(GOPHER_REQUEST_FAILED, DBG_WARN);
     closeSocket(sock);
     if (selector) free(selector);
     return GOPHER_FAILURE;

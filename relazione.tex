@@ -64,9 +64,14 @@ Il programma riconosce le seguenti opzioni da riga di comando:\\
 -p PORT
     Metti il server in ascolto sulla porta PORT. 
     Default: 7070.
--s
-    (silent) - Disabilita il logging di debug. 
-    Default: no.
+-v
+    Imposta il livello di verbosità del server, (syslog su Linux, console su Windows). Può essere
+    0 - Non loggare nulla.
+    1 - Logga gli errori.
+    2 - Logga gli errori e i warning.
+    3 - Logga gli errori, i warning e i messaggi di info.
+    4 - Logga gli errori, i warning, i messaggi di info e i messaggi di debug.
+    Default: 2.
 
 \end{lstlisting}
 Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.

@@ -8,10 +8,6 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#define LOG_DEBUG 0
-#define LOG_INFO 1
-#define LOG_WARNING 2
-#define LOG_ERR 3
 
 #else
 #include <arpa/inet.h>
@@ -48,7 +44,8 @@ int changeCwd(cstring_t path);
 
 /** Logs a message to the current logger (syslog or stderr)
  * @param message The message to be logged.
- * @param level The importance level. Can be LOG_DEBUG, LOG_INFO, LOG_WARNING or LOG_ERR.
+ * @param level The verbosity level.
+ * @see globals.h
 */
 void debugMessage(cstring_t message, int level);
 

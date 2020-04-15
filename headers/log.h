@@ -20,8 +20,14 @@
     \n\tDefault: logFile.\
     \n-m\n\tUse multiprocess mode. Default: no. \
     \n-p PORT\n\tSet the port to PORT. Default: 7070.\
-    \n-s\n\tDisable debug log to syslog/cmd (silent mode). \
-    \n\tDefault: no."
+    \n-v\n\tSets the server verbosity level (syslog/console). Can be: \
+    \n\t0 - No logs\
+    \n\t1 - Only errors \
+    \n\t2 - Errors and warnings\
+    \n\t3 - Errors, warning and info\
+    \n\t4 - Errors, warning and info and debug\
+    \n\tDefault: 2"
+#define INVALID_DBG_LVL_ERR "Invalid verbosity level. Accepted values are 0-4"
 #define MAIN_CONFIG_ERR "Can't read configuration file. Default options will be used."
 #define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file and no option provided, multiprocess will be disabled."
 #define MAIN_PORT_CONFIG_ERR "Can't read configuration file and no option provided for port, default one will be used."

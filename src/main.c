@@ -13,12 +13,12 @@ char cwd[MAX_NAME];
 
 struct switches {
     /* Directory, file, help, logfile, multiprocess, port, silent */
-    bool d, f, h, l, m, p, s;
+    bool d, f, h, l, m, p, v;
 };
 
 int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* pSwitches) {
     int opt, opterr = 0;
-    while ((opt = getopt(argc, argv, "hmsp:d:f:l:")) != -1) {
+    while ((opt = getopt(argc, argv, "hmp:d:f:l:v:")) != -1) {
         switch (opt) {
             case 'd':
                 pSwitches->d = true;
@@ -66,15 +66,22 @@ int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* p
                     return -1;
                 }
                 int port = strtol(optarg, NULL, 10);
-                if (port < 1 || port > 65535) {
+                if (port < 1 || port > PORT_MAX) {
                     fprintf(stderr, "%s\n", MAIN_PORT_ERR);
                 } else {
                     pServer->port = port;
                 }
                 break;
-            case 's':
-                pSwitches->s = true;
-                enableDebug = false;
+            case 'v':
+                if (optarg[0] == '-') {
+                    fprintf(stderr, "%s\n", MAIN_USAGE);
+                    return -1;
+                }
+                debugLevel = strtol(optarg, NULL, 10);
+                if (debugLevel < DBG_NO || debugLevel > DBG_DEBUG) {
+                    fprintf(stderr, "%s\n", INVALID_DBG_LVL_ERR);
+                    return -1;
+                }
                 break;
             default:
                 fprintf(stderr, "%s\n", MAIN_USAGE);
@@ -88,7 +95,7 @@ int main(int argc, string_t* argv) {
     server_t server;
     logger_t logger;
     struct switches switches;
-    switches.d = switches.f = switches.l = switches.m = switches.p = switches.s = false;
+    switches.d = switches.f = switches.l = switches.m = switches.p = switches.v = false;
     if (SERVER_SUCCESS != initWsa()) {
         fprintf(stderr, "%s\n", MAIN_WSA_ERR);
         goto ON_ERROR;
@@ -111,7 +118,7 @@ int main(int argc, string_t* argv) {
         }
     }
     if (switches.f) {
-        int request = 0 | (switches.p ? 0 : READ_PORT) | (switches.m ? 0 : READ_MULTIPROCESS) | (switches.s ? 0 : READ_SILENT) | (switches.l ? 0 : READ_LOG) | (switches.d ? 0 : READ_DIR);
+        int request = 0 | (switches.p ? 0 : READ_PORT) | (switches.m ? 0 : READ_MULTIPROCESS) | (switches.v ? 0 : READ_VERB) | (switches.l ? 0 : READ_LOG) | (switches.d ? 0 : READ_DIR);
         if (SERVER_SUCCESS != readConfig(&server, request)) {
             fprintf(stderr, "%s\n", MAIN_CONFIG_ERR);
             defaultConfig(&server, request);
@@ -122,25 +129,25 @@ int main(int argc, string_t* argv) {
             fprintf(stderr, "%s\n", MAIN_CWD_ERR);
         }
     }
-    if (enableDebug) {
+    if (debugLevel != DBG_NO) {
         printf("Port %d\n", server.port);
-        debugMessage(MAIN_STARTING, LOG_INFO);
+        debugMessage(MAIN_STARTING, DBG_DEBUG);
     }
     if (PLATFORM_SUCCESS != daemonize()) {
-        debugMessage(MAIN_DAEMON_ERR, LOG_ERR);
+        debugMessage(MAIN_DAEMON_ERR, DBG_ERR);
         goto ON_ERROR;
     }
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
-        debugMessage(MAIN_START_LOG_ERR, LOG_WARNING);
+        debugMessage(MAIN_START_LOG_ERR, DBG_WARN);
     }
     if (SERVER_SUCCESS != prepareSocket(&server, SERVER_INIT)) {
-        debugMessage(MAIN_SOCKET_ERR, LOG_ERR);
+        debugMessage(MAIN_SOCKET_ERR, DBG_ERR);
         goto ON_ERROR;
     }
     // Avvio
     if (SERVER_SUCCESS != runServer(&server, pLogger)) {
-        debugMessage(MAIN_LOOP_ERR, LOG_ERR);
+        debugMessage(MAIN_LOOP_ERR, DBG_ERR);
         goto ON_ERROR;
     }
     closeSocket(server.sock);
@@ -150,8 +157,8 @@ int main(int argc, string_t* argv) {
     if (winHelperPath) free(winHelperPath);
     return 0;
 ON_ERROR:
-    if (enableDebug) {
-        debugMessage(TERMINATE_WITH_ERRORS, LOG_ERR);
+    if (debugLevel != DBG_NO) {
+        debugMessage(TERMINATE_WITH_ERRORS, DBG_ERR);
     }
     if (configPath) free(configPath);
     if (logPath) free(logPath);

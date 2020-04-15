@@ -31,11 +31,20 @@
 #define CONFIG_LOG_KEY "logfile"
 #define CONFIG_DIR_KEY "root"
 #define CONFIG_MP_KEY "multiprocess"
-#define CONFIG_SILENT_KEY "silent"
+#define CONFIG_VERB_KEY "verbosity"
 #define CONFIG_YES "yes"
 
+#define DBG_NO 0
+#define DBG_ERR 1
+#define DBG_WARN 2
+#define DBG_INFO 3
+#define DBG_DEBUG 4
+
+#define PORT_MAX 0xFFFF
+
+
 /** Turn off with option -s (silent) to disable debug logging. */
-extern bool enableDebug;
+extern int debugLevel;
 
 /** The path to the configuration file */
 extern string_t configPath;
