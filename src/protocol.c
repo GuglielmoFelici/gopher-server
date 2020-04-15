@@ -14,7 +14,7 @@ string_t winHelperPath = NULL;
 
 typedef struct {
     void* src;
-    int size;
+    size_t size;
     socket_t dest;
     char name[MAX_NAME];
     const logger_t* pLogger;
@@ -249,9 +249,10 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         }
     } else {  // File
         file_mapping_t map;
-        int size = getFileSize(selector);
+        size_t size = getFileSize(selector);
         if (size < 0) {
-            sendErrorResponse(sock, FILE_TOO_LARGE_MSG);
+            debugMessage("getFileSize failed", DBG_DEBUG);
+            sendErrorResponse(sock, SYS_ERR_MSG);
             goto ON_ERROR;
         } else if (size == 0) {
             map.size = 0;

@@ -11,8 +11,8 @@ bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-int sendAll(socket_t s, cstring_t data, int length) {
-    int count = 0, sent = 0;
+int sendAll(socket_t s, cstring_t data, size_t length) {
+    size_t count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);
         if (sent == SOCKET_ERROR) {
@@ -124,7 +124,7 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     return NULL;
 }
 
-int getFileSize(const char *path) {
+size_t getFileSize(const char *path) {
     WIN32_FIND_DATA data;
     if (!GetFileAttributesEx(path, GetFileExInfoStandard, &data)) {
         return -1;
@@ -354,9 +354,9 @@ int daemonize() {
             if ((devNull = open("/dev/null", O_RDWR)) < 0) {
                 return PLATFORM_FAILURE;
             }
-            if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
-                return PLATFORM_FAILURE;
-            }
+            // if (dup2(devNull, STDIN_FILENO) < 0 || dup2(devNull, STDOUT_FILENO) < 0 || dup2(devNull, STDERR_FILENO) < 0) {
+            //     return PLATFORM_FAILURE;
+            // }
             return close(devNull) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
         }
     }
@@ -402,7 +402,7 @@ int fileAttributes(cstring_t path) {
     }
 }
 
-int getFileSize(cstring_t path) {
+size_t getFileSize(cstring_t path) {
     struct stat statBuf;
     if (stat(path, &statBuf) < 0) {
         return -1;
