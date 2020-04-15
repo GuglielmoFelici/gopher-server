@@ -108,6 +108,10 @@ int daemonize() {
 
 /*********************************************** FILES  ***************************************************************/
 
+bool isPathRelative(cstring_t path) {
+    return path && path[0] != '\0' && path[1] != ':' && path[0] != '\\';
+}
+
 string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     int attr = fileAttributes(relative);
     if (!(PLATFORM_FAILURE & attr) || (attr & PLATFORM_NOT_FOUND && acceptAbsent)) {
@@ -127,7 +131,9 @@ int getFileSize(const char *path) {
 int fileAttributes(LPCSTR path) {
     DWORD attr = GetFileAttributes(path);
     if (INVALID_FILE_ATTRIBUTES == attr) {
-        return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
+        return (GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND) 
+            ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND 
+            : PLATFORM_FAILURE;
     }
     if (attr & FILE_ATTRIBUTE_DIRECTORY) {
         return PLATFORM_ISDIR;
@@ -189,7 +195,9 @@ int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
         char dirPath[MAX_NAME + 2];
         snprintf(dirPath, sizeof(dirPath), "%s/*", path);
         if ((*dir = FindFirstFile(dirPath, &data)) == INVALID_HANDLE_VALUE) {
-            return GetLastError() == ERROR_FILE_NOT_FOUND ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND : PLATFORM_FAILURE;
+            return (GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND) 
+                ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND 
+                : PLATFORM_FAILURE;
         }
     } else {
         if (!FindNextFile(*dir, &data)) {
@@ -265,7 +273,7 @@ void debugMessage(cstring_t message, int level) {
             lvl = "ERROR";
             priority = LOG_ERR;
     }
-    syslog(level, "%s - %s\n%s", lvl, message, level == DBG_ERR ? strerror(errno) : "");
+    syslog(priority, "%s - %s\n%s", lvl, message, level == DBG_ERR ? strerror(errno) : "");
 }
 
 int getWindowsHelpersPaths() {
@@ -351,6 +359,10 @@ int daemonize() {
 }
 
 /*********************************************** FILES ****************************************************************/
+
+bool isPathRelative(cstring_t path) {
+    return path[0] != '/';
+}
 
 string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     string_t ret = NULL;

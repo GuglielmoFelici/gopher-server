@@ -4,6 +4,7 @@
 #include "../../headers/logger.h"
 #include "../../headers/protocol.h"
 
+
 static int getLogger(logger_t* pLogger, LPSTR* argv) {
     HANDLE mutex = NULL;
     HANDLE logEvent = NULL;

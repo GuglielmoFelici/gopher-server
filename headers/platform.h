@@ -102,6 +102,9 @@ int daemonize();
 
 /*********************************************** FILES  ***************************************************************/
 
+/** @return true if path is a relative path. */
+bool isPathRelative(cstring_t path);
+
 /**
  * Gets the absolute path of a file.
  * @param relative The relative path of the file to be converted to absolute.

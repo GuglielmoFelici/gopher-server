@@ -52,6 +52,7 @@
 #define BIND_ERR "Can't bind socket."
 #define CLOSE_SOCKET_ERR "Errore closing socket."
 #define ALLOC_ERR "Memory allocation failed."
+#define OUTSIDE_ROOT "Requested resource outside root directory."
 #define CONFIG_OPEN_ERR "Error opening configuration file."
 #define LOGFILE_OPEN_ERR "Error opening or creating the log file."
 #define SERVE_CLIENT_ERR "Error serving client."

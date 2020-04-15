@@ -104,7 +104,8 @@ int main(int argc, string_t* argv) {
     logger.pid = -1;
     defaultConfig(&server, READ_MULTIPROCESS | READ_PORT);
     if (parseOptions(argc, argv, &server, &switches) < 0) {
-        goto ON_ERROR;
+        printf(MAIN_USAGE);
+        return 1;
     }
     // Get paths before cwd is changed
     if (PLATFORM_SUCCESS != getWindowsHelpersPaths()) {

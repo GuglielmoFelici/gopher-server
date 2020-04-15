@@ -55,10 +55,10 @@ static int normalizePath(string_t str) {
 static bool validateInput(cstring_t str) {
     if (!str) {
         return false;
-    } else if (strcmp(str, CRLF)) {
+    } else if (strncmp(str, CRLF, sizeof(CRLF)) == 0) {
         return true;
     } else {
-        return !strstr(str, "..") && !strstr(str, ".\\") && !strstr(str, "./") && str[strlen(str) - 1] != '.';
+        return isPathRelative(str) && !strstr(str, "..") && !strstr(str, ".\\") && !strstr(str, "./") && str[strlen(str) - strlen(CRLF) - 1] != '.';
     }
 }
 
@@ -122,7 +122,7 @@ static int sendDir(cstring_t path, int sock, int port) {
     }
     if (!(res & PLATFORM_END_OF_DIR)) {
         dir = NULL;
-        sendErrorResponse(sock, SYS_ERR_MSG);
+        sendErrorResponse(sock, (res & PLATFORM_NOT_FOUND) ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
         goto ON_ERROR;
     }
     if (send(sock, ".", 1, 0) < 1) {
@@ -148,8 +148,6 @@ static void* sendFileTask(void* threadArgs) {
     send_args_t args;
     struct sockaddr_in clientAddr;
     int clientLen;
-    size_t logSize;
-    string_t log;
     char address[16];
     args = *(send_args_t*)threadArgs;
     free(threadArgs);
@@ -170,19 +168,16 @@ static void* sendFileTask(void* threadArgs) {
     closeSocket(args.dest);
     inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
     string_t logFormat = "File: %s | Size: %db | Sent to: %s:%i\n";
-    string_t path = getRealPath(args.name, NULL, false);
-    if (NULL == path) {
-        return NULL;
-    }
     if (args.pLogger) {
-        logSize = snprintf(NULL, 0, logFormat, path, args.size, address, clientAddr.sin_port) + 1;
+        size_t logSize;
+        string_t log;
+        logSize = snprintf(NULL, 0, logFormat, args.name, args.size, address, clientAddr.sin_port) + 1;
         if (NULL == (log = malloc(logSize))) {
             return NULL;
         }
-        if (snprintf(log, logSize, logFormat, path, args.size, address, clientAddr.sin_port) > 0) {
+        if (snprintf(log, logSize, logFormat, args.name, args.size, address, clientAddr.sin_port) > 0) {
             logTransfer(args.pLogger, log);
         }
-        free(path);
         free(log);
     }
 }
@@ -236,16 +231,16 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
         selectorSize += bytesRec;
         selector[selectorSize - 1] = '\0';
     } while (bytesRec > 0 && !strstr(selector, CRLF));
-    debugMessage(selector, DBG_INFO);
+    debugMessage(selector, DBG_DEBUG);
     if (!validateInput(selector)) {
         sendErrorResponse(sock, INVALID_SELECTOR);
         goto ON_ERROR;
     }
     normalizePath(selector);
-    debugMessage(selector, DBG_DEBUG);
+    debugMessage(selector, DBG_INFO);
     int fileAttr = fileAttributes(selector);
     if (PLATFORM_FAILURE & fileAttr) {
-        sendErrorResponse(sock, PLATFORM_NOT_FOUND & fileAttr ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
+        sendErrorResponse(sock, (PLATFORM_NOT_FOUND & fileAttr) ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
         goto ON_ERROR;
     } else if (PLATFORM_ISDIR & fileAttr) {  // Directory
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {

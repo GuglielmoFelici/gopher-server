@@ -5,21 +5,21 @@ CC = gcc
 
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
 	target = winserver.exe
-	lib = lws2_32
+	lib = -lws2_32
 	helpers = winLogger.exe winGopherProcess.exe
 else
     target = linuxserver
-	lib = pthread
+	lib = -pthread
 endif
 
 $(target) : $(objects) $(helpers)
-	$(CC) $(CFLAGS) -o $@ $(objects) -$(lib)
+	$(CC) $(CFLAGS) -o $@ $(objects) $(lib)
 
 debug : CFLAGS += -g
 debug : $(objects) $(helpers) $(target)
 
 winGopherProcess.exe : $(winHelperObjects)
-	$(CC) $(CFLAGS) -o $@ $(winHelperObjects) -$(lib)
+	$(CC) $(CFLAGS) -o $@ $(winHelperObjects) $(lib)
 
 winLogger.exe : $(winLoggerObjects)
 	$(CC) $(CFLAGS) -o $@ $(winLoggerObjects)
