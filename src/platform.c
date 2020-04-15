@@ -45,7 +45,7 @@ void debugMessage(cstring_t message, int level) {
     if (debugLevel < level) {
         return;
     }
-    FILE* where = stdout;
+    FILE *where = stdout;
     string_t lvl = "";
     switch (level) {
         case DBG_DEBUG:
@@ -120,7 +120,7 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     int attr = fileAttributes(relative);
     if (!(PLATFORM_FAILURE & attr) || (attr & PLATFORM_NOT_FOUND && acceptAbsent)) {
         return _fullpath(absolute, relative, 0);
-    } 
+    }
     return NULL;
 }
 
@@ -135,9 +135,9 @@ int getFileSize(const char *path) {
 int fileAttributes(LPCSTR path) {
     DWORD attr = GetFileAttributes(path);
     if (INVALID_FILE_ATTRIBUTES == attr) {
-        return (GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND) 
-            ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND 
-            : PLATFORM_FAILURE;
+        return (GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND)
+                   ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND
+                   : PLATFORM_FAILURE;
     }
     if (attr & FILE_ATTRIBUTE_DIRECTORY) {
         return PLATFORM_ISDIR;
@@ -204,9 +204,9 @@ int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
         char dirPath[MAX_NAME + 2];
         snprintf(dirPath, sizeof(dirPath), "%s/*", path);
         if ((*dir = FindFirstFile(dirPath, &data)) == INVALID_HANDLE_VALUE) {
-            return (GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND) 
-                ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND 
-                : PLATFORM_FAILURE;
+            return (GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND)
+                       ? PLATFORM_FAILURE | PLATFORM_NOT_FOUND
+                       : PLATFORM_FAILURE;
         }
     } else {
         if (!FindNextFile(*dir, &data)) {
