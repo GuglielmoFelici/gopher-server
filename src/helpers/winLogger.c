@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <windows.h>
 
-#define LOG_ERR "WARNING - Logger - Fatal error, bad file path or already running?\n"
+#define LOG_ERR "WARNING - Logger - Fatal error.\n"
 #define LOGGER_EVENT_NAME "logEvent"
 #define MAX_LINE_SIZE 200
 

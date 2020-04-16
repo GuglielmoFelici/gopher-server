@@ -67,9 +67,9 @@ void debugMessage(cstring_t message, int level) {
     }
     fprintf(where, "%s - %s", lvl, message);
     if (level == DBG_ERR) {
-        printf(" - %d", GetLastError());
+        fprintf(stderr, " - %d", GetLastError());
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 }
 
 int getWindowsHelpersPaths() {
@@ -174,7 +174,6 @@ int fileAttributes(LPCSTR path) {
 
 int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size_t length) {
     HANDLE file = NULL;
-    printf("map params: totalSize %lld offset %lld length %d\n", mapData->totalSize, offset, length);
     if (NULL == mapData->memMap) {
         if (INVALID_HANDLE_VALUE == (file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL))) {
             goto ON_ERROR;
@@ -187,6 +186,8 @@ int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size
             mapData->view = NULL;
             mapData->size = 0;
             return PLATFORM_SUCCESS;
+        } else {
+            mapData->totalSize = fileSize.QuadPart;
         }
         OVERLAPPED ovlp;
         memset(&ovlp, 0, sizeof(ovlp));
@@ -215,7 +216,6 @@ int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size
     if (NULL == (mapData->view = MapViewOfFile(mapData->memMap, FILE_MAP_READ, HI32(offset), LO32(offset), length))) {
         goto ON_ERROR;
     }
-    printf("successfully mapped\n");
     return PLATFORM_SUCCESS;
 ON_ERROR:
     if (file) {

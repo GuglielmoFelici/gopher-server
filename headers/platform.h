@@ -101,15 +101,27 @@ int waitChildren();
 */
 int daemonize();
 
-//TODO docs
+/** Initializes a semaphore. 
+ * @param pSem a pointer to the semaphore_t struct to initialize.
+ * @param initial the initial count of the semaphore.
+ * @param max the maximum count of the semaphore.
+ * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
 int initSemaphore(semaphore_t* pSem, int initial, int max);
 
-// TODO docs
+/** Waits on a semaphore. 
+ *  @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
 int waitSemaphore(semaphore_t* pSem, int timeout);
 
-// TODO docs
+/** Signals a semaphore. 
+ *  @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
 int sigSemaphore(semaphore_t* pSem);
 
+/** Destroys a semaphore. 
+ *  @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
+*/
 int destroySemaphore(semaphore_t* pSem);
 
 /*********************************************** FILES  ***************************************************************/
@@ -171,7 +183,8 @@ typedef struct {
 
 /** Create a file memory mapping.
  * @param path The path to the file to be mapped.
- * @param mapData A pointer to the file_mapping_t struct to be filled with the memory mapping.
+ * @param mapData A pointer to a file_mapping_t struct to be filled with the memory mapping. 
+ * On Windows, the field memMap must be initialized to NULL on the first call.
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
 int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size_t length);
