@@ -16,10 +16,11 @@ string_t winHelperPath = NULL;
 
 typedef struct {
     file_mapping_t* map;
-    int totalPages;
     socket_t dest;
     char name[MAX_NAME];
     const logger_t* pLogger;
+    semaphore_t* producer;
+    semaphore_t* consumer;
 } send_args_t;
 
 /** @return The character identifying the type of the file, X if the type is unknown or an error occurs. */
@@ -142,57 +143,83 @@ ON_ERROR:
     return GOPHER_FAILURE;
 }
 
+static void sendFileTaskLog(logger_t* pLogger, socket_t sock, cstring_t path, file_size_t bytesSent) {
+    if (!pLogger) {
+        return;
+    }
+    struct sockaddr_in clientAddr;
+    int clientLen;
+    char address[16];
+    clientLen = sizeof(clientAddr);
+    if (SOCKET_ERROR == getpeername(sock, (struct sockaddr*)&clientAddr, &clientLen)) {
+        memset(&clientAddr, 0, clientLen);
+    }
+    inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
+    string_t logFormat = "File: %s | Size: %lldb | Sent to: %s:%i\n";
+        size_t logSize;
+        string_t log;
+        string_t name;
+        if (NULL == (name = strrchr(path, '/'))) {  // Isolates file name (after last "/")
+            name = path;
+        } else {
+            name++;
+        }
+        logSize = snprintf(NULL, 0, logFormat, name, bytesSent, address, clientAddr.sin_port) + 1;
+        if (NULL == (log = malloc(logSize))) {
+            return;
+        }
+        if (snprintf(log, logSize, logFormat, name, bytesSent, address, clientAddr.sin_port) > 0) {
+            logTransfer(pLogger, log);
+        }
+        free(log);
+}
+
 /** Function executed by a thread to send a file to the client.
  *  If the transfer succeeds, writes to the log. 
  * @param threadArgs a send_args_t compatible void pointer used as argument.
 */
 static void* sendFileTask(void* threadArgs) {
     send_args_t args;
-    struct sockaddr_in clientAddr;
-    int clientLen;
-    char address[16];
-    file_size_t totalSize = 0;
+    file_size_t sent = 0;
+    if (!threadArgs) {
+        goto ON_ERROR;
+    }
     args = *(send_args_t*)threadArgs;
     free(threadArgs);
-    printf("THREAD - acquired args: total: %d map: %p view: %p\n", args.totalPages, args.map, args.map->view);
-    int count = 0;
-    while (count < args.totalPages) {
-        printf("THREAD - Sending page number %d of %d\n", count+1, args.totalPages);
+    while (sent < args.map->totalSize) {
+        printf("THREAD - Sending from MB %lld to %lld\n", sent, sent + args.map->size);
         if (PLATFORM_FAILURE == sendAll(args.dest, args.map->view, args.map->size)) {
-            debugMessage(SEND_ERR, DBG_ERR);
-            closeSocket(args.dest);
-            return NULL;
+            goto ON_ERROR;
         }
-        count++;
-        totalSize += args.map->size;
+        printf("page sent\n");
+        sent += args.map->size;
+        if (sent < args.map->totalSize) {
+            sigSemaphore(args.consumer);
+            waitSemaphore(args.producer);
+        }
     }
     printf("THREAD - all pages sent\n");
     if (PLATFORM_FAILURE == sendAll(args.dest, CRLF ".", 3)) {
-            debugMessage(SEND_ERR, DBG_ERR);
-            closeSocket(args.dest);
-            return NULL;
+            goto ON_ERROR;
     }
-    if (args.map) unmapMem(args.map);
-    clientLen = sizeof(clientAddr);
-    if (SOCKET_ERROR == getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen)) {
-        memset(&clientAddr, 0, clientLen);
-    }
-    if (args.map) free(args.map);
+    if (args.map) {
+        unmapMem(args.map);
+        CloseHandle(args.map->memMap);
+        free(args.map);
+        args.map = NULL;
+    } 
     closeSocket(args.dest);
-    inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
-    string_t logFormat = "File: %s | Size: %db | Sent to: %s:%i\n";
-    if (args.pLogger) {
-        size_t logSize;
-        string_t log;
-        logSize = snprintf(NULL, 0, logFormat, args.name, totalSize, address, clientAddr.sin_port) + 1;
-        if (NULL == (log = malloc(logSize))) {
-            return NULL;
-        }
-        if (snprintf(log, logSize, logFormat, args.name, totalSize, address, clientAddr.sin_port) > 0) {
-            logTransfer(args.pLogger, log);
-        }
-        free(log);
-    }
+    sendFileTaskLog(args.pLogger, args.dest, args.name, sent);
+    return;
+ON_ERROR:
+    debugMessage(SEND_ERR, DBG_ERR);
+    closeSocket(args.dest);
+    if (args.map) {
+        unmapMem(args.map);
+        CloseHandle(args.map->memMap);
+        free(args.map);
+    } 
+    return NULL;
 }
 
 /** Starts the file transfer thread, executing sendFileTask().
@@ -203,11 +230,9 @@ static void* sendFileTask(void* threadArgs) {
  * @return GOPHER_SUCCESS or GOPHER_FAILURE.
  */
 static int sendFile(cstring_t name, int sock, const logger_t* pLogger) {
-    thread_t tid;
     send_args_t* args = NULL;
-    semaphore_t mappingReady;
     file_mapping_t* map = NULL;
-
+    semaphore_t producer, consumer;
     if (NULL == (args = malloc(sizeof(send_args_t)))) {
         goto ON_ERROR;
     }
@@ -217,52 +242,38 @@ static int sendFile(cstring_t name, int sock, const logger_t* pLogger) {
     map->memMap = NULL;
     map->size = 0;
     map->view = NULL;
-    // TODO maxVal del semaforo
-    if (PLATFORM_SUCCESS != initSemaphore(&mappingReady, 0, 10)) {
+    file_size_t offset = 0;
+    map->totalSize = getFileSize(name);
+    if (map->totalSize < 0) {
         goto ON_ERROR;
-    }
-    int offset = 0;
-    int totalPages = 0;
-    file_size_t size = getFileSize(name);
-    printf("size: %lli\n", size);
-    if (size < 0) {
-        debugMessage("getFileSize failed", DBG_DEBUG);
-        goto ON_ERROR;
-    } else if (size == 0) {
-        totalPages = 0;
-        map->size = 0;
-        map->view = "";
-    } else {
-        totalPages = (size / MMAP_CHUNK) + 1;
-        printf("totalPages: %d\n", totalPages);
-        printf("size: %lli\n", size);
-        printf("chunk: %li\n", MMAP_CHUNK );
-        if (PLATFORM_SUCCESS != getFileMap(name, map, offset, min(MMAP_CHUNK, size-offset))) {
-            printf("fileMap err\n");
+    } else if (map->totalSize > 0){
+        if (PLATFORM_SUCCESS != initSemaphore(&producer, 0, 1)) {
+            goto ON_ERROR;
+        }
+        if (PLATFORM_SUCCESS != initSemaphore(&consumer, 0, 1)) {
+            goto ON_ERROR;
+        }
+        if (PLATFORM_SUCCESS != getFileMap(name, map, offset, MMAP_CHUNK)) {
+            debugMessage("map failed", DBG_DEBUG);
             goto ON_ERROR;
         }
         offset += map->size;
     }
-    printf("view before thread: %p\n", map->view);
     args->map = map;
-    args->totalPages = totalPages;
     args->dest = sock;
     args->pLogger = pLogger;
+    args->producer = &producer;
+    args->consumer = &consumer;
     strncpy(args->name, name, sizeof(args->name));
-    printf("args ready\n");
+    thread_t tid;
     if (PLATFORM_SUCCESS != startThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args)) {
-        free(args);
-        return GOPHER_FAILURE;
+        goto ON_ERROR;
     }
-    printf("started thread\n");
     detachThread(tid);
-    while (offset < size) {
-        printf("sendFile entering cycle..\n");
-        if (PLATFORM_SUCCESS != waitSemaphore(&mappingReady)) {
-            printf("wait sem \n");
+    while (offset < map->totalSize) {
+        if (PLATFORM_SUCCESS != waitSemaphore(&consumer)) {
             goto ON_ERROR;
         }
-        printf("producer ready to go\n");
         if (PLATFORM_SUCCESS != unmapMem(map)) {
             goto ON_ERROR;
         }
@@ -270,19 +281,21 @@ static int sendFile(cstring_t name, int sock, const logger_t* pLogger) {
             debugMessage(FILE_MAP_ERR, DBG_ERR);
             goto ON_ERROR;
         }
-        if (PLATFORM_SUCCESS != sigSemaphore(&mappingReady)) {
-            printf("sig sem \n");
+        if (PLATFORM_SUCCESS != sigSemaphore(&producer)) {
             goto ON_ERROR;
         }
         offset += map->size;
     }
-    printf("returning from sendFile\n");
     // TODO destroy sem
     return GOPHER_SUCCESS;
 ON_ERROR:
     // TODO destroy sem
-    if (map) free(map);
     sendErrorResponse(sock, SYS_ERR_MSG);
+    if (map) {
+        unmapMem(map);
+        CloseHandle(map->memMap);
+        free(map);
+    }
     if (args) free(args);
     return GOPHER_FAILURE;
 

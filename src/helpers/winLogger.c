@@ -23,7 +23,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
         exit(1);
     }
     HANDLE logFile;
-    if (INVALID_HANDLE_VALUE == (logFile = CreateFile(argv[1], GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL))) {
+    if (INVALID_HANDLE_VALUE == (logFile = CreateFile(argv[1], GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ , NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL))) {
         fprintf(stderr, LOG_ERR);
         exit(1);
     }

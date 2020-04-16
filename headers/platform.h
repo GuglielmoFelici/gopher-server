@@ -161,6 +161,8 @@ typedef struct {
     void* view;
     /** The size of the memory mapping */
     file_size_t size;
+    /** [Windows] The size of the file */
+    file_size_t totalSize;
     /** [Windows only] Handle for the memory mapping */
     HANDLE memMap;
 } file_mapping_t;

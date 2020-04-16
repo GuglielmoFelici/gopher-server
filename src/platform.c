@@ -31,8 +31,8 @@ int sendAll(socket_t s, const void* data, file_size_t length) {
 
 #if defined(_WIN32)
 
-#include <sys/types.h>
-#include <sys/stat.h>
+#define LO32(_qw)    ((DWORD)(_qw))
+#define HI32(_qw)    ((DWORD)(((_qw) >> 32) & 0xffffffff))
 
 /************************************************** UTILS ********************************************************/
 
@@ -140,8 +140,9 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
 }
 
 file_size_t getFileSize(const char *path) {
-    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (INVALID_HANDLE_VALUE == file) {
+        printf("ma come?? %d\n", GetLastError());
         return -1;
     }
     LARGE_INTEGER li;
@@ -168,15 +169,13 @@ int fileAttributes(LPCSTR path) {
 }
 
 int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size_t length) {
-    printf("getfilemap: mapping from %lli to %lli, size: %d\n", offset, offset+length, length);
     HANDLE file = NULL;
-    LPVOID view = NULL;
-    LARGE_INTEGER fileSize;
-    OVERLAPPED ovlp;
+    printf("map params: totalSize %lld offset %lld length %d\n", mapData->totalSize, offset, length);
     if (NULL == mapData->memMap) {
         if (INVALID_HANDLE_VALUE == (file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL))) {
             goto ON_ERROR;
         }
+        LARGE_INTEGER fileSize;
         if (!GetFileSizeEx(file, &fileSize)) {
             goto ON_ERROR;
         }
@@ -185,34 +184,38 @@ int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size
             mapData->size = 0;
             return PLATFORM_SUCCESS;
         }
+        OVERLAPPED ovlp;
         memset(&ovlp, 0, sizeof(ovlp));
-        if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
+        if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, LO32(mapData->totalSize), HI32(mapData->totalSize), &ovlp)) {
             goto ON_ERROR;
         }
         if (NULL == (mapData->memMap = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL))) {
-            UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp);
+            UnlockFileEx(file, 0, LO32(mapData->totalSize), HI32(mapData->totalSize), &ovlp);
             goto ON_ERROR;
         }
-        if (!UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
+        if (!UnlockFileEx(file, 0, LO32(mapData->totalSize), HI32(mapData->totalSize), &ovlp)) {
             goto ON_ERROR;
         }
         if (!CloseHandle(file)) {
         }
     }
-    // TODO estensione troppo in avanti?
-    if (NULL == (view = MapViewOfFile(mapData->memMap, FILE_MAP_READ, HIWORD(offset), LOWORD(offset), length))) {
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    offset -= offset % sysInfo.dwAllocationGranularity;
+    if (length < mapData->totalSize - offset ) {
+        length -= length % sysInfo.dwAllocationGranularity;
+    } else {
+        length = mapData->totalSize - offset;
+    }
+    mapData->size = length;
+    if (NULL == (mapData->view = MapViewOfFile(mapData->memMap, FILE_MAP_READ, HI32(offset), LO32(offset), length))) {
         goto ON_ERROR;
     }
-    mapData->view = view;
-    printf("getFileMap: initialized view at %p\n", view);
-    mapData->size = fileSize.QuadPart - offset;
+    printf("successfully mapped\n");
     return PLATFORM_SUCCESS;
 ON_ERROR:
     if (file) {
         CloseHandle(file);
-    }
-    if (view) {
-        UnmapViewOfFile(view);
     }
     return PLATFORM_FAILURE;
 }
@@ -242,7 +245,6 @@ int closeDir(HANDLE dir) {
 }
 
 int unmapMem(const file_mapping_t* map) {
-    if (map->memMap) CloseHandle(map->memMap);
     if (map->size > 0) {
         return UnmapViewOfFile(map->view) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
     }
