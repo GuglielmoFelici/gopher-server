@@ -11,7 +11,7 @@ bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-int sendAll(socket_t s, cstring_t data, file_size_t length) {
+int sendAll(socket_t s, const void* data, file_size_t length) {
     size_t count = 0, sent = 0;
     while (count < length) {
         int sent = send(s, data + count, length, 0);
@@ -113,6 +113,18 @@ int daemonize() {
     return PLATFORM_SUCCESS;
 }
 
+int initSemaphore(semaphore_t* pSem, int initial, int max) {
+        return (*pSem = CreateSemaphore(NULL, initial, max, NULL)) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
+int waitSemaphore(semaphore_t* pSem) {
+    return WaitForSingleObject(*pSem, INFINITE) != WAIT_FAILED ? PLATFORM_SUCCESS : PLATFORM_FAILURE; // todo timeout
+}
+
+int sigSemaphore(semaphore_t* pSem) {
+    return ReleaseSemaphore(*pSem, 1, NULL);
+}
+
 /*********************************************** FILES  ***************************************************************/
 
 bool isPathRelative(cstring_t path) {
@@ -155,46 +167,49 @@ int fileAttributes(LPCSTR path) {
     }
 }
 
-int getFileMap(LPCSTR path, file_mapping_t *mapData) {
-    HANDLE file = NULL, map = NULL;
+int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size_t length) {
+    printf("getfilemap: mapping from %lli to %lli, size: %d\n", offset, offset+length, length);
+    HANDLE file = NULL;
     LPVOID view = NULL;
     LARGE_INTEGER fileSize;
     OVERLAPPED ovlp;
-    if (INVALID_HANDLE_VALUE == (file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL))) {
-        goto ON_ERROR;
+    if (NULL == mapData->memMap) {
+        if (INVALID_HANDLE_VALUE == (file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL))) {
+            goto ON_ERROR;
+        }
+        if (!GetFileSizeEx(file, &fileSize)) {
+            goto ON_ERROR;
+        }
+        if (fileSize.QuadPart == 0) {
+            mapData->view = NULL;
+            mapData->size = 0;
+            return PLATFORM_SUCCESS;
+        }
+        memset(&ovlp, 0, sizeof(ovlp));
+        if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
+            goto ON_ERROR;
+        }
+        if (NULL == (mapData->memMap = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL))) {
+            UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp);
+            goto ON_ERROR;
+        }
+        if (!UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
+            goto ON_ERROR;
+        }
+        if (!CloseHandle(file)) {
+        }
     }
-    if (!GetFileSizeEx(file, &fileSize)) {
-        goto ON_ERROR;
-    }
-    if (fileSize.QuadPart == 0) {
-        mapData->view = NULL;
-        mapData->size = 0;
-        return PLATFORM_SUCCESS;
-    }
-    memset(&ovlp, 0, sizeof(ovlp));
-    if (!LockFileEx(file, LOCKFILE_EXCLUSIVE_LOCK, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
-        goto ON_ERROR;
-    }
-    if (NULL == (map = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL))) {
-        UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp);
-        goto ON_ERROR;
-    }
-    if (
-        !UnlockFileEx(file, 0, fileSize.LowPart, fileSize.HighPart, &ovlp) ||
-        !CloseHandle(file) ||
-        NULL == (view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0)) ||
-        !CloseHandle(map)) {
+    // TODO estensione troppo in avanti?
+    if (NULL == (view = MapViewOfFile(mapData->memMap, FILE_MAP_READ, HIWORD(offset), LOWORD(offset), length))) {
         goto ON_ERROR;
     }
     mapData->view = view;
-    mapData->size = fileSize.LowPart;
+    printf("getFileMap: initialized view at %p\n", view);
+    mapData->size = fileSize.QuadPart - offset;
     return PLATFORM_SUCCESS;
 ON_ERROR:
     if (file) {
         CloseHandle(file);
-    }
-    if (map) {
-        CloseHandle(map);
     }
     if (view) {
         UnmapViewOfFile(view);
@@ -226,9 +241,10 @@ int closeDir(HANDLE dir) {
     return FindClose(dir) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int unmapMem(void *addr, size_t len) {
-    if (len > 0) {
-        return UnmapViewOfFile(addr) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int unmapMem(const file_mapping_t* map) {
+    if (map->memMap) CloseHandle(map->memMap);
+    if (map->size > 0) {
+        return UnmapViewOfFile(map->view) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
     }
     return PLATFORM_SUCCESS;
 }

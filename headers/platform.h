@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <syslog.h>
+#define HANDLE void*
 #endif
 
 #include <stdbool.h>
@@ -68,7 +69,7 @@ int closeSocket(socket_t s);
 /** Tries to send up to length bytes of data to the socket s.
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
-int sendAll(socket_t s, cstring_t data, file_size_t length);
+int sendAll(socket_t s, const void* data, file_size_t length);
 
 /** @see inet_ntoa [Windows]
  *  @see inet_ntop [Linux]
@@ -99,6 +100,15 @@ int waitChildren();
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
 int daemonize();
+
+//TODO docs
+int initSemaphore(semaphore_t* pSem, int initial, int max);
+
+// TODO docs
+int waitSemaphore(semaphore_t* pSem);
+
+// TODO docs
+int sigSemaphore(semaphore_t* pSem);
 
 /*********************************************** FILES  ***************************************************************/
 
@@ -147,10 +157,12 @@ int closeDir(_dir dir);
 
 /** A struct representing a file memory mapping*/
 typedef struct {
-    /** A pointer to the memory mapping */
+    /** A pointer to the memory mapping view */
     void* view;
     /** The size of the memory mapping */
     file_size_t size;
+    /** [Windows only] Handle for the memory mapping */
+    HANDLE memMap;
 } file_mapping_t;
 
 /** Create a file memory mapping.
@@ -158,11 +170,11 @@ typedef struct {
  * @param mapData A pointer to the file_mapping_t struct to be filled with the memory mapping.
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
-int getFileMap(cstring_t path, file_mapping_t* mapData);
+int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size_t length);
 
 /** Unmaps a file memory mapping 
  *  @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
-int unmapMem(void* addr, size_t len);
+int unmapMem(const file_mapping_t* map);
 
 #endif
