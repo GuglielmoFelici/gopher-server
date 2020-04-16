@@ -117,12 +117,16 @@ int initSemaphore(semaphore_t* pSem, int initial, int max) {
         return (*pSem = CreateSemaphore(NULL, initial, max, NULL)) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int waitSemaphore(semaphore_t* pSem) {
-    return WaitForSingleObject(*pSem, INFINITE) != WAIT_FAILED ? PLATFORM_SUCCESS : PLATFORM_FAILURE; // todo timeout
+int waitSemaphore(semaphore_t* pSem, int timeout) {
+    return WaitForSingleObject(*pSem, timeout) != WAIT_FAILED ? PLATFORM_SUCCESS : PLATFORM_FAILURE; // todo timeout
 }
 
 int sigSemaphore(semaphore_t* pSem) {
     return ReleaseSemaphore(*pSem, 1, NULL);
+}
+
+int destroySemaphore(semaphore_t* pSem) {
+    return CloseHandle(*pSem) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 /*********************************************** FILES  ***************************************************************/

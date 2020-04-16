@@ -10,6 +10,7 @@
 #include "../headers/platform.h"
 
 #define MMAP_CHUNK 800000000 // 800MB
+#define DEFAULT_SEM_TIMEOUT 15000
 
 /** Path to the windows gopher helper executable */
 string_t winHelperPath = NULL;
@@ -143,7 +144,7 @@ ON_ERROR:
     return GOPHER_FAILURE;
 }
 
-static void sendFileTaskLog(logger_t* pLogger, socket_t sock, cstring_t path, file_size_t bytesSent) {
+static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t path, file_size_t bytesSent) {
     if (!pLogger) {
         return;
     }
@@ -195,7 +196,7 @@ static void* sendFileTask(void* threadArgs) {
         sent += args.map->size;
         if (sent < args.map->totalSize) {
             sigSemaphore(args.consumer);
-            waitSemaphore(args.producer);
+            waitSemaphore(args.producer, DEFAULT_SEM_TIMEOUT);
         }
     }
     printf("THREAD - all pages sent\n");
@@ -208,9 +209,9 @@ static void* sendFileTask(void* threadArgs) {
         free(args.map);
         args.map = NULL;
     } 
-    closeSocket(args.dest);
     sendFileTaskLog(args.pLogger, args.dest, args.name, sent);
-    return;
+    closeSocket(args.dest);
+    return NULL;
 ON_ERROR:
     debugMessage(SEND_ERR, DBG_ERR);
     closeSocket(args.dest);
@@ -271,7 +272,7 @@ static int sendFile(cstring_t name, int sock, const logger_t* pLogger) {
     }
     detachThread(tid);
     while (offset < map->totalSize) {
-        if (PLATFORM_SUCCESS != waitSemaphore(&consumer)) {
+        if (PLATFORM_SUCCESS != waitSemaphore(&consumer, DEFAULT_SEM_TIMEOUT)) {
             goto ON_ERROR;
         }
         if (PLATFORM_SUCCESS != unmapMem(map)) {
@@ -286,10 +287,12 @@ static int sendFile(cstring_t name, int sock, const logger_t* pLogger) {
         }
         offset += map->size;
     }
-    // TODO destroy sem
+    destroySemaphore(&producer); 
+    destroySemaphore(&consumer);
     return GOPHER_SUCCESS;
 ON_ERROR:
-    // TODO destroy sem
+    destroySemaphore(&producer); 
+    destroySemaphore(&consumer);
     sendErrorResponse(sock, SYS_ERR_MSG);
     if (map) {
         unmapMem(map);

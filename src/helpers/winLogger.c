@@ -30,7 +30,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
     while (1) {
         WaitForSingleObject(logEvent, INFINITE);
         DWORD bytesRead;
-        if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buff, sizeof(buff), &bytesRead, NULL)) {
+        if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buff, sizeof(buff) - 3, &bytesRead, NULL)) { // - 3 is for the "..." for long lines
             fprintf(stderr, LOG_ERR);
             continue;
         }
@@ -45,6 +45,11 @@ DWORD main(DWORD argc, LPSTR* argv) {
             DWORD bytesWritten;
             if (!WriteFile(logFile, buff, bytesRead, &bytesWritten, NULL)) {
                 fprintf(stderr, LOG_ERR);
+            }
+            if (bytesRead >= sizeof(buff) - 3) {
+                if (!WriteFile(logFile, "...", 3, NULL, NULL)) {
+                    fprintf(stderr, LOG_ERR);
+                }
             }
             if (!UnlockFileEx(logFile, 0, fileSize.LowPart, fileSize.HighPart, &ovlp)) {
                 fprintf(stderr, LOG_ERR);

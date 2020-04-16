@@ -318,28 +318,33 @@ static void loggerLoop(const logger_t* pLogger) {
             debugMessage(COND_WAIT_ERR, DBG_ERR);
             goto ON_ERROR;
         }
-        if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff))) < 0) {
+        if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff) - 3)) < 0) { // - 3 is for the "..." for long lines
             debugMessage(PIPE_READ_ERR, DBG_ERR);
             goto ON_ERROR;
-        } else {
-            struct flock lck;
-            lck.l_type = F_WRLCK;
-            lck.l_whence = SEEK_SET;
-            lck.l_len = 0;
-            lck.l_pid = getpid();
-            if (fcntl(logFile, F_SETLKW, &lck) < 0) {
-                debugMessage(FILE_LOCK_ERR, DBG_ERR);
-                goto ON_ERROR;
-            }
-            if (write(logFile, buff, bytesRead) < 0) {
+        }
+        struct flock lck;
+        lck.l_type = F_WRLCK;
+        lck.l_whence = SEEK_SET;
+        lck.l_len = 0;
+        lck.l_pid = getpid();
+        if (fcntl(logFile, F_SETLKW, &lck) < 0) {
+            debugMessage(FILE_LOCK_ERR, DBG_ERR);
+            goto ON_ERROR;
+        }
+        if (write(logFile, buff, bytesRead) < 0) {
+            debugMessage(LOGFILE_WRITE_ERR, DBG_ERR);
+            goto ON_ERROR;
+        }
+        if (bytesRead >= sizeof(buff) - 3) {
+            if (write(logFile, "...", 3) < 0) {
                 debugMessage(LOGFILE_WRITE_ERR, DBG_ERR);
                 goto ON_ERROR;
             }
-            lck.l_type = F_UNLCK;
-            if (fcntl(logFile, F_SETLK, &lck) < 0) {
-                debugMessage(FILE_UNLOCK_ERR, DBG_ERR);
-                goto ON_ERROR;
-            }
+        }
+        lck.l_type = F_UNLCK;
+        if (fcntl(logFile, F_SETLK, &lck) < 0) {
+            debugMessage(FILE_UNLOCK_ERR, DBG_ERR);
+            goto ON_ERROR;
         }
     }
 ON_ERROR:

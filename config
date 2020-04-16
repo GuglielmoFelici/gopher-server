@@ -1,4 +1,5 @@
-port = 7072
-multiProcess = 1
+port = 7071
+multiProcess = 0
 logfile = ../cancuro
 root = C:\\Users\Guglielmo
+verbosity = 4

@@ -105,10 +105,12 @@ int daemonize();
 int initSemaphore(semaphore_t* pSem, int initial, int max);
 
 // TODO docs
-int waitSemaphore(semaphore_t* pSem);
+int waitSemaphore(semaphore_t* pSem, int timeout);
 
 // TODO docs
 int sigSemaphore(semaphore_t* pSem);
+
+int destroySemaphore(semaphore_t* pSem);
 
 /*********************************************** FILES  ***************************************************************/
 
