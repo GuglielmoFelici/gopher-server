@@ -28,30 +28,30 @@ typedef LPSTR string_t;
 typedef LPCSTR cstring_t;
 typedef HANDLE thread_t, pipe_t, event_t, _dir, mutex_t, cond_t, semaphore_t;
 typedef DWORD proc_id_t, sig_atomic;
-typedef long long file_size_t;
+typedef long long file_size_t;  // TODO long long è il tipo giusto?
 
 #else
 
 #include <dirent.h>
 #include <errno.h>
+#include <semaphore.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-typedef int socket_t, event_t;
-typedef int pipe_t;
+#include <sys/types.h>
+typedef int socket_t, event_t, pipe_t;
 typedef char* string_t;
 typedef const char* cstring_t;
 typedef pthread_t thread_t;
-typedef void* (*LPTHREAD_START_ROUTINE)(void*);
-typedef sig_atomic_t sig_atomic;
-typedef DIR* _dir;
 typedef pthread_mutex_t mutex_t;
 typedef pthread_cond_t cond_t;
+typedef void* (*LPTHREAD_START_ROUTINE)(void*);
+typedef sem_t semaphore_t;
+typedef sig_atomic_t sig_atomic;
+typedef DIR* _dir;
 typedef pid_t proc_id_t;
 typedef long long file_size_t;
-typedef sem_t semaphore_t;
 
 #endif
 

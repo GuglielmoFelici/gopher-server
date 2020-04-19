@@ -134,10 +134,10 @@ int main(int argc, string_t* argv) {
         printf("Port %d\n", server.port);
         debugMessage(MAIN_STARTING, DBG_DEBUG);
     }
-    if (PLATFORM_SUCCESS != daemonize()) {
-        debugMessage(MAIN_DAEMON_ERR, DBG_ERR);
-        goto ON_ERROR;
-    }
+    // if (PLATFORM_SUCCESS != daemonize()) {
+    //     debugMessage(MAIN_DAEMON_ERR, DBG_ERR);
+    //     goto ON_ERROR;
+    // }
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
         debugMessage(MAIN_START_LOG_ERR, DBG_WARN);
@@ -163,8 +163,8 @@ ON_ERROR:
     }
     if (configPath) free(configPath);
     if (logPath) free(logPath);
-    if (winHelperPath) free(logPath);
-    if (winLoggerPath) free(logPath);
+    if (winHelperPath) free(winHelperPath);
+    if (winLoggerPath) free(winLoggerPath);
     stopTransferLog(&logger);
     return 1;
 }

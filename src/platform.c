@@ -31,8 +31,8 @@ int sendAll(socket_t s, const void* data, file_size_t length) {
 
 #if defined(_WIN32)
 
-#define LO32(_qw)    ((DWORD)(_qw))
-#define HI32(_qw)    ((DWORD)(((_qw) >> 32) & 0xffffffff))
+#define LO32(_qw) ((DWORD)(_qw))
+#define HI32(_qw) ((DWORD)(((_qw) >> 32) & 0xffffffff))
 
 /************************************************** UTILS ********************************************************/
 
@@ -48,7 +48,7 @@ void debugMessage(cstring_t message, int level) {
     if (debugLevel < level) {
         return;
     }
-    FILE *where = stdout;
+    FILE* where = stdout;
     string_t lvl = "";
     switch (level) {
         case DBG_DEBUG:
@@ -90,7 +90,7 @@ int closeSocket(SOCKET s) {
     return closesocket(s) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-LPCSTR inetNtoa(const struct in_addr *addr, void *dst, size_t size) {
+LPCSTR inetNtoa(const struct in_addr* addr, void* dst, size_t size) {
     return strncpy(dst, inet_ntoa(*addr), size);
 }
 
@@ -100,7 +100,7 @@ int detachThread(HANDLE tHandle) {
     return CloseHandle(tHandle) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int startThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
+int startThread(HANDLE* tid, LPTHREAD_START_ROUTINE routine, void* args) {
     *tid = CreateThread(NULL, 0, routine, args, 0, NULL);
     return tid ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
@@ -114,18 +114,23 @@ int daemonize() {
 }
 
 int initSemaphore(semaphore_t* pSem, int initial, int max) {
-        return (*pSem = CreateSemaphore(NULL, initial, max, NULL)) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    if (!pSem) return PLATFORM_FAILURE;
+    return (*pSem = CreateSemaphore(NULL, initial, max, NULL)) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int waitSemaphore(semaphore_t* pSem, int timeout) {
-    return WaitForSingleObject(*pSem, timeout) != WAIT_FAILED ? PLATFORM_SUCCESS : PLATFORM_FAILURE; // todo timeout
+    if (!pSem) return PLATFORM_FAILURE;
+    if (timeout <= 0) timeout = INFINITE;
+    return WaitForSingleObject(*pSem, timeout) != WAIT_FAILED ? PLATFORM_SUCCESS : PLATFORM_FAILURE;  // todo timeout
 }
 
 int sigSemaphore(semaphore_t* pSem) {
+    if (!pSem) return PLATFORM_FAILURE;
     return ReleaseSemaphore(*pSem, 1, NULL);
 }
 
 int destroySemaphore(semaphore_t* pSem) {
+    if (!pSem) return PLATFORM_FAILURE;
     return CloseHandle(*pSem) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
@@ -143,7 +148,7 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     return NULL;
 }
 
-file_size_t getFileSize(const char *path) {
+file_size_t getFileSize(const char* path) {
     HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (INVALID_HANDLE_VALUE == file) {
         printf("ma come?? %d\n", GetLastError());
@@ -207,7 +212,7 @@ int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size
     SYSTEM_INFO sysInfo;
     GetSystemInfo(&sysInfo);
     offset -= offset % sysInfo.dwAllocationGranularity;
-    if (length < mapData->totalSize - offset ) {
+    if (length < mapData->totalSize - offset) {
         length -= length % sysInfo.dwAllocationGranularity;
     } else {
         length = mapData->totalSize - offset;
@@ -224,7 +229,7 @@ ON_ERROR:
     return PLATFORM_FAILURE;
 }
 
-int iterateDir(LPCSTR path, HANDLE *dir, LPSTR name, size_t nameSize) {
+int iterateDir(LPCSTR path, HANDLE* dir, LPSTR name, size_t nameSize) {
     WIN32_FIND_DATA data;
     if (*dir == NULL) {
         char dirPath[MAX_NAME + 2];
@@ -248,9 +253,14 @@ int closeDir(HANDLE dir) {
     return FindClose(dir) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int unmapMem(const file_mapping_t* map) {
-    if (map->size > 0) {
-        return UnmapViewOfFile(map->view) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int closeFile(fd_t file) {
+    return CloseHandle(file) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
+int unmapMem(file_mapping_t* pMap) {
+    if (pMap->size > 0) {
+        int ret = UnmapViewOfFile(pMapmap->view) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+        pMap->view = NULL;
     }
     return PLATFORM_SUCCESS;
 }
@@ -273,6 +283,7 @@ int unmapMem(const file_mapping_t* map) {
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 /************************************************** UTILS ********************************************************/
@@ -308,7 +319,7 @@ void debugMessage(cstring_t message, int level) {
             lvl = "ERROR";
             priority = LOG_ERR;
     }
-    syslog(priority, "%s - %s\n%s", lvl, message, level == DBG_ERR ? strerror(errno) : "");
+    syslog(priority, "%s - %s\n%s", lvl, message, (level == DBG_ERR) ? strerror(errno) : "");
 }
 
 int getWindowsHelpersPaths() {
@@ -347,6 +358,35 @@ int waitChildren() {
         return PLATFORM_FAILURE;
     }
     return PLATFORM_SUCCESS;
+}
+
+int initSemaphore(semaphore_t *pSem, int initial, int max) {
+    if (!pSem) return PLATFORM_FAILURE;
+    return sem_init(pSem, initial, 0) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
+int waitSemaphore(semaphore_t *pSem, int timeout) {
+    if (!pSem) return PLATFORM_FAILURE;
+    if (timeout > 0) {
+        struct timespec ts;
+        if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
+            return PLATFORM_FAILURE;
+        }
+        ts.tv_sec += (timeout / 1000);
+        return sem_timedwait(pSem, &ts) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    } else {
+        return sem_wait(pSem) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    }
+}
+
+int sigSemaphore(semaphore_t *pSem) {
+    if (!pSem) return PLATFORM_FAILURE;
+    return sem_post(pSem) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+}
+
+int destroySemaphore(semaphore_t *pSem) {
+    if (!pSem) return PLATFORM_FAILURE;
+    return sem_destroy(pSem) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int daemonize() {
@@ -433,7 +473,7 @@ int fileAttributes(cstring_t path) {
     }
 }
 
-size_t getFileSize(cstring_t path) {
+file_size_t getFileSize(cstring_t path) {
     struct stat statBuf;
     if (stat(path, &statBuf) < 0) {
         return -1;
@@ -441,40 +481,49 @@ size_t getFileSize(cstring_t path) {
     return statBuf.st_size;
 }
 
-int getFileMap(const char *path, file_mapping_t *mapData) {
-    int fd;
+int getFileMap(cstring_t path, file_mapping_t *mapData, file_size_t offset, size_t length) {
+    int fd = -1;
     struct flock lck;
     lck.l_type = F_RDLCK;
+    lck.l_start = 0;
     lck.l_whence = SEEK_SET;
     lck.l_len = 0;
     lck.l_pid = getpid();
     if ((fd = open(path, O_RDONLY)) < 0) {
-        return PLATFORM_FAILURE;
+        goto ON_ERROR;
     }
     if (fcntl(fd, F_SETLKW, &lck) < 0) {
-        return PLATFORM_FAILURE;
+        goto ON_ERROR;
     }
     struct stat statBuf;
     if (fstat(fd, &statBuf) < 0) {
-        close(fd);
-        return PLATFORM_FAILURE;
+        goto ON_ERROR;
     }
-    void *map;
-    if (MAP_FAILED == (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0))) {
-        close(fd);
-        return PLATFORM_FAILURE;
+    mapData->totalSize = statBuf.st_size;
+    off_t pageSize = sysconf(_SC_PAGE_SIZE);
+    offset -= offset % pageSize;
+    // pa_offset = offset & ~(sysconf(_SC_PAGE_SIZE) - 1);
+    if (length < mapData->totalSize - offset) {
+        length -= length % pageSize;
+    } else {
+        length = mapData->totalSize - offset;
     }
+    if (MAP_FAILED == (mapData->view = mmap(NULL, length, PROT_READ, MAP_PRIVATE, fd, offset))) {
+        goto ON_ERROR;
+    }
+    mapData->size = length;
     lck.l_type = F_UNLCK;
     if (fcntl(fd, F_SETLK, &lck) < 0 ||
         close(fd) < 0) {
-        return PLATFORM_FAILURE;
+        goto ON_ERROR;
     }
-    mapData->view = map;
-    mapData->size = statBuf.st_size;
     return PLATFORM_SUCCESS;
+ON_ERROR:
+    if (fd > 0) close(fd);
+    return PLATFORM_FAILURE;
 }
 
-int iterateDir(const char *path, DIR **dir, char *name, size_t nameSize) {
+int iterateDir(cstring_t path, DIR **dir, string_t name, size_t nameSize) {
     struct dirent *entry;
     if (*dir == NULL) {
         if (NULL == (*dir = opendir(path))) {
@@ -496,9 +545,11 @@ int closeDir(DIR *dir) {
     return closedir(dir) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int unmapMem(void *addr, size_t len) {
-    if (len > 0) {
-        return munmap(addr, len) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int unmapMem(file_mapping_t *pMap, bool _ignored) {
+    if (pMap->size > 0) {
+        int ret = munmap(pMap->view, pMap->size) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+        pMap->view = NULL;
+        return ret;
     }
     return PLATFORM_SUCCESS;
 }

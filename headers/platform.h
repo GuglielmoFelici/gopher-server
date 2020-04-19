@@ -8,7 +8,6 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -109,7 +108,7 @@ int daemonize();
 */
 int initSemaphore(semaphore_t* pSem, int initial, int max);
 
-/** Waits on a semaphore. 
+/** Waits on a semaphore. Time timeout is expressed in milliseconds.
  *  @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
 int waitSemaphore(semaphore_t* pSem, int timeout);
@@ -175,7 +174,7 @@ typedef struct {
     void* view;
     /** The size of the memory mapping */
     file_size_t size;
-    /** [Windows] The size of the file */
+    /** The size of the file */
     file_size_t totalSize;
     /** [Windows only] Handle for the memory mapping */
     HANDLE memMap;
@@ -189,9 +188,12 @@ typedef struct {
 */
 int getFileMap(cstring_t path, file_mapping_t* mapData, file_size_t offset, size_t length);
 
-/** Unmaps a file memory mapping 
+/** Unmaps a file memory mapping. In Windows, only the View is closed by default
+ *  if closeHandle is false.
+ *  @param pMap a pointer to a file_mapping_t struct representing the mapping.
+ *  @param closeHandle [Windows only] Close the file mapping object too. 
  *  @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
-int unmapMem(const file_mapping_t* map);
+int unmapMem(file_mapping_t* pMap, bool closeHandle);
 
 #endif

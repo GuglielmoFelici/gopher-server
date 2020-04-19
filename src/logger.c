@@ -318,12 +318,13 @@ static void loggerLoop(const logger_t* pLogger) {
             debugMessage(COND_WAIT_ERR, DBG_ERR);
             goto ON_ERROR;
         }
-        if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff) - 3)) < 0) { // - 3 is for the "..." for long lines
+        if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff) - 3)) < 0) {  // - 3 is for the "..." for long lines
             debugMessage(PIPE_READ_ERR, DBG_ERR);
             goto ON_ERROR;
         }
         struct flock lck;
         lck.l_type = F_WRLCK;
+        lck.l_start = 0;
         lck.l_whence = SEEK_SET;
         lck.l_len = 0;
         lck.l_pid = getpid();

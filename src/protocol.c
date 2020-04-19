@@ -9,7 +9,7 @@
 #include "../headers/logger.h"
 #include "../headers/platform.h"
 
-#define MMAP_CHUNK 800000000 // 800MB
+#define MMAP_CHUNK 800000000  // 800MB
 #define DEFAULT_SEM_TIMEOUT 15000
 
 /** Path to the windows gopher helper executable */
@@ -18,10 +18,11 @@ string_t winHelperPath = NULL;
 typedef struct {
     file_mapping_t* pMap;
     socket_t dest;
-    char name[MAX_NAME];
+    char path[MAX_NAME];
     const logger_t* pLogger;
-    semaphore_t* producer;
-    semaphore_t* consumer;
+    semaphore_t* canProduce;
+    semaphore_t* canConsume;
+    semaphore_t* hasTerminated;
 } send_args_t;
 
 /** @return The character identifying the type of the file, X if the type is unknown or an error occurs. */
@@ -79,9 +80,6 @@ static int sendErrorResponse(socket_t sock, cstring_t msg) {
     if (PLATFORM_FAILURE == sendAll(sock, CRLF ".", 3)) {
         return GOPHER_FAILURE;
     }
-    if (PLATFORM_FAILURE == closeSocket(sock)) {
-        return GOPHER_FAILURE;
-    }
     return GOPHER_SUCCESS;
 }
 
@@ -133,10 +131,11 @@ static int sendDir(cstring_t path, int sock, int port) {
         goto ON_ERROR;
     }
     closeSocket(sock);
-    free(line);
+    if (line) free(line);
     closeDir(dir);
     return GOPHER_SUCCESS;
 ON_ERROR:
+    closeSocket(sock);
     if (line) free(line);
     if (dir) {
         closeDir(dir);
@@ -157,102 +156,116 @@ static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t pat
     }
     inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
     string_t logFormat = "File: %s | Size: %lldb | Sent to: %s:%i\n";
-        size_t logSize;
-        string_t log;
-        string_t name;
-        if (NULL == (name = strrchr(path, '/'))) {  // Isolates file name (after last "/")
-            name = path;
-        } else {
-            name++;
-        }
-        logSize = snprintf(NULL, 0, logFormat, name, bytesSent, address, clientAddr.sin_port) + 1;
-        if (NULL == (log = malloc(logSize))) {
-            return;
-        }
-        if (snprintf(log, logSize, logFormat, name, bytesSent, address, clientAddr.sin_port) > 0) {
-            logTransfer(pLogger, log);
-        }
-        free(log);
+    size_t logSize;
+    string_t log;
+    string_t name;
+    if (NULL == (name = strrchr(path, '/'))) {  // Isolates file name (after last "/")
+        name = path;
+    } else {
+        name++;
+    }
+    logSize = snprintf(NULL, 0, logFormat, name, bytesSent, address, clientAddr.sin_port) + 1;
+    if (NULL == (log = malloc(logSize))) {
+        return;
+    }
+    if (snprintf(log, logSize, logFormat, name, bytesSent, address, clientAddr.sin_port) > 0) {
+        logTransfer(pLogger, log);
+    }
+    if (log) free(log);
 }
-
 /** Function executed by a thread to send a file to the client.
  *  If the transfer succeeds, writes to the log. 
  * @param threadArgs a send_args_t compatible void pointer used as argument.
 */
 static void* sendFileTask(void* threadArgs) {
     send_args_t args;
-    file_size_t sent = 0;
+    int pages = 0;
+    int pagesSent = 0;
+    bool terminated = false;
     if (!threadArgs) {
-        goto ON_ERROR;
+        goto CLEANUP;
     }
     args = *(send_args_t*)threadArgs;
     free(threadArgs);
-    while (sent < args.pMap->totalSize) {
-        if (PLATFORM_FAILURE == sendAll(args.dest, args.pMap->view, args.pMap->size)) {
-            goto ON_ERROR;
+    pages = (args.pMap->totalSize / args.pMap->size);
+    if (args.pMap->totalSize % args.pMap->size > 0) pages++;
+    for (pagesSent = 0; pagesSent < pages; pagesSent++) {
+        terminated = pagesSent + 1 == pages;
+        if (terminated) {
+            sigSemaphore(args.hasTerminated);
         }
-        sent += args.pMap->size;
-        if (sent < args.pMap->totalSize) {
-            sigSemaphore(args.consumer);
-            if (PLATFORM_SUCCESS != waitSemaphore(args.producer, DEFAULT_SEM_TIMEOUT)) {
-                goto ON_ERROR;
+        if (PLATFORM_FAILURE == sendAll(args.dest, args.pMap->view, args.pMap->size)) {
+            goto CLEANUP;
+        }
+        if (!terminated) {
+            if (PLATFORM_SUCCESS != sigSemaphore(args.canProduce)) {
+                goto CLEANUP;
             }
+            if (PLATFORM_SUCCESS != waitSemaphore(args.canConsume, DEFAULT_SEM_TIMEOUT)) {
+                goto CLEANUP;
+            }
+        } else {
         }
     }
     if (PLATFORM_FAILURE == sendAll(args.dest, CRLF ".", 3)) {
-            goto ON_ERROR;
+        goto CLEANUP;
     }
-    if (args.pMap) {
-        unmapMem(args.pMap);
-        CloseHandle(args.pMap->memMap);
-        free(args.pMap);
-        args.pMap = NULL;
-    } 
-    sendFileTaskLog(args.pLogger, args.dest, args.name, sent);
-    closeSocket(args.dest);
-    return NULL;
-ON_ERROR:
-    debugMessage(SEND_ERR, DBG_ERR);
+    sendFileTaskLog(args.pLogger, args.dest, args.path, args.pMap->totalSize);
+CLEANUP:
+    if (!terminated) sigSemaphore(args.hasTerminated);  // if main thread is still alive
     closeSocket(args.dest);
     if (args.pMap) {
-        unmapMem(args.pMap);
-        CloseHandle(args.pMap->memMap);
+        unmapMem(args.pMap, true);
         free(args.pMap);
-    } 
+    }
     return NULL;
 }
-
 /** Starts the file transfer thread, executing sendFileTask().
- * @param name The name of the file (used for logging). Can be NULL iff pLogger is NULL. 
+ * @param path The path to the file. 
  * @param sock The client socket.
  * @param pLogger A pointer to the logger_t representing the logging process (can be NULL).
  * @return GOPHER_SUCCESS or GOPHER_FAILURE.
  */
-static int sendFile(cstring_t name, int sock, const logger_t* pLogger) {
+static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
     send_args_t* args = NULL;
     file_mapping_t* pMap = NULL;
-    semaphore_t producer, consumer;
+    semaphore_t* canProduce = NULL;
+    semaphore_t* canConsume = NULL;
+    semaphore_t* hasTerminated = NULL;
+    bool threadStarted = false;
     if (NULL == (args = malloc(sizeof(send_args_t)))) {
         goto ON_ERROR;
     }
     if (NULL == (pMap = malloc(sizeof(file_mapping_t)))) {
         goto ON_ERROR;
     }
+    if (NULL == (canProduce = malloc(sizeof(semaphore_t)))) {
+        goto ON_ERROR;
+    }
+    if (NULL == (canConsume = malloc(sizeof(semaphore_t)))) {
+        goto ON_ERROR;
+    }
+    if (NULL == (hasTerminated = malloc(sizeof(semaphore_t)))) {
+        goto ON_ERROR;
+    }
     pMap->memMap = NULL;
     pMap->size = 0;
     pMap->view = NULL;
     file_size_t offset = 0;
-    file_size_t fileSize = getFileSize(name);
+    file_size_t fileSize = getFileSize(path);
     if (fileSize < 0) {
         goto ON_ERROR;
-    } else if (fileSize > 0){
-        if (PLATFORM_SUCCESS != initSemaphore(&producer, 0, 1)) {
+    } else if (fileSize > 0) {
+        if (PLATFORM_SUCCESS != initSemaphore(canProduce, 0, 1)) {
             goto ON_ERROR;
         }
-        if (PLATFORM_SUCCESS != initSemaphore(&consumer, 0, 1)) {
+        if (PLATFORM_SUCCESS != initSemaphore(canConsume, 0, 1)) {
             goto ON_ERROR;
         }
-        if (PLATFORM_SUCCESS != getFileMap(name, pMap, offset, MMAP_CHUNK)) {
+        if (PLATFORM_SUCCESS != initSemaphore(hasTerminated, 0, 1)) {
+            goto ON_ERROR;
+        }
+        if (PLATFORM_SUCCESS != getFileMap(path, pMap, offset, MMAP_CHUNK)) {
             goto ON_ERROR;
         }
         offset += pMap->size;
@@ -260,45 +273,62 @@ static int sendFile(cstring_t name, int sock, const logger_t* pLogger) {
     args->pMap = pMap;
     args->dest = sock;
     args->pLogger = pLogger;
-    args->producer = &producer;
-    args->consumer = &consumer;
-    strncpy(args->name, name, sizeof(args->name));
+    args->canProduce = canProduce;
+    args->canConsume = canConsume;
+    args->hasTerminated = hasTerminated;
+    strncpy(args->path, path, sizeof(args->path));
     thread_t tid;
     if (PLATFORM_SUCCESS != startThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args)) {
         goto ON_ERROR;
     }
+    threadStarted = true;
     detachThread(tid);
+    int a = 0;
     while (offset < pMap->totalSize) {
-        if (PLATFORM_SUCCESS != waitSemaphore(&consumer, DEFAULT_SEM_TIMEOUT)) {
+        if (PLATFORM_SUCCESS != waitSemaphore(canProduce, DEFAULT_SEM_TIMEOUT)) {
             goto ON_ERROR;
         }
-        if (PLATFORM_SUCCESS != unmapMem(pMap)) {
+        if (PLATFORM_SUCCESS != unmapMem(pMap, false)) {
             goto ON_ERROR;
         }
-        if (PLATFORM_SUCCESS != getFileMap(name, pMap, offset, MMAP_CHUNK)) {
-            debugMessage(FILE_MAP_ERR, DBG_ERR);
+        if (PLATFORM_SUCCESS != getFileMap(path, pMap, offset, MMAP_CHUNK)) {
             goto ON_ERROR;
         }
-        if (PLATFORM_SUCCESS != sigSemaphore(&producer)) {
+        if (PLATFORM_SUCCESS != sigSemaphore(canConsume)) {
             goto ON_ERROR;
         }
         offset += pMap->size;
     }
-    destroySemaphore(&producer); 
-    destroySemaphore(&consumer);
+    waitSemaphore(hasTerminated, 0);
+    destroySemaphore(canProduce);
+    destroySemaphore(canConsume);
+    destroySemaphore(hasTerminated);
+    if (canProduce) free(canProduce);
+    if (canConsume) free(canConsume);
+    if (hasTerminated) free(hasTerminated);
     return GOPHER_SUCCESS;
 ON_ERROR:
-    destroySemaphore(&producer); 
-    destroySemaphore(&consumer);
-    sendErrorResponse(sock, SYS_ERR_MSG);
-    if (pMap) {
-        unmapMem(pMap);
-        CloseHandle(pMap->memMap);
-        free(pMap);
+    if (threadStarted) {
+        if (PLATFORM_SUCCESS == waitSemaphore(hasTerminated, 0)) {
+            if (canProduce) {
+                destroySemaphore(canProduce);
+                free(canProduce);
+            }
+            if (canConsume) {
+                destroySemaphore(canConsume);
+                free(canConsume);
+            }
+        }
+    } else {
+        sendErrorResponse(sock, SYS_ERR_MSG);
+        if (pMap) {
+            unmapMem(pMap, true);
+            free(pMap);
+        }
+        closeSocket(sock);
+        if (args) free(args);
     }
-    if (args) free(args);
     return GOPHER_FAILURE;
-
 }
 
 /** Executes the gopher protocol.
@@ -343,7 +373,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
             goto ON_ERROR;
         }
     }
-    free(selector);
+    if (selector) free(selector);
     return GOPHER_SUCCESS;
 ON_ERROR:
     debugMessage(GOPHER_REQUEST_FAILED, DBG_WARN);
