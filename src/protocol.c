@@ -75,9 +75,6 @@ static int sendErrorResponse(socket_t sock, cstring_t msg) {
     if (PLATFORM_FAILURE == sendAll(sock, CRLF ".", 3)) {
         return GOPHER_FAILURE;
     }
-    if (PLATFORM_FAILURE == closeSocket(sock)) {
-        return GOPHER_FAILURE;
-    }
     return GOPHER_SUCCESS;
 }
 
@@ -137,7 +134,39 @@ ON_ERROR:
     if (dir) {
         closeDir(dir);
     }
+    closeSocket(sock);
     return GOPHER_FAILURE;
+}
+
+static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t path, file_size_t bytesSent) {
+    if (!pLogger) {
+        return;
+    }
+    struct sockaddr_in clientAddr;
+    int clientLen;
+    char address[16];
+    clientLen = sizeof(clientAddr);
+    if (SOCKET_ERROR == getpeername(sock, (struct sockaddr*)&clientAddr, &clientLen)) {
+        memset(&clientAddr, 0, clientLen);
+    }
+    inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
+    string_t logFormat = "File: %s | Size: %lldb | Sent to: %s:%i\n";
+    size_t logSize;
+    string_t log;
+    string_t name;
+    if (NULL == (name = strrchr(path, '/'))) {  // Isolates file name (after last "/")
+        name = path;
+    } else {
+        name++;
+    }
+    logSize = snprintf(NULL, 0, logFormat, name, bytesSent, address, clientAddr.sin_port) + 1;
+    if (NULL == (log = malloc(logSize))) {
+        return;
+    }
+    if (snprintf(log, logSize, logFormat, name, bytesSent, address, clientAddr.sin_port) > 0) {
+        logTransfer(pLogger, log);
+    }
+    if (log) free(log);
 }
 
 /** Function executed by a thread to send a file to the client.
@@ -149,14 +178,13 @@ static void* sendFileTask(void* threadArgs) {
     struct sockaddr_in clientAddr;
     int clientLen;
     char address[16];
+    if (!threadArgs) goto CLEANUP;
     args = *(send_args_t*)threadArgs;
-    free(threadArgs);
     if (
         PLATFORM_FAILURE == sendAll(args.dest, args.src, args.size) ||
         PLATFORM_FAILURE == sendAll(args.dest, CRLF ".", 3)) {
         debugMessage(SEND_ERR, DBG_ERR);
-        closeSocket(args.dest);
-        return NULL;
+        goto CLEANUP;
     }
     if (args.src) {
         unmapMem(args.src, args.size);
@@ -165,21 +193,11 @@ static void* sendFileTask(void* threadArgs) {
     if (SOCKET_ERROR == getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen)) {
         memset(&clientAddr, 0, clientLen);
     }
+    sendFileTaskLog(args.pLogger, args.dest, args.name, args.size);
+CLEANUP:
+    if (threadArgs) free(threadArgs);
+    if (args.src) unmapMem(args.src, args.size);
     closeSocket(args.dest);
-    inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
-    string_t logFormat = "File: %s | Size: %db | Sent to: %s:%i\n";
-    if (args.pLogger) {
-        size_t logSize;
-        string_t log;
-        logSize = snprintf(NULL, 0, logFormat, args.name, args.size, address, clientAddr.sin_port) + 1;
-        if (NULL == (log = malloc(logSize))) {
-            return NULL;
-        }
-        if (snprintf(log, logSize, logFormat, args.name, args.size, address, clientAddr.sin_port) > 0) {
-            logTransfer(args.pLogger, log);
-        }
-        free(log);
-    }
 }
 
 /** Starts the file transfer thread, executing sendFileTask().
@@ -189,26 +207,41 @@ static void* sendFileTask(void* threadArgs) {
  * @param pLogger A pointer to the logger_t representing the logging process (can be NULL).
  * @return GOPHER_SUCCESS or GOPHER_FAILURE.
  */
-static int sendFile(cstring_t name, const file_mapping_t* map, int sock, const logger_t* pLogger) {
+static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
     thread_t tid;
     send_args_t* args = NULL;
-    if (!map) {
-        return GOPHER_FAILURE;
+    file_mapping_t map;
+    map.view = NULL;
+    map.size = 0;
+    file_size_t size = getFileSize(path);
+    if (size < 0) {
+        debugMessage("getFileSize failed", DBG_DEBUG);
+        sendErrorResponse(sock, SYS_ERR_MSG);
+        goto ON_ERROR;
+    }
+    if (PLATFORM_SUCCESS != getFileMap(path, &map)) {
+        debugMessage(FILE_MAP_ERR, DBG_ERR);
+        sendErrorResponse(sock, "Invalid file or file too large.");  // TODO
+        goto ON_ERROR;
     }
     if (NULL == (args = malloc(sizeof(send_args_t)))) {
-        return GOPHER_FAILURE;
+        goto ON_ERROR;
     }
-    args->src = map->view;
-    args->size = map->size;
+    args->src = map.view;
+    args->size = map.size;
     args->dest = sock;
     args->pLogger = pLogger;
-    strncpy(args->name, name, sizeof(args->name));
+    strncpy(args->name, path, sizeof(args->name));
     if (PLATFORM_SUCCESS != startThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args)) {
-        free(args);
-        return GOPHER_FAILURE;
+        goto ON_ERROR;
     }
     detachThread(tid);
     return GOPHER_SUCCESS;
+ON_ERROR:
+    closeSocket(sock);
+    if (args) free(args);
+    if (map.view && map.size > 0) unmapMem(map.view, map.size);
+    return GOPHER_FAILURE;
 }
 
 /** Executes the gopher protocol.
@@ -248,21 +281,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
             goto ON_ERROR;
         }
     } else {  // File
-        file_mapping_t map;
-        file_size_t size = getFileSize(selector);
-        if (size < 0) {
-            debugMessage("getFileSize failed", DBG_DEBUG);
-            sendErrorResponse(sock, SYS_ERR_MSG);
-            goto ON_ERROR;
-        } else if (size == 0) {
-            map.size = 0;
-            map.view = "";
-        } else if (PLATFORM_SUCCESS != getFileMap(selector, &map)) {
-            debugMessage(FILE_MAP_ERR, DBG_ERR);
-            sendErrorResponse(sock, SYS_ERR_MSG);
-            goto ON_ERROR;
-        }
-        if (GOPHER_SUCCESS != sendFile(selector, &map, sock, pLogger)) {
+        if (GOPHER_SUCCESS != sendFile(selector, sock, pLogger)) {
             debugMessage(FILE_SEND_ERR, DBG_ERR);
             goto ON_ERROR;
         }
@@ -271,7 +290,6 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     return GOPHER_SUCCESS;
 ON_ERROR:
     debugMessage(GOPHER_REQUEST_FAILED, DBG_WARN);
-    closeSocket(sock);
     if (selector) free(selector);
     return GOPHER_FAILURE;
 }

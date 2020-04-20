@@ -324,6 +324,7 @@ static void loggerLoop(const logger_t* pLogger) {
         } else {
             struct flock lck;
             lck.l_type = F_WRLCK;
+            lock.l_start = 0;
             lck.l_whence = SEEK_SET;
             lck.l_len = 0;
             lck.l_pid = getpid();

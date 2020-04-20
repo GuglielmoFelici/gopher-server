@@ -423,6 +423,7 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
     int fd;
     struct flock lck;
     lck.l_type = F_RDLCK;
+    lck.l_start = 0;
     lck.l_whence = SEEK_SET;
     lck.l_len = 0;
     lck.l_pid = getpid();
