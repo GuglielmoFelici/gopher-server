@@ -22,7 +22,7 @@ typedef struct {
     const logger_t* pLogger;
     semaphore_t* canProduce;
     semaphore_t* canConsume;
-    semaphore_t* hasTerminated;
+    volatile bool terminated;
 } send_args_t;
 
 /** @return The character identifying the type of the file, X if the type is unknown or an error occurs. */
@@ -178,46 +178,39 @@ static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t pat
  * @param threadArgs a send_args_t compatible void pointer used as argument.
 */
 static void* sendFileTask(void* threadArgs) {
-    send_args_t args;
+    send_args_t* args = NULL;
     int pages = 0;
     int pagesSent = 0;
-    bool terminated = false;
     if (!threadArgs) {
         goto CLEANUP;
     }
-    args = *(send_args_t*)threadArgs;
-    free(threadArgs);
-    pages = (args.pMap->totalSize / args.pMap->size);
-    if (args.pMap->totalSize % args.pMap->size > 0) pages++;
+    args = (send_args_t*)threadArgs;
+    pages = (args->pMap->totalSize / args->pMap->size);
+    if (args->pMap->totalSize % args->pMap->size > 0) pages++;
     for (pagesSent = 0; pagesSent < pages; pagesSent++) {
-        terminated = pagesSent + 1 == pages;
-        if (terminated) {
-            sigSemaphore(args.hasTerminated);
-        }
-        if (PLATFORM_FAILURE == sendAll(args.dest, args.pMap->view, args.pMap->size)) {
+        if (PLATFORM_FAILURE == sendAll(args->dest, args->pMap->view, args->pMap->size)) {
             goto CLEANUP;
         }
-        if (!terminated) {
-            if (PLATFORM_SUCCESS != sigSemaphore(args.canProduce)) {
-                goto CLEANUP;
-            }
-            if (PLATFORM_SUCCESS != waitSemaphore(args.canConsume, DEFAULT_SEM_TIMEOUT)) {
-                goto CLEANUP;
-            }
-        } else {
+        if (PLATFORM_SUCCESS != sigSemaphore(args->canProduce)) {
+            goto CLEANUP;
+        }
+        if (PLATFORM_SUCCESS != waitSemaphore(args->canConsume, DEFAULT_SEM_TIMEOUT)) {
+            goto CLEANUP;
         }
     }
-    if (PLATFORM_FAILURE == sendAll(args.dest, CRLF ".", 3)) {
+    if (PLATFORM_FAILURE == sendAll(args->dest, CRLF ".", 3)) {
         goto CLEANUP;
     }
-    sendFileTaskLog(args.pLogger, args.dest, args.path, args.pMap->totalSize);
+    sendFileTaskLog(args->pLogger, args->dest, args->path, args->pMap->totalSize);
 CLEANUP:
-    if (!terminated) sigSemaphore(args.hasTerminated);  // if main thread is still alive
-    closeSocket(args.dest);
-    if (args.pMap) {
-        unmapMem(args.pMap, true);
-        free(args.pMap);
+    args->terminated = true;
+    sigSemaphore(args->canProduce);  // terminated
+    closeSocket(args->dest);
+    if (args->pMap) {
+        unmapMem(args->pMap, true);
+        free(args->pMap);
     }
+    if (args) free(args);
     return NULL;
 }
 /** Starts the file transfer thread, executing sendFileTask().
@@ -231,7 +224,6 @@ static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
     file_mapping_t* pMap = NULL;
     semaphore_t* canProduce = NULL;
     semaphore_t* canConsume = NULL;
-    semaphore_t* hasTerminated = NULL;
     bool threadStarted = false;
     if (NULL == (args = malloc(sizeof(send_args_t)))) {
         goto ON_ERROR;
@@ -243,9 +235,6 @@ static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
         goto ON_ERROR;
     }
     if (NULL == (canConsume = malloc(sizeof(semaphore_t)))) {
-        goto ON_ERROR;
-    }
-    if (NULL == (hasTerminated = malloc(sizeof(semaphore_t)))) {
         goto ON_ERROR;
     }
     pMap->memMap = NULL;
@@ -262,9 +251,6 @@ static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
         if (PLATFORM_SUCCESS != initSemaphore(canConsume, 0, 1)) {
             goto ON_ERROR;
         }
-        if (PLATFORM_SUCCESS != initSemaphore(hasTerminated, 0, 1)) {
-            goto ON_ERROR;
-        }
         if (PLATFORM_SUCCESS != getFileMap(path, pMap, offset, MMAP_CHUNK)) {
             goto ON_ERROR;
         }
@@ -275,17 +261,18 @@ static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
     args->pLogger = pLogger;
     args->canProduce = canProduce;
     args->canConsume = canConsume;
-    args->hasTerminated = hasTerminated;
+    args->terminated = false;
     strncpy(args->path, path, sizeof(args->path));
     thread_t tid;
     if (PLATFORM_SUCCESS != startThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args)) {
         goto ON_ERROR;
     }
     threadStarted = true;
-    detachThread(tid);
-    int a = 0;
     while (offset < pMap->totalSize) {
         if (PLATFORM_SUCCESS != waitSemaphore(canProduce, DEFAULT_SEM_TIMEOUT)) {
+            goto ON_ERROR;
+        }
+        if (args->terminated) {
             goto ON_ERROR;
         }
         if (PLATFORM_SUCCESS != unmapMem(pMap, false)) {
@@ -299,25 +286,25 @@ static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
         }
         offset += pMap->size;
     }
-    waitSemaphore(hasTerminated, 0);
+    if (PLATFORM_SUCCESS != sigSemaphore(canConsume)) {
+        goto ON_ERROR;
+    }
+    joinThread(tid);
     destroySemaphore(canProduce);
     destroySemaphore(canConsume);
-    destroySemaphore(hasTerminated);
     if (canProduce) free(canProduce);
     if (canConsume) free(canConsume);
-    if (hasTerminated) free(hasTerminated);
     return GOPHER_SUCCESS;
 ON_ERROR:
     if (threadStarted) {
-        if (PLATFORM_SUCCESS == waitSemaphore(hasTerminated, 0)) {
-            if (canProduce) {
-                destroySemaphore(canProduce);
-                free(canProduce);
-            }
-            if (canConsume) {
-                destroySemaphore(canConsume);
-                free(canConsume);
-            }
+        joinThread(tid);
+        if (canProduce) {
+            destroySemaphore(canProduce);
+            free(canProduce);
+        }
+        if (canConsume) {
+            destroySemaphore(canConsume);
+            free(canConsume);
         }
     } else {
         sendErrorResponse(sock, SYS_ERR_MSG);

@@ -83,12 +83,15 @@ cstring_t inetNtoa(const struct in_addr* addr, void* dst, size_t size);
  * @param args A pointer to data used as arguments.
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
-int startThread(thread_t* tid, LPTHREAD_START_ROUTINE routine, void* args);
+int startThread(thread_t* thrd, LPTHREAD_START_ROUTINE routine, void* args);
+
+// todo docs
+int joinThread(thread_t thrd);
 
 /** Detaches the thread tid. 
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
-int detachThread(thread_t tid);
+int detachThread(thread_t thrd);
 
 /** [Linux] Tries to wait for all the children to finish, but doesn't block.
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.

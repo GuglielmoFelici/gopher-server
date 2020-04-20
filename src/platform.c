@@ -96,13 +96,17 @@ LPCSTR inetNtoa(const struct in_addr* addr, void* dst, size_t size) {
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
-int detachThread(HANDLE tHandle) {
-    return CloseHandle(tHandle) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int startThread(HANDLE* thrd, LPTHREAD_START_ROUTINE routine, void* args) {
+    *thrd = CreateThread(NULL, 0, routine, args, 0, NULL);
+    return thrd ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int startThread(HANDLE* tid, LPTHREAD_START_ROUTINE routine, void* args) {
-    *tid = CreateThread(NULL, 0, routine, args, 0, NULL);
-    return tid ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int joinThread(HANDLE thrd) {
+    return WaitForSingleObject(thrd, INFINITE) == WAIT_FAILED ? PLATFORM_FAILURE : PLATFORM_SUCCESS;
+}
+
+int detachThread(HANDLE thrd) {
+    return CloseHandle(thrd) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int waitChildren() {
@@ -253,16 +257,16 @@ int closeDir(HANDLE dir) {
     return FindClose(dir) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int closeFile(fd_t file) {
-    return CloseHandle(file) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
-}
-
-int unmapMem(file_mapping_t* pMap) {
+int unmapMem(file_mapping_t* pMap, bool closeHandle) {
+    if (!pMap) return PLATFORM_FAILURE;
+    int ret = PLATFORM_SUCCESS;
     if (pMap->size > 0) {
-        int ret = UnmapViewOfFile(pMapmap->view) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
-        pMap->view = NULL;
+        ret = UnmapViewOfFile(pMap->view) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
     }
-    return PLATFORM_SUCCESS;
+    if (closeHandle && pMap->memMap) {
+        ret = CloseHandle(pMap->memMap) ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+    }
+    return ret;
 }
 
 /*****************************************************************************************************************/
@@ -342,12 +346,12 @@ const char *inetNtoa(const struct in_addr *addr, void *dst, size_t size) {
 
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
-int detachThread(pthread_t tid) {
-    return pthread_detach(tid) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int startThread(pthread_t *thrd, LPTHREAD_START_ROUTINE routine, void *args) {
+    return pthread_create(thrd, NULL, routine, args) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
-int startThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
-    return pthread_create(tid, NULL, routine, args) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
+int detachThread(pthread_t thrd) {
+    return pthread_detach(thrd) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
 int waitChildren() {
