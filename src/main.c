@@ -163,8 +163,8 @@ ON_ERROR:
     }
     if (configPath) free(configPath);
     if (logPath) free(logPath);
-    if (winHelperPath) free(logPath);
-    if (winLoggerPath) free(logPath);
+    if (winHelperPath) free(winHelperPath);
+    if (winLoggerPath) free(winLoggerPath);
     stopTransferLog(&logger);
     return 1;
 }

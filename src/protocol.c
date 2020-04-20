@@ -16,7 +16,7 @@ typedef struct {
     void* src;
     size_t size;
     socket_t dest;
-    char name[MAX_NAME];
+    char path[MAX_NAME];
     const logger_t* pLogger;
 } send_args_t;
 
@@ -126,14 +126,12 @@ static int sendDir(cstring_t path, int sock, int port) {
         goto ON_ERROR;
     }
     closeSocket(sock);
-    free(line);
+    if (line) free(line);
     closeDir(dir);
     return GOPHER_SUCCESS;
 ON_ERROR:
     if (line) free(line);
-    if (dir) {
-        closeDir(dir);
-    }
+    if (dir) closeDir(dir);
     closeSocket(sock);
     return GOPHER_FAILURE;
 }
@@ -193,7 +191,7 @@ static void* sendFileTask(void* threadArgs) {
     if (SOCKET_ERROR == getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen)) {
         memset(&clientAddr, 0, clientLen);
     }
-    sendFileTaskLog(args.pLogger, args.dest, args.name, args.size);
+    sendFileTaskLog(args.pLogger, args.dest, args.path, args.size);
 CLEANUP:
     if (threadArgs) free(threadArgs);
     if (args.src) unmapMem(args.src, args.size);
@@ -231,7 +229,7 @@ static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
     args->size = map.size;
     args->dest = sock;
     args->pLogger = pLogger;
-    strncpy(args->name, path, sizeof(args->name));
+    strncpy(args->path, path, sizeof(args->path));
     if (PLATFORM_SUCCESS != startThread(&tid, (LPTHREAD_START_ROUTINE)sendFileTask, args)) {
         goto ON_ERROR;
     }
@@ -274,6 +272,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     int fileAttr = fileAttributes(selector);
     if (PLATFORM_FAILURE & fileAttr) {
         sendErrorResponse(sock, (PLATFORM_NOT_FOUND & fileAttr) ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
+        closeSocket(sock);
         goto ON_ERROR;
     } else if (PLATFORM_ISDIR & fileAttr) {  // Directory
         if (GOPHER_SUCCESS != sendDir(selector, sock, port)) {
@@ -286,7 +285,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
             goto ON_ERROR;
         }
     }
-    free(selector);
+    if (selector) free(selector);
     return GOPHER_SUCCESS;
 ON_ERROR:
     debugMessage(GOPHER_REQUEST_FAILED, DBG_WARN);

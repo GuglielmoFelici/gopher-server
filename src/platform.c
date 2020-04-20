@@ -67,9 +67,9 @@ void debugMessage(cstring_t message, int level) {
     }
     fprintf(where, "%s - %s", lvl, message);
     if (level == DBG_ERR) {
-        printf(" - %d", GetLastError());
+        fprintf(stderr, " - %d", GetLastError());
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 }
 
 int getWindowsHelpersPaths() {
@@ -286,7 +286,7 @@ void debugMessage(cstring_t message, int level) {
             lvl = "ERROR";
             priority = LOG_ERR;
     }
-    syslog(priority, "%s - %s\n%s", lvl, message, level == DBG_ERR ? strerror(errno) : "");
+    syslog(priority, "%s - %s\n%s", lvl, message, (level == DBG_ERR) ? strerror(errno) : "");
 }
 
 int getWindowsHelpersPaths() {
