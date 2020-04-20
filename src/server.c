@@ -341,6 +341,7 @@ static void intHandler(int signum) {
 
 static int installSigHandler(int sig, void (*func)(int), int flags) {
     struct sigaction sigact;
+    memset(&sigact, 0, sizeof(struct sigaction));
     sigact.sa_handler = func;
     sigact.sa_flags = flags;
     return sigaction(sig, &sigact, NULL) == 0 ? SERVER_SUCCESS : SERVER_FAILURE;
@@ -368,6 +369,7 @@ static bool checkSignal(int which) {
 /*********************************************** THREADS & PROCESSES ***************************************************************/
 
 static void* serveThreadTask(void* args) {
+    pthread_detach(pthread_self());
     int sock;
     sigset_t set;
     server_thread_args_t tArgs = *(server_thread_args_t*)args;
@@ -389,7 +391,6 @@ static int serveThread(int sock, int port, logger_t* pLogger) {
         free(tArgs);
         return SERVER_FAILURE;
     }
-    pthread_detach(tid);
     return SERVER_SUCCESS;
 }
 

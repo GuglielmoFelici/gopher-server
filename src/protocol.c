@@ -14,7 +14,7 @@ string_t winHelperPath = NULL;
 
 typedef struct {
     void* src;
-    size_t size;
+    int64_t size;
     socket_t dest;
     char path[MAX_NAME];
     const logger_t* pLogger;
@@ -136,7 +136,7 @@ ON_ERROR:
     return GOPHER_FAILURE;
 }
 
-static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t path, file_size_t bytesSent) {
+static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t path, int64_t bytesSent) {
     if (!pLogger) {
         return;
     }
@@ -193,6 +193,7 @@ static void* sendFileTask(void* threadArgs) {
     }
     sendFileTaskLog(args.pLogger, args.dest, args.path, args.size);
 CLEANUP:
+    printf("connection terminated\n");
     if (threadArgs) free(threadArgs);
     if (args.src) unmapMem(args.src, args.size);
     closeSocket(args.dest);
@@ -211,7 +212,7 @@ static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
     file_mapping_t map;
     map.view = NULL;
     map.size = 0;
-    file_size_t size = getFileSize(path);
+    int64_t size = getFileSize(path);
     if (size < 0) {
         debugMessage("getFileSize failed", DBG_DEBUG);
         sendErrorResponse(sock, SYS_ERR_MSG);

@@ -8,6 +8,7 @@
 
 #if defined(_WIN32)
 #include <windows.h>
+#define MSG_NOSIGNAL 0
 
 #else
 #include <arpa/inet.h>
@@ -68,7 +69,7 @@ int closeSocket(socket_t s);
 /** Tries to send up to length bytes of data to the socket s.
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
-int sendAll(socket_t s, cstring_t data, file_size_t length);
+int sendAll(socket_t s, cstring_t data, int64_t length);
 
 /** @see inet_ntoa [Windows]
  *  @see inet_ntop [Linux]
@@ -94,6 +95,8 @@ int detachThread(thread_t tid);
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
 */
 int waitChildren();
+
+void threadExit();
 
 /** [Linux] Transforms the current process into a daemon process. 
  * @return PLATFORM_SUCCESS or PLATFORM_FAILURE.
@@ -121,7 +124,7 @@ int fileAttributes(cstring_t path);
 
 /** @return The size of the file path, or -1 upon failure.
 */
-file_size_t getFileSize(cstring_t path);
+int64_t getFileSize(cstring_t path);
 
 /** Reads the next file of a directory and copies its relative path in name.
  *  If dir is NULL, opens the directory path and initializes dir for further calls.
@@ -150,7 +153,7 @@ typedef struct {
     /** A pointer to the memory mapping */
     void* view;
     /** The size of the memory mapping */
-    file_size_t size;
+    int64_t size;
 } file_mapping_t;
 
 /** Create a file memory mapping.

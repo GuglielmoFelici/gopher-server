@@ -11,15 +11,15 @@ bool endsWith(cstring_t str1, cstring_t str2) {
     return strcmp(str1 + (strlen(str1) - strlen(str2)), str2) == 0;
 }
 
-int sendAll(socket_t s, cstring_t data, file_size_t length) {
-    size_t count = 0, sent = 0;
+int sendAll(socket_t s, cstring_t data, int64_t length) {
+    int64_t count = 0, sent = 0, remaining = length;
     while (count < length) {
-        int sent = send(s, data + count, length, 0);
+        int sent = send(s, data + count, remaining, MSG_NOSIGNAL);
         if (sent == SOCKET_ERROR) {
             return PLATFORM_FAILURE;
         }
         count += sent;
-        length -= sent;
+        remaining -= sent;
     }
     return PLATFORM_SUCCESS;
 }
@@ -105,6 +105,10 @@ int startThread(HANDLE *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return tid ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
+void threadExit() {
+    ExitThread(0);
+}
+
 int waitChildren() {
     return PLATFORM_SUCCESS;
 }
@@ -127,7 +131,7 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     return NULL;
 }
 
-file_size_t getFileSize(const char *path) {
+int64_t getFileSize(const char *path) {
     HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (INVALID_HANDLE_VALUE == file) {
         return -1;
@@ -317,6 +321,10 @@ int startThread(pthread_t *tid, LPTHREAD_START_ROUTINE routine, void *args) {
     return pthread_create(tid, NULL, routine, args) == 0 ? PLATFORM_SUCCESS : PLATFORM_FAILURE;
 }
 
+void threadExit() {
+    pthread_exit(NULL);
+}
+
 int waitChildren() {
     int ret;
     while ((ret = waitpid(-1, NULL, WNOHANG)) > 0)
@@ -378,6 +386,7 @@ bool isPathRelative(cstring_t path) {
 }
 
 string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
+    printf("realpath: %s\n", relative);
     string_t ret = NULL;
     int attr = fileAttributes(relative);
     if (!(PLATFORM_FAILURE & attr)) {
@@ -411,7 +420,7 @@ int fileAttributes(cstring_t path) {
     }
 }
 
-file_size_t getFileSize(cstring_t path) {
+int64_t getFileSize(cstring_t path) {
     struct stat statBuf;
     if (stat(path, &statBuf) < 0) {
         return -1;

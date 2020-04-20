@@ -206,6 +206,7 @@ int startTransferLog(logger_t* pLogger) {
         goto ON_ERROR;
     } else if (pid == 0) {  // Logger
         struct sigaction act;
+        memset(&act, 0, sizeof(struct sigaction));
         act.sa_handler = SIG_DFL;
         if (sigaction(SIGINT, &act, NULL) < 0) {
             goto ON_ERROR;
@@ -308,6 +309,7 @@ static void loggerLoop(const logger_t* pLogger) {
         debugMessage(LOGFILE_OPEN_ERR, DBG_ERR);
         goto ON_ERROR;
     }
+    free(logPath);
     if (pthread_mutex_lock(pLogger->pLogMutex) != 0) {
         debugMessage(MUTEX_LOCK_ERR, DBG_ERR);
         goto ON_ERROR;
