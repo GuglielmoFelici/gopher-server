@@ -271,6 +271,7 @@ int gopher(socket_t sock, int port, const logger_t* pLogger) {
     debugMessage(selector, DBG_INFO);
     int fileAttr = fileAttributes(selector);
     if (PLATFORM_FAILURE & fileAttr) {
+        debugMessage("Couldn't get file attributes.", DBG_DEBUG);
         sendErrorResponse(sock, (PLATFORM_NOT_FOUND & fileAttr) ? RESOURCE_NOT_FOUND_MSG : SYS_ERR_MSG);
         closeSocket(sock);
         goto ON_ERROR;
