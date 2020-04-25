@@ -146,8 +146,6 @@ int stopTransferLog(logger_t* pLogger) {
 #include "../headers/log.h"
 #include "../headers/platform.h"
 
-#define LOG_PROCESS_NAME "gopher-logger"
-
 int startTransferLog(logger_t* pLogger) {
     if (!pLogger) {
         return LOGGER_FAILURE;

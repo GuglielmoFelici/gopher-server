@@ -131,6 +131,7 @@ int main(int argc, string_t* argv) {
         }
     }
     if (debugLevel != DBG_NO) {
+        printf("Debug level: %d\n", debugLevel);
         printf("Port %d\n", server.port);
         debugMessage(MAIN_STARTING, DBG_DEBUG);
     }
