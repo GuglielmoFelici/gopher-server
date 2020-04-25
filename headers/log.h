@@ -28,7 +28,7 @@
     \n\t4 - Errors, warning and info and debug\
     \n\tDefault: 2"
 #define INVALID_DBG_LVL_ERR "Invalid verbosity level. Accepted values are 0-4"
-#define MAIN_CONFIG_ERR "Can't read configuration file. Default options will be used."
+#define MAIN_CONFIG_ERR "Can't read some of the file configurations. Default options will be used."
 #define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file and no option provided, multiprocess will be disabled."
 #define MAIN_PORT_CONFIG_ERR "Can't read configuration file and no option provided for port, default one will be used."
 #define MAIN_PORT_ERR "Invalid port number, default one will be used."

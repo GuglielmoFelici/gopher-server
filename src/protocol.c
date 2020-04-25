@@ -193,7 +193,6 @@ static void* sendFileTask(void* threadArgs) {
     }
     sendFileTaskLog(args.pLogger, args.dest, args.path, args.size);
 CLEANUP:
-    printf("connection terminated\n");
     if (threadArgs) free(threadArgs);
     if (args.src) unmapMem(args.src, args.size);
     closeSocket(args.dest);

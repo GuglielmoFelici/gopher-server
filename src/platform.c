@@ -173,6 +173,7 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
     if (fileSize.QuadPart == 0) {
         mapData->view = NULL;
         mapData->size = 0;
+        CloseHandle(file);
         return PLATFORM_SUCCESS;
     }
     memset(&ovlp, 0, sizeof(ovlp));
@@ -386,7 +387,6 @@ bool isPathRelative(cstring_t path) {
 }
 
 string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
-    printf("realpath: %s\n", relative);
     string_t ret = NULL;
     int attr = fileAttributes(relative);
     if (!(PLATFORM_FAILURE & attr)) {
@@ -447,10 +447,12 @@ int getFileMap(const char *path, file_mapping_t *mapData) {
         close(fd);
         return PLATFORM_FAILURE;
     }
-    void *map;
-    if (MAP_FAILED == (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0))) {
-        close(fd);
-        return PLATFORM_FAILURE;
+    void *map = NULL;
+    if (statBuf.st_size > 0) {
+        if (MAP_FAILED == (map = mmap(NULL, statBuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0))) {
+            close(fd);
+            return PLATFORM_FAILURE;
+        }
     }
     lck.l_type = F_UNLCK;
     if (fcntl(fd, F_SETLK, &lck) < 0 ||

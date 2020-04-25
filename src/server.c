@@ -93,8 +93,9 @@ void defaultConfig(server_t* pServer, int which) {
 int readConfig(server_t* pServer, int which) {
     FILE* configFile = NULL;
     char line[MAX_NAME];
+    int ret = SERVER_SUCCESS;
     if (NULL == (configFile = fopen(configPath, "r"))) {
-        goto ON_ERROR;
+        return SERVER_FAILURE;
     }
     char key[32], value[MAX_NAME];
     while (NULL != fgets(line, sizeof(line), configFile)) {
@@ -104,7 +105,7 @@ int readConfig(server_t* pServer, int which) {
                 port = strtol(value, NULL, 10);
                 if (port < 1 || port > PORT_MAX) {
                     debugMessage(MAIN_PORT_ERR, DBG_WARN);
-                    goto ON_ERROR;
+                    ret = SERVER_FAILURE;
                 }
                 pServer->port = port;
             } else if (strcmp(key, CONFIG_LOG_KEY) == 0 && (which & READ_LOG)) {
@@ -112,12 +113,12 @@ int readConfig(server_t* pServer, int which) {
                 logPath = getRealPath(value, NULL, true);
                 if (NULL == logPath) {
                     debugMessage(LOGFILE_OPEN_ERR, DBG_WARN);
-                    goto ON_ERROR;
+                    ret = SERVER_FAILURE;
                 }
             } else if (strcmp(key, CONFIG_DIR_KEY) == 0 && (which & READ_DIR)) {
                 if (PLATFORM_SUCCESS != changeCwd(value)) {
                     debugMessage(MAIN_CWD_ERR, DBG_ERR);
-                    goto ON_ERROR;
+                    ret = SERVER_FAILURE;
                 }
             } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
                 pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
@@ -125,17 +126,15 @@ int readConfig(server_t* pServer, int which) {
                 debugLevel = strtol(value, NULL, 10);
                 if (debugLevel < DBG_NO || debugLevel > DBG_DEBUG) {
                     debugMessage(INVALID_DBG_LVL_ERR, DBG_ERR);
-                    return -1;
+                    ret = SERVER_FAILURE;
                 }
             }
         }
     }
-    return SERVER_SUCCESS;
-ON_ERROR:
     if (configFile) {
         fclose(configFile);
     }
-    return SERVER_FAILURE;
+    return ret;
 }
 
 int runServer(server_t* pServer, logger_t* pLogger) {

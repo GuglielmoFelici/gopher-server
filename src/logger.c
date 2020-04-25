@@ -303,8 +303,6 @@ static void loggerLoop(const logger_t* pLogger) {
     if (!logPath) {
         goto ON_ERROR;
     }
-    prctl(PR_SET_NAME, LOG_PROCESS_NAME);  // TODO rimuovere?
-    prctl(PR_SET_PDEATHSIG, SIGINT);
     if ((logFile = open(logPath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
         debugMessage(LOGFILE_OPEN_ERR, DBG_ERR);
         goto ON_ERROR;

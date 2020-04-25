@@ -1,1 +1,1 @@
-cat /var/log/syslog | grep "(linuxserver|gopher-logger)" -aE
+cat /var/log/syslog | grep gopher -a

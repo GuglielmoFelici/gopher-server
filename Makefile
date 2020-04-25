@@ -4,11 +4,11 @@ winLoggerObjects = src/helpers/winLogger.o
 CC = gcc
 
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
-	target = winserver.exe
+	target = wingopher.exe
 	lib = -lws2_32
 	helpers = winLogger.exe winGopherProcess.exe
 else
-    target = linuxserver
+    target = linuxgopher
 	lib = -pthread
 endif
 
