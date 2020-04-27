@@ -12,7 +12,7 @@ static int getLogger(logger_t* pLogger, LPSTR* argv) {
     if (NULL == pLogger) {
         return LOGGER_FAILURE;
     }
-    sscanf(argv[3], "%p", &(logPipe));
+    sscanf(argv[4], "%p", &(logPipe));
     mutex = OpenMutex(SYNCHRONIZE, FALSE, LOG_MUTEX_NAME);
     logEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, LOGGER_EVENT_NAME);
     if (!(mutex && logEvent && logPipe)) {
@@ -53,7 +53,7 @@ DWORD main(DWORD argc, LPSTR* argv) {
     }
     sscanf(argv[1], "%hu", &port);
     sscanf(argv[2], "%p", &sock);
-    sscanf(argv[4], "%d", &debugLevel);
+    sscanf(argv[3], "%d", &debugLevel);
     pLogger = malloc(sizeof(logger_t));
     if (pLogger == NULL) {
         return 1;
