@@ -73,6 +73,7 @@ int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* p
                 }
                 break;
             case 'v':
+                pSwitches->v = true;
                 if (optarg[0] == '-') {
                     fprintf(stderr, "%s\n", MAIN_USAGE);
                     return -1;

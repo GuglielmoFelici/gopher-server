@@ -132,7 +132,7 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
 }
 
 int64_t getFileSize(const char *path) {
-    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (INVALID_HANDLE_VALUE == file) {
         return -1;
     }
