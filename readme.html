@@ -1,0 +1,438 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"  
+  "http://www.w3.org/TR/html4/loose.dtd">  
+<html > 
+<head><title></title> 
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"> 
+<meta name="generator" content="TeX4ht (http://www.tug.org/tex4ht/)"> 
+<meta name="originator" content="TeX4ht (http://www.tug.org/tex4ht/)"> 
+<!-- html --> 
+<meta name="src" content="readme.tex"> 
+<link rel="stylesheet" type="text/css" href="readme.css"> 
+</head><body 
+>
+   <h3 class="likesectionHead"><a 
+ id="x1-1000"></a>Gopher Server</h3>
+<!--l. 28--><p class="noindent" >
+   <h4 class="likesubsectionHead"><a 
+ id="x1-2000"></a>Utilizzo del software</h4>
+<!--l. 30--><p class="noindent" >E&#8217; possibile compilare il progetto tramite make. La compilazione genera l&#8217;eseguibile
+linuxserver o, nel caso in cui si esegua la build su Windows, il file winserver.exe e due
+binari aggiuntivi. Viene effettuato il linking alla libreria pthread su GNU/Linux e alla
+libreria Winsock (Ws2_32) su Windows.<br 
+class="newline" />Il programma riconosce le seguenti opzioni da riga di comando:<br 
+class="newline" /><!--l. 34-->
+   <div class="lstlisting" id="listing-1"><span class="label"><a 
+ id="x1-2001r1"></a></span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">d</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">DIR</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2002r2"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Utilizza</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">la</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">directory</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">DIR</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">come</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">root</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">del</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">server</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2003r3"></a></span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">f</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">FILE</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2004r4"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Leggi</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">le</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">configurazioni</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">da</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">FILE</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2005r5"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Per</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">informazioni</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">sulla</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">struttura</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">del</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">file</span><span 
+class="cmtt-9">,</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">vedere</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">la</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">sezione</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2006r6"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">1.1</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Lettura</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">della</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">configurazione</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2007r7"></a></span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">h</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2008r8"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Mostra</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">la</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">sintassi</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2009r9"></a></span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">l</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">FILE</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2010r10"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Logga</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">i</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">trasferimenti</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">sul</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">file</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">FILE</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2011r11"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Default</span><span 
+class="cmtt-9">:</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">logfile</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2012r12"></a></span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">m</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2013r13"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Utilizza</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">un</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">processo</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">per</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">ogni</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">client</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2014r14"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Default</span><span 
+class="cmtt-9">:</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">no</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2015r15"></a></span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">p</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">PORT</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2016r16"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Metti</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">il</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">server</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">in</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">ascolto</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">sulla</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">porta</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">PORT</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2017r17"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Default</span><span 
+class="cmtt-9">:</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">7070.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2018r18"></a></span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">v</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2019r19"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Imposta</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">il</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">livello</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">di</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">log</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">informativi</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">del</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">server</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2020r20"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">(</span><span 
+class="cmtt-9">syslog</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">su</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Linux</span><span 
+class="cmtt-9">,</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">console</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">su</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Windows</span><span 
+class="cmtt-9">).</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">I</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">livelli</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">sono</span><span 
+class="cmtt-9">:</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2021r21"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">0</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Non</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">loggare</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">nulla</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2022r22"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">1</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Logga</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">gli</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">errori</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2023r23"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">2</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Logga</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">gli</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">errori</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">e</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">i</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">warning</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2024r24"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">3</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Logga</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">gli</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">errori</span><span 
+class="cmtt-9">,</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">i</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">warning</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">e</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">i</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">messaggi</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">di</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">info</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2025r25"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">4</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">-</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Logga</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">errori</span><span 
+class="cmtt-9">,</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">warning</span><span 
+class="cmtt-9">,</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">messaggi</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">di</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">info</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">e</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">messaggi</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">di</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">debug</span><span 
+class="cmtt-9">.</span><span 
+class="cmtt-9">&#x00A0;</span><br /><span class="label"><a 
+ id="x1-2026r26"></a></span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">Default</span><span 
+class="cmtt-9">:</span><span 
+class="cmtt-9">&#x00A0;</span><span 
+class="cmtt-9">2.</span>
+   
+   </div>
+<!--l. 63--><p class="indent" >   Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di
+configurazione.<br 
+class="newline" />Se non viene specificata alcuna root, verrà usata la directory contenente
+l&#8217;eseguibile.
+<!--l. 66--><p class="noindent" >
+   <h4 class="likesubsectionHead"><a 
+ id="x1-3000"></a>Lettura della configurazione</h4>
+<!--l. 68--><p class="noindent" >Se viene utilizzato un file di configurazione con l&#8217;opzione -f, le impostazioni non
+specificate da riga di comando vengono lette dal file dato in input. Questo deve essere
+una sequenza di righe del tipo CHIAVE = VALORE, dove sono accettate le seguenti
+coppie:
+     <ul class="itemize1">
+     <li class="itemize">port = <span 
+class="cmmi-10">&#x003C;</span>numero di porta<span 
+class="cmmi-10">&#x003E;</span>
+     </li>
+     <li class="itemize">multiprocess = yes/no
+     </li>
+     <li class="itemize">verbosity = 1..4
+     </li>
+     <li class="itemize">logfile = <span 
+class="cmmi-10">&#x003C;</span>path<span 
+class="cmmi-10">&#x003E;</span>
+     </li>
+     <li class="itemize">root = <span 
+class="cmmi-10">&#x003C;</span>path<span 
+class="cmmi-10">&#x003E;</span></li></ul>
+                                                                  
+
+                                                                  
+<!--l. 78--><p class="noindent" >La lettura avviene all&#8217;avvio dell&#8217;applicazione e ogniqualvolta venga ricevuto il segnale
+SIGHUP (caso Linux) o CTRL_BREAK (caso Windows) durante il <a 
+href="html/server_8h.html#a533c9a4292e9d1106ff7c54fbf75090a" >main loop</a> del
+server; tuttavia, nel caso in cui si ricarichino le configurazioni mentre il server
+è in esecuzione, non verranno aggiornati né il path di logging né la root
+directory.<br 
+class="newline" />
+    
+</body></html> 
+
+                                                                  
+
+
