@@ -34,7 +34,7 @@ Il programma riconosce le seguenti opzioni da riga di comando:
     3 - Logga gli errori, i warning e i messaggi di info.
     4 - Logga errori, warning, messaggi di info e messaggi di debug.
     Default: 2.
-    ```
+```
     
 Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.\\
 Se non viene specificata alcuna root, verrà usata la directory contenente l'eseguibile.
