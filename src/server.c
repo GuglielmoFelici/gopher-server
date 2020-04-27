@@ -93,6 +93,7 @@ void defaultConfig(server_t* pServer, int which) {
 int readConfig(server_t* pServer, int which) {
     FILE* configFile = NULL;
     char line[MAX_NAME];
+    char* newCwd = NULL;
     int ret = SERVER_SUCCESS;
     if (NULL == (configFile = fopen(configPath, "r"))) {
         return SERVER_FAILURE;
@@ -109,16 +110,13 @@ int readConfig(server_t* pServer, int which) {
                 }
                 pServer->port = port;
             } else if (strcmp(key, CONFIG_LOG_KEY) == 0 && (which & READ_LOG)) {
-                if (logPath) free(logPath);
-                logPath = getRealPath(value, NULL, true);
-                if (NULL == logPath) {
+                string_t newLogPath = getRealPath(value, NULL, true);
+                if (NULL == newLogPath) {
                     debugMessage(LOGFILE_OPEN_ERR, DBG_WARN);
                     ret = SERVER_FAILURE;
-                }
-            } else if (strcmp(key, CONFIG_DIR_KEY) == 0 && (which & READ_DIR)) {
-                if (PLATFORM_SUCCESS != changeCwd(value)) {
-                    debugMessage(MAIN_CWD_ERR, DBG_ERR);
-                    ret = SERVER_FAILURE;
+                } else {
+                    if (logPath) free(logPath);
+                    logPath = newLogPath;
                 }
             } else if (strcmp(key, CONFIG_MP_KEY) == 0 && (which & READ_MULTIPROCESS)) {
                 pServer->multiProcess = strcmp(value, CONFIG_YES) == 0;
@@ -128,12 +126,22 @@ int readConfig(server_t* pServer, int which) {
                     debugMessage(INVALID_DBG_LVL_ERR, DBG_ERR);
                     ret = SERVER_FAILURE;
                 }
+            } else if (strcmp(key, CONFIG_DIR_KEY) == 0 && (which & READ_DIR)) {
+                if (NULL == (newCwd = malloc(strlen(value) + 1))) {
+                    ret = SERVER_FAILURE;
+                } else {
+                    strncpy(newCwd, value, strlen(value) + 1);
+                }
             }
         }
     }
-    if (configFile) {
-        fclose(configFile);
+    // Changing cwd must be last operation
+    if (newCwd && PLATFORM_SUCCESS != changeCwd(newCwd)) {
+        debugMessage(MAIN_CWD_ERR, DBG_ERR);
+        ret = SERVER_FAILURE;
     }
+    if (newCwd) free(newCwd);
+    if (configFile) fclose(configFile);
     return ret;
 }
 

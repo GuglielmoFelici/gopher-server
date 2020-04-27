@@ -26,7 +26,7 @@
     \n\t2 - Errors and warnings\
     \n\t3 - Errors, warning and info\
     \n\t4 - Errors, warning and info and debug\
-    \n\tDefault: 2"
+    \n\tDefault: 2\n"
 #define INVALID_DBG_LVL_ERR "Invalid verbosity level. Accepted values are 0-4"
 #define MAIN_CONFIG_ERR "Can't read some of the file configurations. Default options will be used."
 #define MAIN_MULTIPROCESS_CONFIG_ERR "Can't read configuration file and no option provided, multiprocess will be disabled."
