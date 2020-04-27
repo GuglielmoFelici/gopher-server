@@ -29,7 +29,7 @@ int startTransferLog(logger_t* pLogger) {
     HANDLE readPipe = NULL;
     HANDLE writePipe = NULL;
     HANDLE* pLogMutex = NULL;
-    if (!pLogger) {
+    if (!pLogger || !logPath) {
         goto ON_ERROR;
     }
     pLogger->pid = -1;
@@ -147,7 +147,7 @@ int stopTransferLog(logger_t* pLogger) {
 #include "../headers/platform.h"
 
 int startTransferLog(logger_t* pLogger) {
-    if (!pLogger) {
+    if (!pLogger || !logPath) {
         return LOGGER_FAILURE;
     }
     pLogger->pid = -1;
