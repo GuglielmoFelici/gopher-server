@@ -2,9 +2,8 @@
 
 ## Utilizzo del software
 
-E' possibile compilare il progetto tramite make. La compilazione genera l'eseguibile linuxserver o,
-nel caso in cui si esegua la build su Windows, il file winserver.exe e due binari aggiuntivi.
-Viene effettuato il linking alla libreria pthread su GNU/Linux e alla libreria Winsock (Ws2_32) su Windows.
+E' possibile compilare il progetto tramite make. La compilazione genera l'eseguibile linuxgopher o,
+nel caso in cui si esegua la build su Windows, il file wingopher.exe e due binari aggiuntivi.
 Il programma riconosce le seguenti opzioni da riga di comando:
 
 ```
@@ -36,7 +35,7 @@ Il programma riconosce le seguenti opzioni da riga di comando:
     Default: 2.
 ```
     
-Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.\\
+Le opzioni da riga di comando hanno precedenza su quelle scritte nel file di configurazione.
 Se non viene specificata alcuna root, verrà usata la directory contenente l'eseguibile.
 
 ## Lettura della configurazione
@@ -50,7 +49,3 @@ dove sono accettate le seguenti coppie:
     - verbosity = {1..4}
     - logfile = <path>
     - root = <path>
-    
-La lettura avviene all'avvio dell'applicazione e ogniqualvolta venga ricevuto il segnale 
-SIGHUP (caso Linux) o CTRL_BREAK (caso Windows) durante il main loop del server; tuttavia, nel caso in cui si ricarichino le configurazioni mentre il server è in esecuzione,
-non verranno aggiornati né il path di logging né la root directory.
