@@ -257,8 +257,7 @@ static int serveThread(SOCKET sock, int port, logger_t* pLogger) {
     args->sock = sock;
     args->port = port;
     args->pLogger = pLogger;
-    //ReleaseMutex(*(pLogger->pLogMutex));
-    if (NULL == (thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL))) {  // TODO startThread?
+    if (NULL == (thread = CreateThread(NULL, 0, serveThreadTask, args, 0, NULL))) {
         free(args);
         return SERVER_FAILURE;
     }
@@ -410,7 +409,7 @@ static int serveProc(int client, const logger_t* pLogger, const server_t* pServe
             exit(1);
         }
         gopher(client, pServer->port, pLogger);
-        pthread_exit(0);
+        threadExit();
     } else {
         return SERVER_SUCCESS;
     }

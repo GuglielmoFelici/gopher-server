@@ -135,11 +135,10 @@ int main(int argc, string_t* argv) {
         printf("Port %d\n", server.port);
         debugMessage(MAIN_STARTING, DBG_DEBUG);
     }
-    // TODO riattivare
-    // if (PLATFORM_SUCCESS != daemonize()) {
-    //     debugMessage(MAIN_DAEMON_ERR, DBG_ERR);
-    //     goto ON_ERROR;
-    // }
+    if (PLATFORM_SUCCESS != daemonize()) {
+        debugMessage(MAIN_DAEMON_ERR, DBG_ERR);
+        goto ON_ERROR;
+    }
     logger_t* pLogger = (startTransferLog(&logger) == LOGGER_SUCCESS ? &logger : NULL);
     if (!pLogger) {
         debugMessage(MAIN_START_LOG_ERR, DBG_WARN);

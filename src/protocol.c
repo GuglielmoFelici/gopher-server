@@ -50,7 +50,6 @@ static int normalizePath(string_t str) {
     return GOPHER_SUCCESS;
 }
 
-// TODO
 /** @return true if str represents a valid gopher selector */
 static bool validateInput(cstring_t str) {
     if (!str) {
@@ -219,7 +218,7 @@ static int sendFile(cstring_t path, int sock, const logger_t* pLogger) {
     }
     if (PLATFORM_SUCCESS != getFileMap(path, &map)) {
         debugMessage(FILE_MAP_ERR, DBG_ERR);
-        sendErrorResponse(sock, "Invalid file or file too large.");  // TODO
+        sendErrorResponse(sock, "Invalid file or file too large.");
         goto ON_ERROR;
     }
     if (NULL == (args = malloc(sizeof(send_args_t)))) {
