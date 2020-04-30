@@ -12,7 +12,7 @@ string_t configPath = NULL;
 char cwd[MAX_NAME];
 
 struct switches {
-    /* Directory, file, help, logfile, multiprocess, port, silent */
+    /* Directory, file, help, logfile, multiprocess, port, verbosity */
     bool d, f, h, l, m, p, v;
 };
 
