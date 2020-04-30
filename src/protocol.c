@@ -241,11 +241,6 @@ ON_ERROR:
     return GOPHER_FAILURE;
 }
 
-/** Executes the gopher protocol.
- *  Receives a selector and performs validateInput() and normalizePath(). If the selector points to a directory, calls sendDir().
- *  Else, a file_mapping_t is created using getFileMap() and is sent to the client using sendFile().
- *  @return GOPHER_SUCCESS or GOPHER_FAILURE.
- */
 int gopher(socket_t sock, int port, const logger_t* pLogger) {
     string_t selector = NULL;
     size_t bytesRec = 0, selectorSize = 1;

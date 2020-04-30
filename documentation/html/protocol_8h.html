@@ -171,8 +171,6 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>GOPHER_SUCCESS or GOPHER_FAILURE. <br  />
 </dd></dl>
-<p>Executes the gopher protocol for the client socket sock.</p>
-<p>Receives a selector and performs <a class="el" href="protocol_8c.html#a3e58ddf15d02709ee132dac13d98263c">validateInput()</a> and <a class="el" href="protocol_8c.html#a891da6c8490e699fdf4c10e1275dcf3c" title="Removes CRLF; if str is empty, writes &quot;.&quot; to it; maps all the backslashes to forward slashes; removes...">normalizePath()</a>. If the selector points to a directory, calls <a class="el" href="protocol_8c.html#a57c2a0511da777c6dbcd9f8684308576" title="Builds the file list and sends it to the client.">sendDir()</a>. Else, a <a class="el" href="structfile__mapping__t.html" title="A struct representing a file memory mapping.">file_mapping_t</a> is created using <a class="el" href="platform_8h.html#a257d48e91fab744f0f71ad79f5acfef2" title="Create a file memory mapping.">getFileMap()</a> and is sent to the client using <a class="el" href="protocol_8c.html#a663dcb59fdd194aac429b8e00eaf5bec" title="Starts the file transfer thread, executing sendFileTask().">sendFile()</a>. </p><dl class="section return"><dt>Returns</dt><dd>GOPHER_SUCCESS or GOPHER_FAILURE. </dd></dl>
 
 </div>
 </div>
