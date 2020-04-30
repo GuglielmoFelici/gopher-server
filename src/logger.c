@@ -125,12 +125,12 @@ int stopTransferLog(logger_t* pLogger) {
     return LOGGER_SUCCESS;
 }
 
+#else
+
 /*****************************************************************************************************************/
 /*                                             LINUX FUNCTIONS                                                    */
 
 /*****************************************************************************************************************/
-
-#else
 
 #include <fcntl.h>
 #include <pthread.h>
@@ -145,6 +145,12 @@ int stopTransferLog(logger_t* pLogger) {
 
 #include "../headers/log.h"
 #include "../headers/platform.h"
+
+static sig_atomic volatile loggerShutdown = false;
+
+void loggerIntHandler(int signum) {
+    loggerShutdown = true;
+}
 
 int startTransferLog(logger_t* pLogger) {
     if (!pLogger || !logPath) {
@@ -211,7 +217,7 @@ int startTransferLog(logger_t* pLogger) {
     } else if (pid == 0) {  // Logger
         struct sigaction act;
         memset(&act, 0, sizeof(struct sigaction));
-        act.sa_handler = SIG_DFL;
+        act.sa_handler = &loggerIntHandler;
         if (sigaction(SIGINT, &act, NULL) < 0) {
             goto ON_ERROR;
         }
@@ -282,6 +288,7 @@ int stopTransferLog(logger_t* pLogger) {
     if (pLogger->pid > 0 && kill(pLogger->pid, 0) == 0) {
         if (kill(pLogger->pid, SIGINT) == 0) {
             pLogger->pid = -1;
+            pthread_cond_signal(pLogger->pLogCond);
         } else {
             return LOGGER_FAILURE;
         }
@@ -303,23 +310,24 @@ int stopTransferLog(logger_t* pLogger) {
 }
 
 static void loggerLoop(const logger_t* pLogger, int logFile) {
+    int exitCode = 1;
     char buff[MAX_LINE_SIZE];
-    if (!pLogger || !logPath) {
-        goto ON_ERROR;
+    if (!pLogger || logFile < 0) {
+        goto CLEANUP;
     }
     if (pthread_mutex_lock(pLogger->pLogMutex) != 0) {
         debugMessage(MUTEX_LOCK_ERR, DBG_ERR);
-        goto ON_ERROR;
+        goto CLEANUP;
     }
-    while (1) {
+    while (!loggerShutdown) {
         size_t bytesRead;
         if (pthread_cond_wait(pLogger->pLogCond, pLogger->pLogMutex) != 0) {
             debugMessage(COND_WAIT_ERR, DBG_ERR);
-            goto ON_ERROR;
+            goto CLEANUP;
         }
         if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff) - 3)) < 0) {  // - 3 is for the "..." for long lines
             debugMessage(PIPE_READ_ERR, DBG_ERR);
-            goto ON_ERROR;
+            goto CLEANUP;
         } else {
             struct flock lck;
             lck.l_type = F_WRLCK;
@@ -329,30 +337,35 @@ static void loggerLoop(const logger_t* pLogger, int logFile) {
             lck.l_pid = getpid();
             if (fcntl(logFile, F_SETLKW, &lck) < 0) {
                 debugMessage(FILE_LOCK_ERR, DBG_ERR);
-                goto ON_ERROR;
+                goto CLEANUP;
             }
             if (write(logFile, buff, bytesRead) < 0) {
                 debugMessage(LOGFILE_WRITE_ERR, DBG_ERR);
-                goto ON_ERROR;
+                goto CLEANUP;
             }
             if (bytesRead >= sizeof(buff) - 3) {
                 if (write(logFile, "...", 3) < 0) {
                     debugMessage(LOGFILE_WRITE_ERR, DBG_ERR);
-                    goto ON_ERROR;
+                    goto CLEANUP;
                 }
             }
             lck.l_type = F_UNLCK;
             if (fcntl(logFile, F_SETLK, &lck) < 0) {
                 debugMessage(FILE_UNLOCK_ERR, DBG_ERR);
-                goto ON_ERROR;
+                goto CLEANUP;
             }
         }
     }
-ON_ERROR:
+    exitCode = 0;
+CLEANUP:
     if (logFile > 0) {
         close(logFile);
     }
-    exit(1);
+    if (pLogger) {
+        close(pLogger->logPipe);
+    }
+    kill(getppid(), SIGPIPE);
+    exit(exitCode);
 }
 
 #endif

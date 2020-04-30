@@ -50,7 +50,7 @@ int parseOptions(int argc, string_t* argv, server_t* pServer, struct switches* p
                     return -1;
                 }
                 logPath = getRealPath(optarg, NULL, true);
-                if (NULL == logPath) {
+                if (NULL == logPath || PLATFORM_ISDIR == fileAttributes(logPath)) {
                     fprintf(stderr, "%s\n", LOGFILE_OPEN_ERR);
                     return -1;
                 }
