@@ -102,8 +102,7 @@ int readConfig(server_t* pServer, int which) {
     while (NULL != fgets(line, sizeof(line), configFile)) {
         if (sscanf(line, "%s = %s", key, value) == 2) {
             if (strcmp(key, CONFIG_PORT_KEY) == 0 && (which & READ_PORT)) {
-                int port;
-                port = strtol(value, NULL, 10);
+                int port = strtol(value, NULL, 10);
                 if (port < 1 || port > PORT_MAX) {
                     debugMessage(MAIN_PORT_ERR, DBG_WARN);
                     ret = SERVER_FAILURE;
