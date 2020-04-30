@@ -16,7 +16,7 @@ string_t winLoggerPath = NULL;
  *  If pLogger is NULL or a system error occurs, the function logs and terminates the process with exit code 1
  *  @param pLogger A pointer to the logger_t struct representing a logging process.
 */
-static void loggerLoop(const logger_t* pLogger);
+static void loggerLoop(const logger_t* pLogger, int logFile);
 
 /*****************************************************************************************************************/
 /*                                             WINDOWS FUNCTIONS                                                 */
@@ -151,6 +151,7 @@ int startTransferLog(logger_t* pLogger) {
         return LOGGER_FAILURE;
     }
     pLogger->pid = -1;
+    int logFile = -1;
     int pipeFd[2] = {-1, -1};
     pthread_mutex_t* pMutex = NULL;
     pthread_cond_t* pCond = NULL;
@@ -158,6 +159,11 @@ int startTransferLog(logger_t* pLogger) {
     pthread_mutexattr_t mutexAttr;
     pthread_cond_t cond;
     pthread_condattr_t condAttr;
+    if ((logFile = open(logPath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
+        debugMessage(LOGFILE_OPEN_ERR, DBG_ERR);
+        goto ON_ERROR;
+    }
+    free(logPath);
     pMutex = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (MAP_FAILED == pMutex) {
         goto ON_ERROR;
@@ -214,12 +220,13 @@ int startTransferLog(logger_t* pLogger) {
         }
         pLogger->pid = getpid();
         pLogger->logPipe = pipeFd[0];
-        loggerLoop(pLogger);
+        loggerLoop(pLogger, logFile);
     } else {  // Server
         sigprocmask(SIG_UNBLOCK, &set, NULL);
         if (close(pipeFd[0]) < 0) {
             debugMessage(PIPE_CLOSE_ERR, DBG_WARN);
         }
+        close(logFile);
         pLogger->logPipe = pipeFd[1];
         pLogger->pid = pid;
         return LOGGER_SUCCESS;
@@ -227,6 +234,9 @@ int startTransferLog(logger_t* pLogger) {
 ON_ERROR:
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
+    if (logFile > 0) {
+        close(logFile);
+    }
     if (pMutex && MAP_FAILED != pMutex) {
         munmap(pLogger, sizeof(pthread_mutex_t));
     }
@@ -292,20 +302,11 @@ int stopTransferLog(logger_t* pLogger) {
     return LOGGER_SUCCESS;
 }
 
-static void loggerLoop(const logger_t* pLogger) {
-    int logFile = -1;
+static void loggerLoop(const logger_t* pLogger, int logFile) {
     char buff[MAX_LINE_SIZE];
-    if (!pLogger) {
+    if (!pLogger || !logPath) {
         goto ON_ERROR;
     }
-    if (!logPath) {
-        goto ON_ERROR;
-    }
-    if ((logFile = open(logPath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
-        debugMessage(LOGFILE_OPEN_ERR, DBG_ERR);
-        goto ON_ERROR;
-    }
-    free(logPath);
     if (pthread_mutex_lock(pLogger->pLogMutex) != 0) {
         debugMessage(MUTEX_LOCK_ERR, DBG_ERR);
         goto ON_ERROR;
