@@ -16,6 +16,7 @@
 
 static sig_atomic volatile updateConfig = false;
 static sig_atomic volatile requestShutdown = false;
+static sig_atomic volatile isLoggerActive = true;
 
 /** A struct defining the arguments required by the children threads to serve the client*/
 typedef struct {
@@ -159,6 +160,9 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     while (true) {
         do {
             waitChildren();
+            if (!isLoggerActive) {
+                pLogger = NULL;
+            }
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
@@ -344,6 +348,10 @@ static void intHandler(int signum) {
     requestShutdown = true;
 }
 
+static void pipeHandler(int signum) {
+    isLoggerActive = false;
+}
+
 static int installSigHandler(int sig, void (*func)(int), int flags) {
     struct sigaction sigact;
     memset(&sigact, 0, sizeof(struct sigaction));
@@ -354,6 +362,9 @@ static int installSigHandler(int sig, void (*func)(int), int flags) {
 
 int installDefaultSigHandlers() {
     if (SERVER_SUCCESS != installSigHandler(SIGINT, &intHandler, 0)) {
+        return SERVER_FAILURE;
+    }
+    if (SERVER_SUCCESS != installSigHandler(SIGPIPE, &pipeHandler, 0)) {
         return SERVER_FAILURE;
     }
     return installSigHandler(SIGHUP, &hupHandler, SA_NODEFER);

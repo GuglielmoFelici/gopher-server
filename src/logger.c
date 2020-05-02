@@ -142,10 +142,13 @@ int stopTransferLog(logger_t* pLogger) {
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "../headers/log.h"
 #include "../headers/platform.h"
+
+#define LOG_MUTEX_TIMEOUT 20
 
 static sig_atomic volatile loggerShutdown = false;
 
@@ -230,12 +233,6 @@ int startTransferLog(logger_t* pLogger) {
         loggerLoop(pLogger, logFile);
     } else {  // Server
         sigprocmask(SIG_UNBLOCK, &set, NULL);
-        if (sigaddset(&set, SIGPIPE) < 0) {
-            return LOGGER_FAILURE;
-        }
-        if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
-            return LOGGER_FAILURE;
-        }
         if (close(pipeFd[0]) < 0) {
             debugMessage(PIPE_CLOSE_ERR, DBG_WARN);
         }
@@ -269,12 +266,15 @@ int logTransfer(const logger_t* pLogger, const char* log) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
-    if (write(pLogger->logPipe, log, strlen(log)) < 0) {
-        debugMessage(LOGFILE_WRITE_ERR, DBG_ERR);
+    struct timespec timeoutTime;
+    clock_gettime(CLOCK_REALTIME, &timeoutTime);
+    timeoutTime.tv_sec += LOG_MUTEX_TIMEOUT;
+    if (pthread_mutex_timedlock(pLogger->pLogMutex, &timeoutTime) != 0) {
+        debugMessage(MUTEX_LOCK_ERR, DBG_ERR);
         return LOGGER_FAILURE;
     }
-    if (!pthread_mutex_lock(pLogger->pLogMutex) < 0) {
-        debugMessage(MUTEX_LOCK_ERR, DBG_ERR);
+    if (write(pLogger->logPipe, log, strlen(log)) < 0) {
+        debugMessage(LOGFILE_WRITE_ERR, DBG_ERR);
         return LOGGER_FAILURE;
     }
     if (pthread_cond_signal(pLogger->pLogCond) < 0) {
