@@ -11,6 +11,7 @@
 string_t logPath = NULL;
 /** Path to the windows logger executable*/
 string_t winLoggerPath = NULL;
+sig_atomic volatile isLoggerActive = true;
 
 /** [Linux] Starts the main logging process loop.
  *  If pLogger is NULL or a system error occurs, the function logs and terminates the process with exit code 1
@@ -166,10 +167,10 @@ int startTransferLog(logger_t* pLogger) {
     pthread_cond_t cond;
     pthread_condattr_t condAttr;
     if ((logFile = open(logPath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
+        free(logPath);
         debugMessage(LOGFILE_OPEN_ERR, DBG_ERR);
         goto ON_ERROR;
     }
-    free(logPath);
     pMutex = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (MAP_FAILED == pMutex) {
         goto ON_ERROR;
@@ -229,6 +230,12 @@ int startTransferLog(logger_t* pLogger) {
         loggerLoop(pLogger, logFile);
     } else {  // Server
         sigprocmask(SIG_UNBLOCK, &set, NULL);
+        if (sigaddset(&set, SIGPIPE) < 0) {
+            return LOGGER_FAILURE;
+        }
+        if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+            return LOGGER_FAILURE;
+        }
         if (close(pipeFd[0]) < 0) {
             debugMessage(PIPE_CLOSE_ERR, DBG_WARN);
         }
@@ -262,12 +269,12 @@ int logTransfer(const logger_t* pLogger, const char* log) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
-    if (!pthread_mutex_lock(pLogger->pLogMutex) < 0) {
-        debugMessage(MUTEX_LOCK_ERR, DBG_ERR);
-        return LOGGER_FAILURE;
-    }
     if (write(pLogger->logPipe, log, strlen(log)) < 0) {
         debugMessage(LOGFILE_WRITE_ERR, DBG_ERR);
+        return LOGGER_FAILURE;
+    }
+    if (!pthread_mutex_lock(pLogger->pLogMutex) < 0) {
+        debugMessage(MUTEX_LOCK_ERR, DBG_ERR);
         return LOGGER_FAILURE;
     }
     if (pthread_cond_signal(pLogger->pLogCond) < 0) {
@@ -325,6 +332,9 @@ static void loggerLoop(const logger_t* pLogger, int logFile) {
             debugMessage(COND_WAIT_ERR, DBG_ERR);
             goto CLEANUP;
         }
+        if (loggerShutdown) {
+            goto CLEANUP;
+        }
         if ((bytesRead = read(pLogger->logPipe, buff, sizeof(buff) - 3)) < 0) {  // - 3 is for the "..." for long lines
             debugMessage(PIPE_READ_ERR, DBG_ERR);
             goto CLEANUP;
@@ -364,7 +374,6 @@ CLEANUP:
     if (pLogger) {
         close(pLogger->logPipe);
     }
-    kill(getppid(), SIGPIPE);
     exit(exitCode);
 }
 

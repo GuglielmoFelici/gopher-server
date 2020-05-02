@@ -137,6 +137,7 @@ ON_ERROR:
 
 static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t path, int64_t bytesSent) {
     if (!pLogger) {
+        closeSocket(sock);
         return;
     }
     struct sockaddr_in clientAddr;
@@ -146,6 +147,7 @@ static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t pat
     if (SOCKET_ERROR == getpeername(sock, (struct sockaddr*)&clientAddr, &clientLen)) {
         memset(&clientAddr, 0, clientLen);
     }
+    closeSocket(sock);
     inetNtoa(&clientAddr.sin_addr, address, sizeof(address));
     string_t logFormat = "File: %s | Size: %lldb | Sent to: %s:%i\n";
     size_t logSize;
