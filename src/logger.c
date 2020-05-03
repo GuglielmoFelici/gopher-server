@@ -6,6 +6,7 @@
 #include "../headers/globals.h"
 
 #define MAX_LINE_SIZE 200
+#define LOG_MUTEX_TIMEOUT_SEC 20
 
 /** Path to the logfile */
 string_t logPath = NULL;
@@ -95,7 +96,9 @@ int logTransfer(const logger_t* pLogger, LPCSTR log) {
     if (!pLogger) {
         return LOGGER_FAILURE;
     }
-    WaitForSingleObject(*(pLogger->pLogMutex), INFINITE);
+    if (WAIT_OBJECT_0 != WaitForSingleObject(*(pLogger->pLogMutex), LOG_MUTEX_TIMEOUT_SEC * 1000)) {
+        return LOGGER_FAILURE;
+    }
     if (!WriteFile(pLogger->logPipe, log, strlen(log), &written, NULL)) {
         return LOGGER_FAILURE;
     }
@@ -147,8 +150,6 @@ int stopTransferLog(logger_t* pLogger) {
 
 #include "../headers/log.h"
 #include "../headers/platform.h"
-
-#define LOG_MUTEX_TIMEOUT 20
 
 static sig_atomic volatile loggerShutdown = false;
 
@@ -268,7 +269,7 @@ int logTransfer(const logger_t* pLogger, const char* log) {
     }
     struct timespec timeoutTime;
     clock_gettime(CLOCK_REALTIME, &timeoutTime);
-    timeoutTime.tv_sec += LOG_MUTEX_TIMEOUT;
+    timeoutTime.tv_sec += LOG_MUTEX_TIMEOUT_SEC;
     if (pthread_mutex_timedlock(pLogger->pLogMutex, &timeoutTime) != 0) {
         debugMessage(MUTEX_LOCK_ERR, DBG_ERR);
         return LOGGER_FAILURE;
