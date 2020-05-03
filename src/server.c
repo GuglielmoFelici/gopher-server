@@ -160,9 +160,6 @@ int runServer(server_t* pServer, logger_t* pLogger) {
     while (true) {
         do {
             waitChildren();
-            if (!isLoggerActive) {
-                pLogger = NULL;
-            }
             if (SOCKET_ERROR == ready && EINTR != sockErr()) {
                 return SERVER_FAILURE;
             } else if (checkSignal(CHECK_SHUTDOWN)) {
@@ -184,6 +181,9 @@ int runServer(server_t* pServer, logger_t* pLogger) {
             FD_SET(pServer->sock, &incomingConnections);
         } while ((ready = select(pServer->sock + 1, &incomingConnections, NULL, NULL, &timeOut)) <= 0);
         debugMessage(INCOMING_CONNECTION, DBG_DEBUG);
+        if (!isLoggerActive) {
+            pLogger = NULL;
+        }
         socket_t client = accept(pServer->sock, NULL, NULL);
         if (INVALID_SOCKET == client) {
             debugMessage(SERVE_CLIENT_ERR, DBG_WARN);
