@@ -161,9 +161,7 @@ int main(int argc, string_t* argv) {
     if (winLoggerPath) free(winLoggerPath);
     threadExit();
 ON_ERROR:
-    if (debugLevel != DBG_NO) {
-        debugMessage(TERMINATE_WITH_ERRORS, DBG_ERR);
-    }
+    debugMessage(TERMINATE_WITH_ERRORS, DBG_ERR);
     if (configPath) free(configPath);
     if (logPath) free(logPath);
     if (winHelperPath) free(winHelperPath);
