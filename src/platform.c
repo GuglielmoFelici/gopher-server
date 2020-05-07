@@ -192,7 +192,7 @@ int getFileMap(LPCSTR path, file_mapping_t *mapData) {
         goto ON_ERROR;
     }
     mapData->view = view;
-    mapData->size = fileSize.LowPart;
+    mapData->size = fileSize.QuadPart;
     return PLATFORM_SUCCESS;
 ON_ERROR:
     if (file) {
