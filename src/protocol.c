@@ -175,8 +175,6 @@ static void sendFileTaskLog(const logger_t* pLogger, socket_t sock, string_t pat
 static void* sendFileTask(void* threadArgs) {
     send_args_t args;
     struct sockaddr_in clientAddr;
-    int clientLen;
-    char address[16];
     if (!threadArgs) goto CLEANUP;
     args = *(send_args_t*)threadArgs;
     if (
@@ -188,15 +186,10 @@ static void* sendFileTask(void* threadArgs) {
     if (args.src) {
         unmapMem(args.src, args.size);
     }
-    clientLen = sizeof(clientAddr);
-    if (SOCKET_ERROR == getpeername(args.dest, (struct sockaddr*)&clientAddr, &clientLen)) {
-        memset(&clientAddr, 0, clientLen);
-    }
     sendFileTaskLog(args.pLogger, args.dest, args.path, args.size);
 CLEANUP:
     if (threadArgs) free(threadArgs);
     if (args.src) unmapMem(args.src, args.size);
-    closeSocket(args.dest);
 }
 
 /** Starts the file transfer thread, executing sendFileTask().

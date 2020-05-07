@@ -2,6 +2,7 @@ objects = src/main.o src/platform.o src/protocol.o src/server.o src/logger.o src
 winHelperObjects = src/helpers/winGopherProcess.o src/platform.o src/protocol.o src/logger.o
 winLoggerObjects = src/helpers/winLogger.o
 CC = gcc
+CFLAGS = -Wall
 
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
 	target = wingopher.exe

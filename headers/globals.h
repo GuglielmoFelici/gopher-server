@@ -26,7 +26,6 @@
 #define DEFAULT_MULTI_PROCESS 0
 #define DEFAULT_PORT 7070
 
-#define CONFIG_DEFAULT "config"
 #define CONFIG_PORT_KEY "port"
 #define CONFIG_LOG_KEY "logfile"
 #define CONFIG_DIR_KEY "root"
@@ -42,8 +41,7 @@
 
 #define PORT_MAX 0xFFFF
 
-
-/** Turn off with option -s (silent) to disable debug logging. */
+/** The amount of log messages. */
 extern int debugLevel;
 
 /** The path to the configuration file */

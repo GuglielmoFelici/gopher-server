@@ -60,7 +60,7 @@ static char* extensions[EXT_NO] = {".txt", ".doc", ".odt", ".rtf",
 #define FILE_CMD_TXT "text"
 
 /** Executes the gopher protocol for the client socket sock. Sock will be closed when the function returns.
-* The function can spawn a helper thread to send a file, so the transmission will be aborted if the process termiates.
+* The function can spawn a helper thread to send a file, so the transmission will be aborted if the process terminates.
 * @param sock the connected socket of the client
 * @param port the port where the resources can be found
 * @param pLogger an optional pointer to a logger_t struct used for logging the transfer.

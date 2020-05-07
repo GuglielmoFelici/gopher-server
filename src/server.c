@@ -285,9 +285,6 @@ static int serveProc(SOCKET client, const logger_t* pLogger, const server_t* pSe
     if (!pServer) {
         goto ON_ERROR;
     }
-    if (pLogger) {
-        logPipe = pLogger->logPipe;
-    }
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
     memset(&startupInfo, 0, sizeof(startupInfo));

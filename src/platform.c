@@ -14,7 +14,7 @@ bool endsWith(cstring_t str1, cstring_t str2) {
 int sendAll(socket_t s, cstring_t data, int64_t length) {
     int64_t count = 0, sent = 0, remaining = length;
     while (count < length) {
-        int sent = send(s, data + count, remaining, MSG_NOSIGNAL);
+        sent = send(s, data + count, remaining, MSG_NOSIGNAL);
         if (sent == SOCKET_ERROR) {
             return PLATFORM_FAILURE;
         }
