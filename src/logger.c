@@ -171,7 +171,6 @@ int startTransferLog(logger_t* pLogger) {
     pthread_cond_t cond;
     pthread_condattr_t condAttr;
     if ((logFile = open(logPath, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IROTH)) < 0) {
-        free(logPath);
         debugMessage(LOGFILE_OPEN_ERR, DBG_ERR);
         goto ON_ERROR;
     }
