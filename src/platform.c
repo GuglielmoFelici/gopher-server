@@ -394,7 +394,6 @@ string_t getRealPath(cstring_t relative, string_t absolute, bool acceptAbsent) {
     } else if (attr & PLATFORM_NOT_FOUND && acceptAbsent) {
         int fd = creat(relative, S_IRWXU);
         if (fd < 0) {
-            char str[200];
             return NULL;
         }
         close(fd);
