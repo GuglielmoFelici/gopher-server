@@ -384,7 +384,6 @@ static bool checkSignal(int which) {
 static void* serveThreadTask(void* args) {
     pthread_detach(pthread_self());
     int sock;
-    sigset_t set;
     server_thread_args_t tArgs = *(server_thread_args_t*)args;
     free(args);
     gopher(tArgs.sock, tArgs.port, tArgs.pLogger);
